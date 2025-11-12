@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>소설 내지 생성기 (B6 문고판)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Serif KR', serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        /* 입력 단계 */
+        .input-section {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .input-section h1 {
+            font-size: 24px;
+            font-weight: 300;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .input-section .version {
+            font-size: 12px;
+            font-weight: 200;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+
+        .input-section textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Noto Serif KR', serif;
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.8;
+            resize: vertical;
+        }
+
+        .input-info {
+            margin: 15px 0;
+            display: flex;
+            gap: 15px;
+        }
+
+        .input-info input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Noto Serif KR', serif;
+            font-size: 14px;
+            font-weight: 300;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 15px;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Noto Serif KR', serif;
+            font-size: 16px;
+            font-weight: 300;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: #34495e;
+        }
+
+        /* 편집 단계 */
+        .editor-section {
+            display: none;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .editor-header {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .editor-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn-secondary {
+            padding: 10px 20px;
+            background: white;
+            color: #2c3e50;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Noto Serif KR', serif;
+            font-size: 14px;
+            font-weight: 300;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: #f8f9fa;
+            border-color: #2c3e50;
+        }
+
+        .btn-secondary.active {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+
+        .highlight-colors {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-left: 10px;
+        }
+
+        .color-btn {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .color-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .color-btn.active {
+            border-color: #2c3e50;
+            border-width: 3px;
+        }
+
+        /* 페이지 - B6 문고판 (128×188mm) */
+        .page-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .book-page {
+            width: 384px;
+            height: 564px;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            position: relative;
+            padding: 55px 65px 70px 65px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page-content {
+            flex: 1;
+            font-family: 'Noto Serif KR', serif;
+            font-size: 12px;
+            font-weight: 200;
+            line-height: 1.85;
+            text-align: justify;
+            color: #2c3e50;
+            letter-spacing: -0.02em;
+            word-break: keep-all;
+            overflow: hidden;
+            user-select: text;
+            cursor: text;
+        }
+
+        .page-content p {
+            text-indent: 1em;
+            margin-bottom: 0.7em;
+        }
+
+        .page-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .highlight {
+            background: rgba(255, 235, 59, 0.4);
+            padding: 2px 0;
+            border-radius: 2px;
+        }
+
+        .highlight.pink {
+            background: rgba(255, 182, 193, 0.4);
+        }
+
+        .highlight.mint {
+            background: rgba(178, 255, 222, 0.4);
+        }
+
+        .highlight.blue {
+            background: rgba(173, 216, 230, 0.4);
+        }
+
+        .page-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 9px;
+            font-weight: 200;
+            color: #7f8c8d;
+            margin-top: 18px;
+            padding-top: 15px;
+            border-top: 1px solid #ecf0f1;
+        }
+
+        .page-number {
+            text-align: center;
+            flex: 1;
+        }
+
+        .page-navigation {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .nav-btn {
+            padding: 10px 30px;
+            background: white;
+            color: #2c3e50;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Noto Serif KR', serif;
+            font-size: 14px;
+            font-weight: 300;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: #f8f9fa;
+            border-color: #2c3e50;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* 반응형 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .book-page {
+                width: 100%;
+                max-width: 384px;
+                height: auto;
+                aspect-ratio: 128/188;
+            }
+
+            .input-section {
+                padding: 20px;
+            }
+
+            .editor-controls {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 입력 단계 -->
+    <div class="input-section" id="inputSection">
+        <h1>소설 내지 생성기</h1>
+        <div class="version">B6 문고판 (128×188mm)</div>
+        <textarea id="textInput" placeholder="소설 텍스트를 입력하세요...
+
+엔터 한 번으로 문단이 구분됩니다."></textarea>
+        <div class="input-info">
+            <input type="text" id="bookTitle" placeholder="제작자" value="">
+            <input type="text" id="authorName" placeholder="캐릭터" value="">
+        </div>
+        <button class="btn-primary" onclick="generatePages()">페이지 생성</button>
+    </div>
+
+    <!-- 편집 단계 -->
+    <div class="editor-section" id="editorSection">
+        <div class="editor-header">
+            <div class="editor-controls">
+                <button class="btn-secondary" id="highlightBtn" onclick="toggleHighlightMode()">
+                    형광펜 모드
+                </button>
+                <div class="highlight-colors" id="colorPicker" style="display: none;">
+                    <span style="font-size: 12px; color: #7f8c8d;">색상:</span>
+                    <div class="color-btn active" style="background: rgba(255, 235, 59, 0.6);" onclick="selectColor('yellow')"></div>
+                    <div class="color-btn" style="background: rgba(255, 182, 193, 0.6);" onclick="selectColor('pink')"></div>
+                    <div class="color-btn" style="background: rgba(178, 255, 222, 0.6);" onclick="selectColor('mint')"></div>
+                    <div class="color-btn" style="background: rgba(173, 216, 230, 0.6);" onclick="selectColor('blue')"></div>
+                </div>
+                <button class="btn-secondary" onclick="downloadCurrentPage()">
+                    현재 페이지 다운로드
+                </button>
+                <button class="btn-secondary" onclick="downloadAllPages()">
+                    전체 페이지 다운로드
+                </button>
+                <button class="btn-secondary" onclick="resetToInput()">
+                    새로 만들기
+                </button>
+            </div>
+        </div>
+
+        <div class="page-navigation">
+            <button class="nav-btn" id="prevBtn" onclick="changePage(-1)">◀ 이전</button>
+            <span id="pageIndicator" style="font-size: 14px; color: #7f8c8d; font-weight: 300;">1 / 1</span>
+            <button class="nav-btn" id="nextBtn" onclick="changePage(1)">다음 ▶</button>
+        </div>
+
+        <div class="page-container" id="pageContainer"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        // 전역 변수
+        let pages = [];
+        let currentPage = 0;
+        let highlightMode = false;
+        let currentColor = 'yellow';
+        let bookTitle = '';
+        let authorName = '';
+        let pageHighlights = {};
+
+        // 페이지 생성 - 줄 수 기반 (17줄)
+        function generatePages() {
+            const text = document.getElementById('textInput').value.trim();
+            bookTitle = document.getElementById('bookTitle').value.trim();
+            authorName = document.getElementById('authorName').value.trim();
+
+            if (!text) {
+                alert('텍스트를 입력해주세요.');
+                return;
+            }
+
+            // 문단 분리
+            const paragraphs = text.split('\n').filter(p => p.trim());
+            
+            // 페이지 분할 (실제 렌더링 높이 기반)
+            pages = splitIntoPages(paragraphs);
+
+            // 화면 전환
+            document.getElementById('inputSection').style.display = 'none';
+            document.getElementById('editorSection').style.display = 'block';
+            
+            currentPage = 0;
+            pageHighlights = {};
+            renderPage();
+        }
+
+        // 실제 렌더링 높이 기반으로 페이지 분할
+        function splitIntoPages(paragraphs) {
+            const pages = [];
+            
+            // 임시 측정용 페이지 생성 (실제 페이지와 동일한 구조)
+            const tempPage = document.createElement('div');
+            tempPage.style.cssText = `
+                position: absolute;
+                visibility: hidden;
+                width: 254px;
+                font-family: 'Noto Serif KR', serif;
+                font-size: 12px;
+                font-weight: 200;
+                line-height: 1.85;
+                text-align: justify;
+                letter-spacing: -0.02em;
+                word-break: keep-all;
+            `;
+            document.body.appendChild(tempPage);
+            
+            // 페이지 콘텐츠 최대 높이 (실제 측정)
+            const maxHeight = 420; // B6 페이지에서 콘텐츠가 들어갈 수 있는 높이 (여유 조정)
+            console.log('페이지 최대 높이:', maxHeight);
+            
+            let remainingParagraphs = [...paragraphs];
+            let pageNum = 0;
+            
+            while (remainingParagraphs.length > 0) {
+                pageNum++;
+                console.log(`\n📄 페이지 ${pageNum} 생성 중...`);
+                
+                tempPage.innerHTML = '';
+                const currentPageContent = [];
+                
+                // 문단을 하나씩 추가하면서 높이 체크
+                for (let i = 0; i < remainingParagraphs.length; i++) {
+                    const para = remainingParagraphs[i];
+                    
+                    // 임시로 추가
+                    const p = document.createElement('p');
+                    p.style.cssText = 'text-indent: 1em; margin-bottom: 0.7em;';
+                    p.textContent = para;
+                    tempPage.appendChild(p);
+                    
+                    // 높이 체크
+                    if (tempPage.scrollHeight > maxHeight) {
+                        console.log(`⚠️ 높이 초과: ${tempPage.scrollHeight}px > ${maxHeight}px`);
+                        
+                        // 방금 추가한 문단 제거
+                        tempPage.removeChild(p);
+                        
+                        // 현재까지의 내용을 페이지로 저장
+                        if (currentPageContent.length > 0) {
+                            pages.push([...currentPageContent]);
+                            remainingParagraphs = remainingParagraphs.slice(i);
+                            console.log(`✅ 페이지 저장 (${currentPageContent.length}개 문단)`);
+                            break;
+                        } else {
+                            // 첫 문단부터 넘치는 경우 - 문단을 쪼개야 함
+                            console.log('🔪 문단이 너무 김 - 분할 필요');
+                            const splitResult = splitLongParagraph(para, maxHeight, tempPage);
+                            
+                            if (splitResult.fitted) {
+                                pages.push([splitResult.fitted]);
+                                remainingParagraphs[0] = splitResult.remaining;
+                                console.log(`✅ 문단 분할 저장`);
+                                break;
+                            } else {
+                                // 분할도 실패 - 강제로 넣기
+                                pages.push([para]);
+                                remainingParagraphs = remainingParagraphs.slice(1);
+                                console.log(`⚠️ 강제 저장`);
+                                break;
+                            }
+                        }
+                    } else {
+                        // 높이 OK - 계속 추가
+                        currentPageContent.push(para);
+                        console.log(`+ 문단 추가 (현재 ${tempPage.scrollHeight}px)`);
+                        
+                        // 마지막 문단이면 페이지 저장
+                        if (i === remainingParagraphs.length - 1) {
+                            pages.push([...currentPageContent]);
+                            remainingParagraphs = [];
+                            console.log(`✅ 마지막 페이지 저장`);
+                        }
+                    }
+                }
+            }
+            
+            // 정리
+            document.body.removeChild(tempPage);
+            console.log(`\n🎉 총 ${pages.length}페이지 생성 완료!`);
+            
+            return pages;
+        }
+        
+        // 긴 문단을 두 부분으로 분할
+        function splitLongParagraph(paragraph, maxHeight, container) {
+            // 문장 단위로 분할 시도
+            const sentences = paragraph.match(/[^.!?]+[.!?]+/g) || [paragraph];
+            
+            if (sentences.length > 1) {
+                // 문장별로 추가하면서 최대한 채우기
+                container.innerHTML = '';
+                let fitted = [];
+                
+                for (let i = 0; i < sentences.length; i++) {
+                    const p = document.createElement('p');
+                    p.style.cssText = 'text-indent: 1em; margin-bottom: 0.7em;';
+                    p.textContent = [...fitted, sentences[i]].join('');
+                    container.innerHTML = '';
+                    container.appendChild(p);
+                    
+                    if (container.scrollHeight <= maxHeight) {
+                        fitted.push(sentences[i]);
+                    } else {
+                        break;
+                    }
+                }
+                
+                if (fitted.length > 0) {
+                    return {
+                        fitted: fitted.join(''),
+                        remaining: sentences.slice(fitted.length).join('')
+                    };
+                }
+            }
+            
+            // 문장 분할 실패 - 단어 단위로 시도
+            const words = paragraph.split(' ');
+            if (words.length > 1) {
+                container.innerHTML = '';
+                let fitted = [];
+                
+                for (let i = 0; i < words.length; i++) {
+                    const p = document.createElement('p');
+                    p.style.cssText = 'text-indent: 1em; margin-bottom: 0.7em;';
+                    p.textContent = [...fitted, words[i]].join(' ');
+                    container.innerHTML = '';
+                    container.appendChild(p);
+                    
+                    if (container.scrollHeight <= maxHeight) {
+                        fitted.push(words[i]);
+                    } else {
+                        break;
+                    }
+                }
+                
+                if (fitted.length > 0) {
+                    return {
+                        fitted: fitted.join(' '),
+                        remaining: words.slice(fitted.length).join(' ')
+                    };
+                }
+            }
+            
+            // 모든 분할 실패
+            return { fitted: null, remaining: paragraph };
+        }
+
+        // 현재 페이지 렌더링
+        function renderPage() {
+            const container = document.getElementById('pageContainer');
+            container.innerHTML = '';
+
+            const pageDiv = document.createElement('div');
+            pageDiv.className = 'book-page';
+            pageDiv.id = 'currentPage';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'page-content';
+            contentDiv.id = 'pageContent';
+
+            // 저장된 HTML이 있으면 복원, 없으면 새로 생성
+            if (pageHighlights[currentPage]) {
+                contentDiv.innerHTML = pageHighlights[currentPage];
+            } else {
+                pages[currentPage].forEach(para => {
+                    const p = document.createElement('p');
+                    p.textContent = para;
+                    contentDiv.appendChild(p);
+                });
+            }
+
+            // Footer
+            const footer = document.createElement('div');
+            footer.className = 'page-footer';
+            const leftText = bookTitle ? `<span>${bookTitle}</span>` : '<span></span>';
+            const rightText = authorName ? `<span>${authorName}</span>` : '<span></span>';
+            footer.innerHTML = `
+                ${leftText}
+                <span class="page-number">${currentPage + 1}</span>
+                ${rightText}
+            `;
+
+            pageDiv.appendChild(contentDiv);
+            pageDiv.appendChild(footer);
+            container.appendChild(pageDiv);
+
+            // 네비게이션 업데이트
+            document.getElementById('pageIndicator').textContent = `${currentPage + 1} / ${pages.length}`;
+            document.getElementById('prevBtn').disabled = currentPage === 0;
+            document.getElementById('nextBtn').disabled = currentPage === pages.length - 1;
+
+            // 형광펜 모드 유지
+            if (highlightMode) {
+                enableHighlightMode();
+            }
+        }
+
+        // 페이지 이동
+        function changePage(direction) {
+            // 현재 페이지 저장
+            const content = document.getElementById('pageContent');
+            if (content) {
+                pageHighlights[currentPage] = content.innerHTML;
+            }
+
+            const newPage = currentPage + direction;
+            if (newPage >= 0 && newPage < pages.length) {
+                currentPage = newPage;
+                renderPage();
+            }
+        }
+
+        // 형광펜 모드
+        function toggleHighlightMode() {
+            highlightMode = !highlightMode;
+            const btn = document.getElementById('highlightBtn');
+            const colorPicker = document.getElementById('colorPicker');
+            
+            if (highlightMode) {
+                btn.classList.add('active');
+                btn.textContent = '형광펜 모드 (ON)';
+                colorPicker.style.display = 'flex';
+                enableHighlightMode();
+            } else {
+                btn.classList.remove('active');
+                btn.textContent = '형광펜 모드';
+                colorPicker.style.display = 'none';
+                disableHighlightMode();
+            }
+        }
+
+        function selectColor(color) {
+            currentColor = color;
+            document.querySelectorAll('.color-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function enableHighlightMode() {
+            document.addEventListener('mouseup', handleTextSelection);
+        }
+
+        function disableHighlightMode() {
+            document.removeEventListener('mouseup', handleTextSelection);
+        }
+
+        function handleTextSelection() {
+            if (!highlightMode) return;
+
+            const selection = window.getSelection();
+            if (selection.toString().trim().length === 0) return;
+
+            const range = selection.getRangeAt(0);
+            const span = document.createElement('span');
+            span.className = `highlight ${currentColor}`;
+            
+            try {
+                range.surroundContents(span);
+                selection.removeAllRanges();
+                
+                // 상태 저장
+                const content = document.getElementById('pageContent');
+                if (content) {
+                    pageHighlights[currentPage] = content.innerHTML;
+                }
+            } catch (e) {
+                console.log('하이라이트 적용 실패');
+            }
+        }
+
+        // 다운로드
+        async function downloadCurrentPage() {
+            const page = document.getElementById('currentPage');
+            const canvas = await html2canvas(page, {
+                scale: 2,
+                backgroundColor: '#ffffff'
+            });
+            
+            const link = document.createElement('a');
+            const fileName = bookTitle || '소설';
+            link.download = `${fileName}_${currentPage + 1}페이지.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        async function downloadAllPages() {
+            if (!confirm(`총 ${pages.length}개의 페이지를 다운로드하시겠습니까?`)) {
+                return;
+            }
+
+            const fileName = bookTitle || '소설';
+
+            for (let i = 0; i < pages.length; i++) {
+                currentPage = i;
+                renderPage();
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                const page = document.getElementById('currentPage');
+                const canvas = await html2canvas(page, {
+                    scale: 2,
+                    backgroundColor: '#ffffff'
+                });
+                
+                const link = document.createElement('a');
+                link.download = `${fileName}_${i + 1}페이지.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+
+            alert('모든 페이지 다운로드가 완료되었습니다!');
+            currentPage = 0;
+            renderPage();
+        }
+
+        // 초기화
+        function resetToInput() {
+            if (confirm('처음부터 다시 시작하시겠습니까?')) {
+                document.getElementById('inputSection').style.display = 'block';
+                document.getElementById('editorSection').style.display = 'none';
+                document.getElementById('textInput').value = '';
+                document.getElementById('bookTitle').value = '';
+                document.getElementById('authorName').value = '';
+                pages = [];
+                currentPage = 0;
+                highlightMode = false;
+                pageHighlights = {};
+            }
+        }
+    </script>
+</body>
+</html>
