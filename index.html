@@ -402,7 +402,7 @@
             document.body.appendChild(tempPage);
             
             // 페이지 콘텐츠 최대 높이 (실제 측정)
-            const maxHeight = 420; // B6 페이지에서 콘텐츠가 들어갈 수 있는 높이 (여유 조정)
+            const maxHeight = 408; // B6 페이지에서 콘텐츠가 들어갈 수 있는 높이
             console.log('페이지 최대 높이:', maxHeight);
             
             let remainingParagraphs = [...paragraphs];
@@ -421,22 +421,56 @@
                     
                     // 임시로 추가
                     const p = document.createElement('p');
-                    p.style.cssText = 'text-indent: 1em; margin-bottom: 0.7em;';
+                    // 마지막 문단이 아니면 margin-bottom 적용
+                    const isLast = (i === remainingParagraphs.length - 1);
+                    p.style.cssText = isLast ? 
+                        'text-indent: 1em; margin-bottom: 0;' : 
+                        'text-indent: 1em; margin-bottom: 0.7em;';
                     p.textContent = para;
                     tempPage.appendChild(p);
                     
+                    const currentHeight = tempPage.scrollHeight;
+                    console.log(`+ 문단 추가 "${para.substring(0, 20)}..." (현재 ${currentHeight}px)`);
+                    
                     // 높이 체크
-                    if (tempPage.scrollHeight > maxHeight) {
-                        console.log(`⚠️ 높이 초과: ${tempPage.scrollHeight}px > ${maxHeight}px`);
+                    if (currentHeight > maxHeight) {
+                        console.log(`⚠️ 높이 초과: ${currentHeight}px > ${maxHeight}px`);
                         
                         // 방금 추가한 문단 제거
                         tempPage.removeChild(p);
                         
-                        // 현재까지의 내용을 페이지로 저장
+                        // 이미 추가된 내용이 있으면 그것만 저장하고, 초과한 문단은 쪼개기
                         if (currentPageContent.length > 0) {
-                            pages.push([...currentPageContent]);
-                            remainingParagraphs = remainingParagraphs.slice(i);
-                            console.log(`✅ 페이지 저장 (${currentPageContent.length}개 문단)`);
+                            // 현재 페이지에 들어간 내용 저장
+                            console.log(`📄 현재 페이지에 ${currentPageContent.length}개 문단 저장`);
+                            
+                            // 초과한 문단을 쪼개서 일부를 현재 페이지에 추가 시도
+                            const remainingSpace = maxHeight - tempPage.scrollHeight;
+                            console.log(`📏 남은 공간: ${remainingSpace}px`);
+                            
+                            if (remainingSpace > 50) { // 충분한 공간이 있으면 쪼개기 시도
+                                console.log(`🔪 문단 분할 시도...`);
+                                const splitResult = splitParagraphToFit(para, remainingSpace, tempPage);
+                                
+                                if (splitResult.fitted) {
+                                    currentPageContent.push(splitResult.fitted);
+                                    console.log(`✂️ 문단 일부 추가: "${splitResult.fitted.substring(0, 30)}..."`);
+                                    pages.push([...currentPageContent]);
+                                    
+                                    // 나머지를 다음 문단들 앞에 추가
+                                    remainingParagraphs = [splitResult.remaining, ...remainingParagraphs.slice(i + 1)];
+                                } else {
+                                    // 분할 실패 - 현재까지만 저장
+                                    pages.push([...currentPageContent]);
+                                    remainingParagraphs = remainingParagraphs.slice(i);
+                                }
+                            } else {
+                                // 공간 부족 - 현재까지만 저장
+                                pages.push([...currentPageContent]);
+                                remainingParagraphs = remainingParagraphs.slice(i);
+                            }
+                            
+                            console.log(`✅ 페이지 저장 완료`);
                             break;
                         } else {
                             // 첫 문단부터 넘치는 경우 - 문단을 쪼개야 함
@@ -459,13 +493,12 @@
                     } else {
                         // 높이 OK - 계속 추가
                         currentPageContent.push(para);
-                        console.log(`+ 문단 추가 (현재 ${tempPage.scrollHeight}px)`);
                         
                         // 마지막 문단이면 페이지 저장
                         if (i === remainingParagraphs.length - 1) {
                             pages.push([...currentPageContent]);
                             remainingParagraphs = [];
-                            console.log(`✅ 마지막 페이지 저장`);
+                            console.log(`✅ 마지막 페이지 저장 (${currentHeight}px)`);
                         }
                     }
                 }
@@ -476,6 +509,76 @@
             console.log(`\n🎉 총 ${pages.length}페이지 생성 완료!`);
             
             return pages;
+        }
+        
+        // 남은 공간에 맞게 문단을 쪼개기
+        function splitParagraphToFit(paragraph, remainingHeight, container) {
+            // 문장 단위로 분할 시도
+            const sentences = paragraph.match(/[^.!?]+[.!?]+/g) || [paragraph];
+            
+            if (sentences.length > 1) {
+                let fitted = [];
+                const originalHTML = container.innerHTML;
+                
+                for (let i = 0; i < sentences.length; i++) {
+                    const testText = [...fitted, sentences[i]].join('');
+                    const p = document.createElement('p');
+                    p.style.cssText = 'text-indent: 1em; margin-bottom: 0;';
+                    p.textContent = testText;
+                    container.appendChild(p);
+                    
+                    if (container.scrollHeight - container.scrollHeight + p.offsetHeight <= remainingHeight) {
+                        fitted.push(sentences[i]);
+                    } else {
+                        container.removeChild(p);
+                        break;
+                    }
+                    container.removeChild(p);
+                }
+                
+                container.innerHTML = originalHTML;
+                
+                if (fitted.length > 0) {
+                    return {
+                        fitted: fitted.join(''),
+                        remaining: sentences.slice(fitted.length).join('')
+                    };
+                }
+            }
+            
+            // 문장 분할 실패 - 단어 단위로 시도
+            const words = paragraph.split(' ');
+            if (words.length > 1) {
+                let fitted = [];
+                const originalHTML = container.innerHTML;
+                
+                for (let i = 0; i < words.length; i++) {
+                    const testText = [...fitted, words[i]].join(' ');
+                    const p = document.createElement('p');
+                    p.style.cssText = 'text-indent: 1em; margin-bottom: 0;';
+                    p.textContent = testText;
+                    container.appendChild(p);
+                    
+                    if (p.offsetHeight <= remainingHeight) {
+                        fitted.push(words[i]);
+                    } else {
+                        container.removeChild(p);
+                        break;
+                    }
+                    container.removeChild(p);
+                }
+                
+                container.innerHTML = originalHTML;
+                
+                if (fitted.length > 0) {
+                    return {
+                        fitted: fitted.join(' '),
+                        remaining: words.slice(fitted.length).join(' ')
+                    };
+                }
+            }
+            
+            return { fitted: null, remaining: paragraph };
         }
         
         // 긴 문단을 두 부분으로 분할
