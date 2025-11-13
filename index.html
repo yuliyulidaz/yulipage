@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3소설 내지 생성기 (B6 문고판)</title>
+    <title>4소설 내지 생성기 (B6 문고판)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400&display=swap" rel="stylesheet">
@@ -206,6 +206,24 @@
             margin-bottom: 0;
         }
 
+        .page-title {
+            font-size: 18px;
+            font-weight: 400;
+            text-align: center;
+            margin-top: 60px;
+            margin-bottom: 30px;
+            letter-spacing: 0.1em;
+            color: #2c3e50;
+        }
+
+        .title-divider {
+            width: 30px;
+            height: 1px;
+            background: #7f8c8d;
+            margin: 25px auto;
+            opacity: 0.5;
+        }
+
         .highlight {
             display: inline;
             background: rgba(255, 235, 59, 0.4);
@@ -308,6 +326,9 @@
 
 엔터 한 번으로 문단이 구분됩니다."></textarea>
         <div class="input-info">
+            <input type="text" id="novelTitle" placeholder="제목 (선택, 첫 페이지에만 표시)" value="">
+        </div>
+        <div class="input-info">
             <input type="text" id="bookTitle" placeholder="제작자" value="">
             <input type="text" id="authorName" placeholder="캐릭터" value="">
         </div>
@@ -365,6 +386,7 @@
             const text = document.getElementById('textInput').value.trim();
             bookTitle = document.getElementById('bookTitle').value.trim();
             authorName = document.getElementById('authorName').value.trim();
+            const novelTitle = document.getElementById('novelTitle').value.trim();
 
             if (!text) {
                 alert('텍스트를 입력해주세요.');
@@ -376,6 +398,14 @@
             
             // 페이지 분할 (실제 렌더링 높이 기반)
             pages = splitIntoPages(paragraphs);
+
+            // 첫 페이지에 제목이 있으면 저장
+            if (novelTitle && pages.length > 0) {
+                // 첫 페이지 앞에 제목 표시를 위한 플래그 저장
+                window.firstPageTitle = novelTitle;
+            } else {
+                window.firstPageTitle = null;
+            }
 
             // 화면 전환
             document.getElementById('inputSection').style.display = 'none';
@@ -663,9 +693,25 @@
             contentDiv.className = 'page-content';
             contentDiv.id = 'pageContent';
 
+            // 첫 페이지에 제목이 있으면 표시
+            if (currentPage === 0 && window.firstPageTitle) {
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'page-title';
+                titleDiv.textContent = window.firstPageTitle;
+                contentDiv.appendChild(titleDiv);
+                
+                const divider = document.createElement('div');
+                divider.className = 'title-divider';
+                contentDiv.appendChild(divider);
+            }
+
             // 저장된 HTML이 있으면 복원, 없으면 새로 생성
             if (pageHighlights[currentPage]) {
-                contentDiv.innerHTML = pageHighlights[currentPage];
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = pageHighlights[currentPage];
+                Array.from(tempDiv.children).forEach(child => {
+                    contentDiv.appendChild(child);
+                });
                 // 복원된 형광펜에 클릭 이벤트 다시 추가
                 attachHighlightClickEvents(contentDiv);
             } else {
@@ -888,12 +934,14 @@
                 document.getElementById('inputSection').style.display = 'block';
                 document.getElementById('editorSection').style.display = 'none';
                 document.getElementById('textInput').value = '';
+                document.getElementById('novelTitle').value = '';
                 document.getElementById('bookTitle').value = '';
                 document.getElementById('authorName').value = '';
                 pages = [];
                 currentPage = 0;
                 highlightMode = false;
                 pageHighlights = {};
+                window.firstPageTitle = null;
             }
         }
     </script>
