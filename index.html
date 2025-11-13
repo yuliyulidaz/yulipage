@@ -211,10 +211,10 @@
             background: rgba(255, 235, 59, 0.4);
             padding: 0;
             margin: 0;
-            line-height: inherit;
-            box-decoration-break: clone;
-            -webkit-box-decoration-break: clone;
-            border-radius: 0;
+            line-height: normal;
+            vertical-align: baseline;
+            border: none;
+            outline: none;
         }
 
         .highlight.pink {
@@ -814,7 +814,11 @@
             const page = document.getElementById('currentPage');
             const canvas = await html2canvas(page, {
                 scale: 2,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                useCORS: true,
+                allowTaint: true,
+                logging: false,
+                letterRendering: true
             });
             
             const link = document.createElement('a');
@@ -840,7 +844,11 @@
                 const page = document.getElementById('currentPage');
                 const canvas = await html2canvas(page, {
                     scale: 2,
-                    backgroundColor: '#ffffff'
+                    backgroundColor: '#ffffff',
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false,
+                    letterRendering: true
                 });
                 
                 const link = document.createElement('a');
