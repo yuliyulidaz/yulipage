@@ -207,9 +207,14 @@
         }
 
         .highlight {
+            display: inline;
             background: rgba(255, 235, 59, 0.4);
-            padding: 1px 0;
-            border-radius: 1px;
+            padding: 0;
+            margin: 0;
+            line-height: inherit;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+            border-radius: 0;
         }
 
         .highlight.pink {
@@ -661,6 +666,8 @@
             // 저장된 HTML이 있으면 복원, 없으면 새로 생성
             if (pageHighlights[currentPage]) {
                 contentDiv.innerHTML = pageHighlights[currentPage];
+                // 복원된 형광펜에 클릭 이벤트 다시 추가
+                attachHighlightClickEvents(contentDiv);
             } else {
                 pages[currentPage].forEach(para => {
                     const p = document.createElement('p');
@@ -745,6 +752,25 @@
             document.removeEventListener('mouseup', handleTextSelection);
         }
 
+        // 복원된 형광펜에 클릭 이벤트 다시 추가
+        function attachHighlightClickEvents(container) {
+            const highlights = container.querySelectorAll('.highlight');
+            highlights.forEach(span => {
+                span.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const text = this.textContent;
+                    const textNode = document.createTextNode(text);
+                    this.parentNode.replaceChild(textNode, this);
+                    
+                    // 상태 저장
+                    const content = document.getElementById('pageContent');
+                    if (content) {
+                        pageHighlights[currentPage] = content.innerHTML;
+                    }
+                });
+            });
+        }
+
         function handleTextSelection() {
             if (!highlightMode) return;
 
@@ -758,6 +784,20 @@
             try {
                 range.surroundContents(span);
                 selection.removeAllRanges();
+                
+                // 형광펜 클릭 시 제거 기능 추가
+                span.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const text = this.textContent;
+                    const textNode = document.createTextNode(text);
+                    this.parentNode.replaceChild(textNode, this);
+                    
+                    // 상태 저장
+                    const content = document.getElementById('pageContent');
+                    if (content) {
+                        pageHighlights[currentPage] = content.innerHTML;
+                    }
+                });
                 
                 // 상태 저장
                 const content = document.getElementById('pageContent');
