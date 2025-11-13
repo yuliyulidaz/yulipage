@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>5소설 내지 생성기 (B6 문고판)</title>
+    <title>1소설 내지 생성기 (B6 문고판)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400&display=swap" rel="stylesheet">
@@ -248,20 +248,26 @@
         }
 
         .page-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 9px;
+            font-size: 8px;
             font-weight: 200;
-            color: #7f8c8d;
+            color: #999;
             margin-top: auto;
-            padding-top: 15px;
-            border-top: 1px solid #ecf0f1;
+            padding-top: 20px;
+            display: flex;
         }
 
-        .page-number {
-            text-align: center;
-            flex: 1;
+        .page-footer.odd {
+            justify-content: flex-end;
+        }
+
+        .page-footer.even {
+            justify-content: flex-start;
+        }
+
+        .footer-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .page-navigation {
@@ -437,7 +443,7 @@
             document.body.appendChild(tempPage);
             
             // 페이지 콘텐츠 최대 높이 (실제 측정)
-            const maxHeight = 410; // B6 페이지에서 콘텐츠가 들어갈 수 있는 높이
+            const maxHeight = 430; // B6 페이지에서 콘텐츠가 들어갈 수 있는 높이 (footer 최소화로 증가)
             console.log('페이지 최대 높이:', maxHeight);
             
             let remainingParagraphs = [...paragraphs];
@@ -720,14 +726,44 @@
 
             // Footer
             const footer = document.createElement('div');
-            footer.className = 'page-footer';
-            const leftText = bookTitle ? `<span>${bookTitle}</span>` : '<span></span>';
-            const rightText = authorName ? `<span>${authorName}</span>` : '<span></span>';
-            footer.innerHTML = `
-                ${leftText}
-                <span class="page-number">${currentPage + 1}</span>
-                ${rightText}
-            `;
+            const pageNumber = currentPage + 1;
+            const isOdd = pageNumber % 2 === 1;
+            
+            footer.className = `page-footer ${isOdd ? 'odd' : 'even'}`;
+            
+            const footerContent = document.createElement('div');
+            footerContent.className = 'footer-content';
+            
+            if (isOdd) {
+                // 홀수 페이지: 제작자 · 캐릭터  페이지
+                if (bookTitle || authorName) {
+                    const info = [];
+                    if (bookTitle) info.push(bookTitle);
+                    if (authorName) info.push(authorName);
+                    const infoSpan = document.createElement('span');
+                    infoSpan.textContent = info.join(' · ');
+                    footerContent.appendChild(infoSpan);
+                }
+                const pageSpan = document.createElement('span');
+                pageSpan.textContent = pageNumber;
+                footerContent.appendChild(pageSpan);
+            } else {
+                // 짝수 페이지: 페이지  제작자 · 캐릭터
+                const pageSpan = document.createElement('span');
+                pageSpan.textContent = pageNumber;
+                footerContent.appendChild(pageSpan);
+                
+                if (bookTitle || authorName) {
+                    const info = [];
+                    if (bookTitle) info.push(bookTitle);
+                    if (authorName) info.push(authorName);
+                    const infoSpan = document.createElement('span');
+                    infoSpan.textContent = info.join(' · ');
+                    footerContent.appendChild(infoSpan);
+                }
+            }
+            
+            footer.appendChild(footerContent);
 
             pageDiv.appendChild(contentDiv);
             pageDiv.appendChild(footer);
