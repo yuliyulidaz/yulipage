@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4소설 내지 생성기 (B6 문고판)</title>
+    <title>5소설 내지 생성기 (B6 문고판)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400&display=swap" rel="stylesheet">
@@ -693,28 +693,24 @@
             contentDiv.className = 'page-content';
             contentDiv.id = 'pageContent';
 
-            // 첫 페이지에 제목이 있으면 표시
-            if (currentPage === 0 && window.firstPageTitle) {
-                const titleDiv = document.createElement('div');
-                titleDiv.className = 'page-title';
-                titleDiv.textContent = window.firstPageTitle;
-                contentDiv.appendChild(titleDiv);
-                
-                const divider = document.createElement('div');
-                divider.className = 'title-divider';
-                contentDiv.appendChild(divider);
-            }
-
             // 저장된 HTML이 있으면 복원, 없으면 새로 생성
             if (pageHighlights[currentPage]) {
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = pageHighlights[currentPage];
-                Array.from(tempDiv.children).forEach(child => {
-                    contentDiv.appendChild(child);
-                });
+                contentDiv.innerHTML = pageHighlights[currentPage];
                 // 복원된 형광펜에 클릭 이벤트 다시 추가
                 attachHighlightClickEvents(contentDiv);
             } else {
+                // 첫 페이지에 제목이 있으면 표시 (최초 생성 시에만)
+                if (currentPage === 0 && window.firstPageTitle) {
+                    const titleDiv = document.createElement('div');
+                    titleDiv.className = 'page-title';
+                    titleDiv.textContent = window.firstPageTitle;
+                    contentDiv.appendChild(titleDiv);
+                    
+                    const divider = document.createElement('div');
+                    divider.className = 'title-divider';
+                    contentDiv.appendChild(divider);
+                }
+                
                 pages[currentPage].forEach(para => {
                     const p = document.createElement('p');
                     p.textContent = para;
