@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2소설 내지 생성기 (B6 문고판)</title>
+    <title>3소설 내지 생성기 (B6 문고판)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400&display=swap" rel="stylesheet">
@@ -815,11 +815,13 @@
             
             try {
                 const dataUrl = await domtoimage.toPng(page, {
-                    width: page.offsetWidth,
-                    height: page.offsetHeight,
+                    width: page.offsetWidth * 2,
+                    height: page.offsetHeight * 2,
                     style: {
-                        transform: 'scale(1)',
-                        transformOrigin: 'top left'
+                        transform: 'scale(2)',
+                        transformOrigin: 'top left',
+                        width: page.offsetWidth + 'px',
+                        height: page.offsetHeight + 'px'
                     },
                     quality: 1.0,
                     bgcolor: '#ffffff'
@@ -852,11 +854,13 @@
                 try {
                     const page = document.getElementById('currentPage');
                     const dataUrl = await domtoimage.toPng(page, {
-                        width: page.offsetWidth,
-                        height: page.offsetHeight,
+                        width: page.offsetWidth * 2,
+                        height: page.offsetHeight * 2,
                         style: {
-                            transform: 'scale(1)',
-                            transformOrigin: 'top left'
+                            transform: 'scale(2)',
+                            transformOrigin: 'top left',
+                            width: page.offsetWidth + 'px',
+                            height: page.offsetHeight + 'px'
                         },
                         quality: 1.0,
                         bgcolor: '#ffffff'
