@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1.1소설 내지 생성기 (B6 문고판)</title>
+    <title>2소설 내지 생성기 (B6 문고판)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400&display=swap" rel="stylesheet">
@@ -349,7 +349,7 @@
         <div class="page-container" id="pageContainer"></div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.3.0/dist/dom-to-image-more.min.js"></script>
     <script>
         // 전역 변수
         let pages = [];
@@ -812,20 +812,28 @@
         // 다운로드
         async function downloadCurrentPage() {
             const page = document.getElementById('currentPage');
-            const canvas = await html2canvas(page, {
-                scale: 2,
-                backgroundColor: '#ffffff',
-                useCORS: true,
-                allowTaint: true,
-                logging: false,
-                letterRendering: true
-            });
             
-            const link = document.createElement('a');
-            const fileName = bookTitle || '소설';
-            link.download = `${fileName}_${currentPage + 1}페이지.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+            try {
+                const dataUrl = await domtoimage.toPng(page, {
+                    width: page.offsetWidth,
+                    height: page.offsetHeight,
+                    style: {
+                        transform: 'scale(1)',
+                        transformOrigin: 'top left'
+                    },
+                    quality: 1.0,
+                    bgcolor: '#ffffff'
+                });
+                
+                const link = document.createElement('a');
+                const fileName = bookTitle || '소설';
+                link.download = `${fileName}_${currentPage + 1}페이지.png`;
+                link.href = dataUrl;
+                link.click();
+            } catch (error) {
+                console.error('다운로드 실패:', error);
+                alert('이미지 생성에 실패했습니다. 다시 시도해주세요.');
+            }
         }
 
         async function downloadAllPages() {
@@ -841,22 +849,28 @@
                 
                 await new Promise(resolve => setTimeout(resolve, 500));
                 
-                const page = document.getElementById('currentPage');
-                const canvas = await html2canvas(page, {
-                    scale: 2,
-                    backgroundColor: '#ffffff',
-                    useCORS: true,
-                    allowTaint: true,
-                    logging: false,
-                    letterRendering: true
-                });
-                
-                const link = document.createElement('a');
-                link.download = `${fileName}_${i + 1}페이지.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                
-                await new Promise(resolve => setTimeout(resolve, 300));
+                try {
+                    const page = document.getElementById('currentPage');
+                    const dataUrl = await domtoimage.toPng(page, {
+                        width: page.offsetWidth,
+                        height: page.offsetHeight,
+                        style: {
+                            transform: 'scale(1)',
+                            transformOrigin: 'top left'
+                        },
+                        quality: 1.0,
+                        bgcolor: '#ffffff'
+                    });
+                    
+                    const link = document.createElement('a');
+                    link.download = `${fileName}_${i + 1}페이지.png`;
+                    link.href = dataUrl;
+                    link.click();
+                    
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                } catch (error) {
+                    console.error(`페이지 ${i + 1} 다운로드 실패:`, error);
+                }
             }
 
             alert('모든 페이지 다운로드가 완료되었습니다!');
