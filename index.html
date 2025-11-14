@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1소설 내지 생성기 (A6 문고판)</title>
+    <title>2소설 내지 생성기 (A6 문고판)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- html-to-image 라이브러리 -->
     <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
+    <!-- JSZip 라이브러리 (iOS 전체 저장용) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         /* 폰트 강제 적용 */
         * {
@@ -231,8 +233,8 @@
                     <button onclick="downloadCurrentPage()" id="downloadBtn" class="bg-white border border-slate-200 text-slate-700 px-4 py-1.5 rounded-full text-xs hover:bg-slate-50 shadow-sm btn">
                         현재 페이지 저장
                     </button>
-                    <button onclick="downloadAllPages()" class="bg-slate-800 text-white px-4 py-1.5 rounded-full text-xs hover:bg-slate-700 shadow-md btn">
-                        전체 저장 (ZIP)
+                    <button onclick="downloadAllPages()" id="downloadAllBtn" class="bg-slate-800 text-white px-4 py-1.5 rounded-full text-xs hover:bg-slate-700 shadow-md btn">
+                        전체 저장
                     </button>
                 </div>
             </div>
@@ -279,14 +281,24 @@
             updateDownloadButtonText();
         });
 
-        // 다운로드 버튼 텍스트 업데이트 (iOS = 공유, 기타 = 다운로드)
+        // 다운로드 버튼 텍스트 업데이트
         function updateDownloadButtonText() {
-            const btn = document.getElementById('downloadBtn');
-            if (btn) {
-                if (isIOS()) {
-                    btn.textContent = '현재 페이지 공유';
+            const downloadBtn = document.getElementById('downloadBtn');
+            const downloadAllBtn = document.getElementById('downloadAllBtn');
+            const isiOSDevice = isIOS();
+
+            if (downloadBtn) {
+                // iOS든 아니든 '현재 페이지 저장'으로 통일
+                downloadBtn.textContent = '현재 페이지 저장';
+            }
+
+            if (downloadAllBtn) {
+                // iOS는 ZIP 압축 기능을 제공하므로 구분을 위해 표기
+                if (isiOSDevice) {
+                    downloadAllBtn.textContent = '전체 저장 (ZIP)';
                 } else {
-                    btn.textContent = '현재 페이지 저장';
+                    // PC/Android는 순차 저장이므로 깔끔하게 '전체 저장'
+                    downloadAllBtn.textContent = '전체 저장';
                 }
             }
         }
@@ -308,8 +320,6 @@
         }
 
         // [핵심 수정] 폰트 임베드 CSS 수동 생성 (Base64 변환)
-        // iOS에서 외부 URL 폰트 로딩이 차단되는 문제를 해결하기 위해 
-        // 폰트 파일을 직접 fetch해서 Base64 문자열로 CSS에 박아넣습니다.
         async function prepareFontEmbedCSS() {
             if (cachedFontEmbedCSS) {
                 console.log('[폰트] 캐시된 폰트 CSS 사용');
@@ -325,21 +335,19 @@
                 let cssText = await cssRes.text();
 
                 // 2. CSS 내부의 url(...) 패턴 찾기
-                // 구글 폰트는 브라우저마다 다른 CSS를 주므로 현재 브라우저에 맞는 woff2 파일 링크가 들어있음
                 const urlRegex = /url\(([^)]+)\)/g;
                 let match;
                 const replacements = [];
 
-                // 매칭되는 모든 URL 추출
                 while ((match = urlRegex.exec(cssText)) !== null) {
-                    const fullUrl = match[1].replace(/['"]/g, ''); // 따옴표 제거
+                    const fullUrl = match[1].replace(/['"]/g, ''); 
                     replacements.push({
-                        original: match[0], // url(...) 전체
+                        original: match[0], 
                         url: fullUrl
                     });
                 }
 
-                // 3. 각 폰트 파일 다운로드 및 Base64 변환 (병렬 처리)
+                // 3. 각 폰트 파일 다운로드 및 Base64 변환
                 await Promise.all(replacements.map(async (item) => {
                     try {
                         const fontRes = await fetch(item.url);
@@ -348,9 +356,7 @@
                         return new Promise((resolve, reject) => {
                             const reader = new FileReader();
                             reader.onloadend = () => {
-                                // Base64 데이터로 변환된 결과
                                 const base64data = reader.result;
-                                // CSS 텍스트 내의 url(...) 부분을 url('data:...')로 치환
                                 cssText = cssText.replace(item.url, base64data);
                                 resolve();
                             };
@@ -700,7 +706,7 @@
                 return;
             }
             
-            // 로딩 표시 (사용자 피드백 강화)
+            // 로딩 표시
             const downloadBtn = document.getElementById('downloadBtn');
             const originalBtnText = downloadBtn.textContent;
             downloadBtn.textContent = '생성 중...';
@@ -712,22 +718,21 @@
                 // 1. 폰트 로드 보장
                 await ensureFontsLoaded();
                 
-                // 2. iOS 대응: 폰트를 Base64로 직접 변환한 CSS 생성
+                // 2. iOS 대응: 폰트 임베드 CSS
                 const fontEmbedCSS = await prepareFontEmbedCSS();
                 
-                // 3. html-to-image 옵션 설정
+                // 3. 옵션
                 const options = {
                     quality: 1.0,
                     pixelRatio: 2,
                     cacheBust: true,
                     backgroundColor: '#ffffff',
                     preferredFontFormat: 'woff2',
-                    skipFonts: true // 우리가 직접 fontEmbedCSS를 주입하므로 라이브러리 자체 폰트 처리는 건너뜀
+                    skipFonts: true 
                 };
                 
                 if (fontEmbedCSS) {
                     options.fontEmbedCSS = fontEmbedCSS;
-                    console.log('[다운로드] Custom Font Embed CSS 적용됨');
                 }
                 
                 // 4. Blob 생성
@@ -745,6 +750,7 @@
                                 title: fileName
                             });
                         } catch (shareError) {
+                            // AbortError는 사용자가 취소한 것이므로 무시
                             if (shareError.name !== 'AbortError') {
                                 console.error('공유 실패:', shareError);
                                 downloadBlobFallback(blob, fileName);
@@ -778,13 +784,14 @@
         async function downloadAllPages() {
             const title = document.getElementById('novelTitle').value || 'novel';
             const total = pages.length;
+            const isiOSDevice = isIOS();
             
             if (typeof htmlToImage === 'undefined') {
                 alert('이미지 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');
                 return;
             }
             
-            if (!confirm(`총 ${total}장의 이미지를 다운로드합니다.`)) return;
+            if (!confirm(`총 ${total}장의 이미지를 저장합니다.`)) return;
 
             saveCurrentPageState();
             const originalPageIdx = currentPageIdx;
@@ -792,16 +799,27 @@
             const progress = document.getElementById('loadingProgress');
             overlay.style.display = 'flex';
 
-            // 폰트 CSS 준비 (한 번만 실행)
+            // 폰트 CSS 준비
             await ensureFontsLoaded();
             const fontEmbedCSS = await prepareFontEmbedCSS();
+
+            // [iOS] ZIP 객체 초기화
+            let zip;
+            if (isiOSDevice) {
+                if (typeof JSZip === 'undefined') {
+                    alert('압축 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+                    overlay.style.display = 'none';
+                    return;
+                }
+                zip = new JSZip();
+            }
 
             for (let i = 0; i < total; i++) {
                 currentPageIdx = i;
                 renderCurrentPage();
                 
                 progress.textContent = Math.floor(((i + 1) / total) * 100);
-                // 렌더링 대기 시간을 약간 줌
+                // 렌더링 대기
                 await new Promise(resolve => setTimeout(resolve, 500));
                 
                 try {
@@ -818,19 +836,52 @@
                     
                     const blob = await htmlToImage.toBlob(page, options);
                     const fileName = `${title}_${String(i+1).padStart(3, '0')}p.png`;
-                    downloadBlobFallback(blob, fileName);
                     
-                    // 다운로드 간격
-                    await new Promise(resolve => setTimeout(resolve, 300));
+                    if (isiOSDevice) {
+                        // [iOS] ZIP 파일에 추가
+                        zip.file(fileName, blob);
+                    } else {
+                        // [PC/Android] 즉시 다운로드
+                        downloadBlobFallback(blob, fileName);
+                        // 브라우저 부하 방지용 딜레이
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                    }
+
                 } catch (error) {
                     console.error(`[다운로드] 페이지 ${i+1} 생성 실패:`, error);
+                }
+            }
+
+            // [iOS] ZIP 생성 및 공유/다운로드
+            if (isiOSDevice) {
+                progress.textContent = '압축 중...';
+                try {
+                    const content = await zip.generateAsync({type:"blob"});
+                    const zipName = `${title}.zip`;
+                    
+                    if (navigator.share && navigator.canShare) {
+                         const file = new File([content], zipName, { type: 'application/zip' });
+                         if (navigator.canShare({ files: [file] })) {
+                             await navigator.share({ files: [file], title: zipName });
+                         } else {
+                             downloadBlobFallback(content, zipName);
+                         }
+                    } else {
+                        downloadBlobFallback(content, zipName);
+                    }
+                } catch(e) {
+                    console.error('ZIP 생성 실패:', e);
+                    alert('압축 파일 생성에 실패했습니다.');
                 }
             }
 
             overlay.style.display = 'none';
             currentPageIdx = originalPageIdx;
             renderCurrentPage();
-            alert("완료되었습니다.");
+            
+            if (!isiOSDevice) {
+                alert("완료되었습니다.");
+            }
         }
 
         function resetApp() {
