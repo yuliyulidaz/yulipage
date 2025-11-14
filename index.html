@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1소설 내지 생성기 (A6 문고판)</title>
+    <title>4소설 내지 생성기 (A6 문고판)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- html-to-image 라이브러리 -->
     <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
-    <!-- JSZip 라이브러리 (iOS 전체 저장용) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         /* 폰트 강제 적용 */
         * {
@@ -281,23 +279,23 @@
             updateDownloadButtonText();
         });
 
-        // 다운로드 버튼 텍스트 업데이트
+        // 다운로드 버튼 텍스트 업데이트 (iOS에서는 전체저장 버튼 숨김)
         function updateDownloadButtonText() {
             const downloadBtn = document.getElementById('downloadBtn');
             const downloadAllBtn = document.getElementById('downloadAllBtn');
             const isiOSDevice = isIOS();
 
             if (downloadBtn) {
-                // iOS든 아니든 '현재 페이지 저장'으로 통일
                 downloadBtn.textContent = '현재 페이지 저장';
             }
 
             if (downloadAllBtn) {
-                // iOS는 ZIP 압축 기능을 제공하므로 구분을 위해 표기
                 if (isiOSDevice) {
-                    downloadAllBtn.textContent = '전체 저장 (ZIP)';
+                    // [iOS 대응] 오류가 잦은 전체 저장 기능을 아예 숨김 처리
+                    downloadAllBtn.style.display = 'none';
                 } else {
-                    // PC/Android는 순차 저장이므로 깔끔하게 '전체 저장'
+                    // PC/Android는 정상 표시
+                    downloadAllBtn.style.display = ''; 
                     downloadAllBtn.textContent = '전체 저장';
                 }
             }
@@ -319,10 +317,9 @@
             await new Promise(resolve => setTimeout(resolve, 500));
         }
 
-        // [핵심 수정] 폰트 임베드 CSS 수동 생성 (Base64 변환)
+        // [핵심] 폰트 임베드 CSS 수동 생성 (Base64 변환) - iOS 폰트 깨짐 방지용
         async function prepareFontEmbedCSS() {
             if (cachedFontEmbedCSS) {
-                console.log('[폰트] 캐시된 폰트 CSS 사용');
                 return cachedFontEmbedCSS;
             }
             
@@ -368,7 +365,6 @@
                     }
                 }));
 
-                console.log('[폰트] Base64 CSS 생성 완료 (길이: ' + cssText.length + ')');
                 cachedFontEmbedCSS = cssText;
                 return cssText;
 
@@ -750,7 +746,6 @@
                                 title: fileName
                             });
                         } catch (shareError) {
-                            // AbortError는 사용자가 취소한 것이므로 무시
                             if (shareError.name !== 'AbortError') {
                                 console.error('공유 실패:', shareError);
                                 downloadBlobFallback(blob, fileName);
@@ -784,7 +779,12 @@
         async function downloadAllPages() {
             const title = document.getElementById('novelTitle').value || 'novel';
             const total = pages.length;
-            const isiOSDevice = isIOS();
+            
+            // [iOS 대응] 버튼이 숨겨져 있지만 혹시 실행될 경우 차단
+            if (isIOS()) {
+                alert('iOS에서는 현재 페이지 저장 기능만 지원합니다.');
+                return;
+            }
             
             if (typeof htmlToImage === 'undefined') {
                 alert('이미지 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');
@@ -797,7 +797,6 @@
             saveCurrentPageState();
             const originalPageIdx = currentPageIdx;
             
-            // [중요] 스크롤 강제 초기화 (iOS 캡처 오류 방지)
             window.scrollTo(0, 0);
 
             // 2. 로딩 오버레이 표시
@@ -806,51 +805,17 @@
             overlay.style.display = 'flex';
             progress.textContent = '준비 중...';
 
-            // [iOS 버그 수정] 렌더링 안정화를 위해 강제로 1페이지로 이동 후 대기
-            // 1페이지가 아닌 상태에서 시작하면 렌더링이 꼬이는 현상 방지
-            let didJumpToFirst = false;
-            
-            if (currentPageIdx !== 0) {
-                currentPageIdx = 0;
-                renderCurrentPage();
-                didJumpToFirst = true;
-                // iOS에서 페이지가 급격히 바뀌었을 때 레이아웃 계산 시간을 충분히 줌 (1초)
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            } else {
-                 // 이미 1페이지여도 안전하게 잠시 대기
-                await new Promise(resolve => setTimeout(resolve, 200));
-            }
-
-            // 3. 폰트 CSS 준비 (1페이지가 렌더링된 상태에서 진행)
+            // 3. 폰트 CSS 준비
             await ensureFontsLoaded();
             const fontEmbedCSS = await prepareFontEmbedCSS();
 
-            // [iOS] ZIP 객체 초기화
-            let zip;
-            if (isiOSDevice) {
-                if (typeof JSZip === 'undefined') {
-                    alert('압축 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
-                    overlay.style.display = 'none';
-                    // 원래 페이지로 복구
-                    currentPageIdx = originalPageIdx;
-                    renderCurrentPage();
-                    return;
-                }
-                zip = new JSZip();
-            }
-
+            // 4. PC/안드로이드 순차 다운로드
             for (let i = 0; i < total; i++) {
-                // [중요] 1페이지이고, 방금 강제로 이동했다면 다시 그리지 않음 (중복 렌더링 방지)
-                if (i === 0 && didJumpToFirst) {
-                    // 이미 위에서 renderCurrentPage() 하고 1초 기다렸으므로 패스
-                    console.log('[다운로드] 1페이지 중복 렌더링 건너뜀');
-                } else {
-                    currentPageIdx = i;
-                    renderCurrentPage();
-                    // 페이지 렌더링 대기
-                    await new Promise(resolve => setTimeout(resolve, isiOSDevice ? 500 : 300));
-                }
+                currentPageIdx = i;
+                renderCurrentPage();
                 
+                // 렌더링 대기 (PC는 짧아도 됨)
+                await new Promise(resolve => setTimeout(resolve, 300));
                 progress.textContent = Math.floor(((i + 1) / total) * 100);
                 
                 try {
@@ -868,55 +833,20 @@
                     const blob = await htmlToImage.toBlob(page, options);
                     const fileName = `${title}_${String(i+1).padStart(3, '0')}p.png`;
                     
-                    if (isiOSDevice) {
-                        // [iOS] ZIP 파일에 추가
-                        zip.file(fileName, blob);
-                    } else {
-                        // [PC/Android] 즉시 다운로드
-                        downloadBlobFallback(blob, fileName);
-                        // 브라우저 부하 방지용 딜레이
-                        await new Promise(resolve => setTimeout(resolve, 200));
-                    }
+                    downloadBlobFallback(blob, fileName);
+                    
+                    // 브라우저 부하 방지용 딜레이
+                    await new Promise(resolve => setTimeout(resolve, 200));
 
                 } catch (error) {
                     console.error(`[다운로드] 페이지 ${i+1} 생성 실패:`, error);
                 }
             }
 
-            // [iOS] ZIP 생성 및 공유/다운로드
-            if (isiOSDevice) {
-                progress.textContent = '압축 중...';
-                // UI 업데이트 반영을 위한 짧은 대기
-                await new Promise(resolve => setTimeout(resolve, 100));
-
-                try {
-                    const content = await zip.generateAsync({type:"blob"});
-                    const zipName = `${title}.zip`;
-                    
-                    if (navigator.share && navigator.canShare) {
-                         const file = new File([content], zipName, { type: 'application/zip' });
-                         if (navigator.canShare({ files: [file] })) {
-                             await navigator.share({ files: [file], title: zipName });
-                         } else {
-                             downloadBlobFallback(content, zipName);
-                         }
-                    } else {
-                        downloadBlobFallback(content, zipName);
-                    }
-                } catch(e) {
-                    console.error('ZIP 생성 실패:', e);
-                    alert('압축 파일 생성에 실패했습니다.');
-                }
-            }
-
             overlay.style.display = 'none';
-            // 작업 완료 후 원래 보던 페이지로 복귀
             currentPageIdx = originalPageIdx;
             renderCurrentPage();
-            
-            if (!isiOSDevice) {
-                alert("완료되었습니다.");
-            }
+            alert("완료되었습니다.");
         }
 
         function resetApp() {
