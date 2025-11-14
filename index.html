@@ -8,7 +8,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- dom-to-image 라이브러리로 교체 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
     <style>
         /* 인쇄 설정 - A6 (105mm x 148mm) */
@@ -23,7 +22,7 @@
             color: #1a1a1a;
         }
 
-        /* 하이라이트 스타일 - 단순하게 */
+        /* 하이라이트 스타일 */
         .highlight {
             display: inline;
             background: rgba(255, 235, 59, 0.4);
@@ -276,6 +275,22 @@
 
         const PAGE_CONTENT_HEIGHT = 460;
         const BOTTOM_BUFFER_P1 = 15;
+
+        // 폰트 로드 확인 함수
+        async function ensureFontsLoaded() {
+            if ('fonts' in document) {
+                try {
+                    await document.fonts.load('300 12px "Noto Serif KR"');
+                    await document.fonts.load('400 12px "Noto Serif KR"');
+                    await document.fonts.ready;
+                    console.log('폰트 로드 완료');
+                } catch (e) {
+                    console.warn('폰트 로드 확인 실패:', e);
+                }
+            }
+            // 추가 대기 시간 (모바일에서 안정성 확보)
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
 
         // --- 핵심 로직: 페이지 분할 엔진 ---
         function startGeneration() {
@@ -592,12 +607,15 @@
             }
         }
 
-        // --- 다운로드 기능 (dom-to-image 사용) ---
+        // --- 다운로드 기능 (폰트 로드 보장) ---
         async function downloadCurrentPage() {
             const page = document.getElementById('captureTarget');
             const title = document.getElementById('novelTitle').value || 'novel';
             
             try {
+                // 폰트 로드 확인
+                await ensureFontsLoaded();
+                
                 const dataUrl = await domtoimage.toPng(page, {
                     width: page.offsetWidth * 2,
                     height: page.offsetHeight * 2,
@@ -605,7 +623,8 @@
                         transform: 'scale(2)',
                         transformOrigin: 'top left',
                         width: page.offsetWidth + 'px',
-                        height: page.offsetHeight + 'px'
+                        height: page.offsetHeight + 'px',
+                        fontFamily: "'Noto Serif KR', serif"
                     },
                     quality: 1.0,
                     bgcolor: '#ffffff'
@@ -633,6 +652,9 @@
             const progress = document.getElementById('loadingProgress');
             overlay.style.display = 'flex';
 
+            // 폰트 로드 확인
+            await ensureFontsLoaded();
+
             for (let i = 0; i < total; i++) {
                 currentPageIdx = i;
                 renderCurrentPage();
@@ -650,7 +672,8 @@
                             transform: 'scale(2)',
                             transformOrigin: 'top left',
                             width: page.offsetWidth + 'px',
-                            height: page.offsetHeight + 'px'
+                            height: page.offsetHeight + 'px',
+                            fontFamily: "'Noto Serif KR', serif"
                         },
                         quality: 1.0,
                         bgcolor: '#ffffff'
