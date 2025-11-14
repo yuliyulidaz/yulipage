@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4소설 내지 생성기 (A6 문고판)</title>
+    <title>1소설 내지 생성기 (A6 문고판)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=swap" rel="stylesheet">
@@ -291,68 +291,85 @@
             }
         }
 
-        // 폰트 로드 보장 함수 - 더 강력하게
+        // 폰트 로드 보장 함수
         async function ensureFontsLoaded() {
-            console.log('[폰트] 로드 시작...');
-            
-            // 1단계: document.fonts API 사용
-            if ('fonts' in document) {
-                try {
-                    const fontPromises = [
-                        document.fonts.load('200 12px "Noto Serif KR"'),
-                        document.fonts.load('300 12px "Noto Serif KR"'),
-                        document.fonts.load('400 12px "Noto Serif KR"'),
-                        document.fonts.load('400 18px "Noto Serif KR"'),
-                        document.fonts.load('500 12px "Noto Serif KR"')
-                    ];
-                    
-                    await Promise.all(fontPromises);
-                    await document.fonts.ready;
-                    
-                    console.log('[폰트] document.fonts API 완료');
-                } catch (e) {
-                    console.warn('[폰트] API 로드 실패:', e);
+            console.log('[폰트] 로드 상태 확인 중...');
+            try {
+                await document.fonts.ready;
+                if (document.fonts.check('12px "Noto Serif KR"')) {
+                    console.log('[폰트] 이미 로드됨');
+                    return;
                 }
+            } catch (e) {
+                console.warn('폰트 API 확인 실패', e);
             }
-            
-            // 2단계: 더 긴 대기 시간 (iOS에서 중요)
-            const waitTime = isIOS() ? 2000 : 1000;
-            await new Promise(resolve => setTimeout(resolve, waitTime));
-            
-            console.log('[폰트] 로드 완료 (대기 시간: ' + waitTime + 'ms)');
-            
-            // 3단계: 폰트 확인
-            if ('fonts' in document) {
-                const loadedFonts = Array.from(document.fonts.values())
-                    .filter(f => f.family.includes('Noto Serif KR'));
-                console.log('[폰트] 로드된 Noto Serif KR 폰트:', loadedFonts.length + '개');
-            }
+            // 안전장치: 시간 지연
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
 
-        // 폰트 임베드 CSS 생성 (최적화)
+        // [핵심 수정] 폰트 임베드 CSS 수동 생성 (Base64 변환)
+        // iOS에서 외부 URL 폰트 로딩이 차단되는 문제를 해결하기 위해 
+        // 폰트 파일을 직접 fetch해서 Base64 문자열로 CSS에 박아넣습니다.
         async function prepareFontEmbedCSS() {
             if (cachedFontEmbedCSS) {
                 console.log('[폰트] 캐시된 폰트 CSS 사용');
                 return cachedFontEmbedCSS;
             }
             
-            console.log('[폰트] 임베드 CSS 생성 시작...');
-            const page = document.getElementById('captureTarget');
+            console.log('[폰트] Base64 임베드 CSS 생성 시작...');
             
-            if (page && typeof htmlToImage !== 'undefined' && htmlToImage.getFontEmbedCSS) {
-                try {
-                    cachedFontEmbedCSS = await htmlToImage.getFontEmbedCSS(page);
-                    console.log('[폰트] 임베드 CSS 생성 완료');
-                    console.log('[폰트] CSS 길이:', cachedFontEmbedCSS ? cachedFontEmbedCSS.length : 0);
-                    return cachedFontEmbedCSS;
-                } catch (e) {
-                    console.error('[폰트] 임베드 CSS 생성 실패:', e);
-                    return null;
+            try {
+                // 1. 구글 폰트 CSS 가져오기
+                const cssUrl = 'https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=swap';
+                const cssRes = await fetch(cssUrl);
+                let cssText = await cssRes.text();
+
+                // 2. CSS 내부의 url(...) 패턴 찾기
+                // 구글 폰트는 브라우저마다 다른 CSS를 주므로 현재 브라우저에 맞는 woff2 파일 링크가 들어있음
+                const urlRegex = /url\(([^)]+)\)/g;
+                let match;
+                const replacements = [];
+
+                // 매칭되는 모든 URL 추출
+                while ((match = urlRegex.exec(cssText)) !== null) {
+                    const fullUrl = match[1].replace(/['"]/g, ''); // 따옴표 제거
+                    replacements.push({
+                        original: match[0], // url(...) 전체
+                        url: fullUrl
+                    });
                 }
+
+                // 3. 각 폰트 파일 다운로드 및 Base64 변환 (병렬 처리)
+                await Promise.all(replacements.map(async (item) => {
+                    try {
+                        const fontRes = await fetch(item.url);
+                        const fontBlob = await fontRes.blob();
+                        
+                        return new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                                // Base64 데이터로 변환된 결과
+                                const base64data = reader.result;
+                                // CSS 텍스트 내의 url(...) 부분을 url('data:...')로 치환
+                                cssText = cssText.replace(item.url, base64data);
+                                resolve();
+                            };
+                            reader.onerror = reject;
+                            reader.readAsDataURL(fontBlob);
+                        });
+                    } catch (e) {
+                        console.warn('개별 폰트 로드 실패:', item.url, e);
+                    }
+                }));
+
+                console.log('[폰트] Base64 CSS 생성 완료 (길이: ' + cssText.length + ')');
+                cachedFontEmbedCSS = cssText;
+                return cssText;
+
+            } catch (e) {
+                console.error('[폰트] 수동 임베드 생성 실패:', e);
+                return null;
             }
-            
-            console.warn('[폰트] htmlToImage.getFontEmbedCSS 사용 불가');
-            return null;
         }
 
         // --- 핵심 로직: 페이지 분할 엔진 ---
@@ -683,68 +700,69 @@
                 return;
             }
             
+            // 로딩 표시 (사용자 피드백 강화)
+            const downloadBtn = document.getElementById('downloadBtn');
+            const originalBtnText = downloadBtn.textContent;
+            downloadBtn.textContent = '생성 중...';
+            downloadBtn.disabled = true;
+
             try {
                 console.log('[다운로드] 이미지 생성 시작...');
-                console.log('[다운로드] iOS 여부:', isIOS());
                 
-                // 폰트 로드 대기
+                // 1. 폰트 로드 보장
                 await ensureFontsLoaded();
                 
-                // 폰트 임베드 CSS 준비
+                // 2. iOS 대응: 폰트를 Base64로 직접 변환한 CSS 생성
                 const fontEmbedCSS = await prepareFontEmbedCSS();
                 
-                console.log('[다운로드] html-to-image 변환 시작...');
-                
-                // html-to-image 옵션
+                // 3. html-to-image 옵션 설정
                 const options = {
                     quality: 1.0,
                     pixelRatio: 2,
                     cacheBust: true,
                     backgroundColor: '#ffffff',
                     preferredFontFormat: 'woff2',
-                    skipFonts: false, // 폰트를 반드시 포함
+                    skipFonts: true // 우리가 직접 fontEmbedCSS를 주입하므로 라이브러리 자체 폰트 처리는 건너뜀
                 };
                 
                 if (fontEmbedCSS) {
                     options.fontEmbedCSS = fontEmbedCSS;
-                    console.log('[다운로드] 폰트 임베드 CSS 적용됨');
+                    console.log('[다운로드] Custom Font Embed CSS 적용됨');
                 }
                 
-                // Blob 생성
+                // 4. Blob 생성
                 const blob = await htmlToImage.toBlob(page, options);
                 
                 console.log('[다운로드] 이미지 생성 완료, 크기:', blob.size);
                 
-                // iOS인 경우 공유 기능 사용
+                // 5. iOS 공유 또는 다운로드
                 if (isIOS() && navigator.share && navigator.canShare) {
                     const file = new File([blob], fileName, { type: 'image/png' });
-                    
                     if (navigator.canShare({ files: [file] })) {
                         try {
-                            console.log('[다운로드] iOS 공유 시트 호출...');
                             await navigator.share({
                                 files: [file],
                                 title: fileName
                             });
-                            console.log('[다운로드] 공유 완료');
-                            return;
                         } catch (shareError) {
-                            if (shareError.name === 'AbortError') {
-                                console.log('[다운로드] 공유 취소됨');
-                                return;
+                            if (shareError.name !== 'AbortError') {
+                                console.error('공유 실패:', shareError);
+                                downloadBlobFallback(blob, fileName);
                             }
-                            console.log('[다운로드] 공유 실패, 다운로드로 전환:', shareError);
                         }
+                    } else {
+                        downloadBlobFallback(blob, fileName);
                     }
+                } else {
+                    downloadBlobFallback(blob, fileName);
                 }
-                
-                // 안드로이드 및 PC, 또는 공유 실패 시 일반 다운로드
-                console.log('[다운로드] 일반 다운로드 실행...');
-                downloadBlobFallback(blob, fileName);
                 
             } catch (error) {
                 console.error('[다운로드] 실패:', error);
-                alert('이미지 생성에 실패했습니다. 콘솔을 확인해주세요.');
+                alert('이미지 생성에 실패했습니다. 다시 시도해주세요.');
+            } finally {
+                downloadBtn.textContent = originalBtnText;
+                downloadBtn.disabled = false;
             }
         }
 
@@ -774,13 +792,8 @@
             const progress = document.getElementById('loadingProgress');
             overlay.style.display = 'flex';
 
-            // 폰트 로드 확인
+            // 폰트 CSS 준비 (한 번만 실행)
             await ensureFontsLoaded();
-            
-            // 첫 페이지로 이동하여 폰트 임베드 CSS 준비
-            currentPageIdx = 0;
-            renderCurrentPage();
-            await new Promise(resolve => setTimeout(resolve, 1000));
             const fontEmbedCSS = await prepareFontEmbedCSS();
 
             for (let i = 0; i < total; i++) {
@@ -788,29 +801,26 @@
                 renderCurrentPage();
                 
                 progress.textContent = Math.floor(((i + 1) / total) * 100);
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                // 렌더링 대기 시간을 약간 줌
+                await new Promise(resolve => setTimeout(resolve, 500));
                 
                 try {
                     const page = document.getElementById('captureTarget');
-                    
                     const options = {
                         quality: 1.0,
                         pixelRatio: 2,
                         cacheBust: true,
                         backgroundColor: '#ffffff',
-                        preferredFontFormat: 'woff2',
-                        skipFonts: false,
+                        skipFonts: true
                     };
                     
-                    if (fontEmbedCSS) {
-                        options.fontEmbedCSS = fontEmbedCSS;
-                    }
+                    if (fontEmbedCSS) options.fontEmbedCSS = fontEmbedCSS;
                     
                     const blob = await htmlToImage.toBlob(page, options);
-                    
                     const fileName = `${title}_${String(i+1).padStart(3, '0')}p.png`;
                     downloadBlobFallback(blob, fileName);
                     
+                    // 다운로드 간격
                     await new Promise(resolve => setTimeout(resolve, 300));
                 } catch (error) {
                     console.error(`[다운로드] 페이지 ${i+1} 생성 실패:`, error);
