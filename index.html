@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2소설 내지 생성기 (A6 문고판)</title>
+    <title>4소설 내지 생성기 (A6 문고판)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=swap" rel="stylesheet">
@@ -793,13 +793,29 @@
             
             if (!confirm(`총 ${total}장의 이미지를 저장합니다.`)) return;
 
+            // 1. 현재 상태 저장
             saveCurrentPageState();
             const originalPageIdx = currentPageIdx;
+
+            // 2. 로딩 오버레이 표시
             const overlay = document.getElementById('loadingOverlay');
             const progress = document.getElementById('loadingProgress');
             overlay.style.display = 'flex';
+            progress.textContent = '준비 중...';
 
-            // 폰트 CSS 준비
+            // [iOS 버그 수정] 렌더링 안정화를 위해 강제로 1페이지로 이동 후 대기
+            // 1페이지가 아닌 상태에서 시작하면 렌더링이 꼬이는 현상 방지
+            if (currentPageIdx !== 0) {
+                currentPageIdx = 0;
+                renderCurrentPage();
+                // 화면이 완전히 그려질 때까지 충분히 대기
+                await new Promise(resolve => setTimeout(resolve, 500));
+            } else {
+                 // 이미 1페이지여도 안전하게 잠시 대기
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+
+            // 3. 폰트 CSS 준비 (1페이지가 렌더링된 상태에서 진행)
             await ensureFontsLoaded();
             const fontEmbedCSS = await prepareFontEmbedCSS();
 
@@ -809,6 +825,9 @@
                 if (typeof JSZip === 'undefined') {
                     alert('압축 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
                     overlay.style.display = 'none';
+                    // 원래 페이지로 복구
+                    currentPageIdx = originalPageIdx;
+                    renderCurrentPage();
                     return;
                 }
                 zip = new JSZip();
@@ -819,8 +838,9 @@
                 renderCurrentPage();
                 
                 progress.textContent = Math.floor(((i + 1) / total) * 100);
-                // 렌더링 대기
-                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // 페이지 렌더링 대기 (iOS는 조금 더 넉넉하게)
+                await new Promise(resolve => setTimeout(resolve, isiOSDevice ? 500 : 300));
                 
                 try {
                     const page = document.getElementById('captureTarget');
@@ -844,7 +864,7 @@
                         // [PC/Android] 즉시 다운로드
                         downloadBlobFallback(blob, fileName);
                         // 브라우저 부하 방지용 딜레이
-                        await new Promise(resolve => setTimeout(resolve, 300));
+                        await new Promise(resolve => setTimeout(resolve, 200));
                     }
 
                 } catch (error) {
@@ -855,6 +875,9 @@
             // [iOS] ZIP 생성 및 공유/다운로드
             if (isiOSDevice) {
                 progress.textContent = '압축 중...';
+                // UI 업데이트 반영을 위한 짧은 대기
+                await new Promise(resolve => setTimeout(resolve, 100));
+
                 try {
                     const content = await zip.generateAsync({type:"blob"});
                     const zipName = `${title}.zip`;
@@ -876,6 +899,7 @@
             }
 
             overlay.style.display = 'none';
+            // 작업 완료 후 원래 보던 페이지로 복귀
             currentPageIdx = originalPageIdx;
             renderCurrentPage();
             
