@@ -3,257 +3,428 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>12소설 내지 생성기</title>
+    <title>소설 내지 생성기 (A6 문고판)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- html-to-image 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500;600;700&display=swap');
+        /* 폰트 강제 적용 */
+        * {
+            font-family: 'Noto Serif KR', serif !important;
+        }
 
         body {
             font-family: 'Noto Serif KR', serif;
-            background-color: #f8f9fa;
+            background: #f0f2f5;
+            color: #1a1a1a;
+        }
+
+        /* 하이라이트 스타일 */
+        .highlight {
+            display: inline;
+            background: rgba(255, 235, 59, 0.4);
+            padding: 0;
+            margin: 0;
+            line-height: normal;
+            vertical-align: baseline;
+            border: none;
+            outline: none;
         }
         
-        .preview-container {
-            width: 100%;
-            max-width: 105mm; /* A6 Width */
-            aspect-ratio: 105/148;
+        .highlight-yellow { background: rgba(255, 235, 59, 0.4); }
+        .highlight-pink { background: rgba(255, 182, 193, 0.4); }
+        .highlight-mint { background: rgba(178, 255, 222, 0.4); }
+        .highlight-blue { background: rgba(173, 216, 230, 0.4); }
+
+        /* 화면용 스타일 - A6 비율 (105:148) */
+        .page-container {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             background: white;
             margin: 0 auto;
+            width: 420px;  
+            height: 600px; 
+            padding: 60px 60px 30px 60px; 
             position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            transform-origin: top center;
         }
 
         .page-content {
-            width: 100%;
-            height: 100%;
-            padding: 15mm 12mm; /* Margins */
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .novel-text {
-            font-size: 10.5pt;
-            line-height: 1.8;
-            text-align: justify;
-            white-space: pre-wrap;
-            word-break: keep-all;
+            height: 460px; 
             overflow: hidden;
+            font-size: 12px;
+            line-height: 1.8 !important;
+            text-align: justify;
+            letter-spacing: -0.02em;
+            word-break: break-all;
+            overflow-wrap: anywhere;
+            font-weight: 300;
+            cursor: text;
         }
 
-        .novel-text p {
+        /* 문단 스타일 */
+        .page-content p {
             margin-bottom: 0;
+            padding: 0;
             text-indent: 1em;
+            line-height: 1.8 !important;
         }
 
-        .page-header {
-            font-size: 8pt;
-            color: #888;
-            text-align: left;
-            margin-bottom: 5mm;
-            height: 12px;
+        /* 이어진 문단 */
+        .page-content p.continued {
+            text-indent: 0 !important;
+        }
+        
+        .page-footer-area {
+            height: 30px;
+            margin-top: auto;
             display: flex;
-            align-items: center;
-            gap: 8px;
+            align-items: flex-end;
         }
 
-        .page-footer {
-            font-size: 9pt;
-            color: #888;
-            text-align: center;
-            margin-top: 5mm;
+        /* 입력 화면 */
+        .input-area {
+            max-width: 900px;
+            margin: 40px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         }
 
-        .highlighted {
-            background-color: rgba(255, 235, 59, 0.3);
+        /* 측정용 숨겨진 박스 */
+        .hidden-measure {
+            position: absolute;
+            visibility: hidden;
+            top: -9999px;
+            left: -9999px;
+            width: 300px; 
+            font-family: 'Noto Serif KR', serif;
+            font-size: 12px;
+            line-height: 1.8 !important;
+            text-align: justify;
+            letter-spacing: -0.02em;
+            word-break: break-all;
+            overflow-wrap: anywhere;
+            font-weight: 300;
+        }
+        
+        .hidden-measure p {
+            margin-bottom: 0;
+            line-height: 1.8 !important;
+        }
+
+        /* 색상 선택 버튼 */
+        .color-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid transparent;
             cursor: pointer;
+            transition: transform 0.2s;
         }
+        .color-btn:hover { transform: scale(1.1); }
+        .color-btn.active { border-color: #333; transform: scale(1.1); }
 
-        .highlighted:hover {
-            background-color: rgba(255, 235, 59, 0.5);
-        }
-
-        .download-highlighted {
-            background-color: transparent !important;
-            font-weight: bold;
-        }
-
+        /* 유틸리티 */
         .btn {
             transition: all 0.2s;
         }
         .btn:active {
             transform: scale(0.98);
         }
+        
+        /* 로딩 오버레이 */
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            display: none;
+        }
 
-        /* Hide scrollbar for cleaner UI */
-        textarea::-webkit-scrollbar {
-            width: 8px;
-        }
-        textarea::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        textarea::-webkit-scrollbar-thumb {
-            background: #ccc;
-            border-radius: 4px;
-        }
-        textarea::-webkit-scrollbar-thumb:hover {
-            background: #bbb;
+        /* 모바일 반응형 */
+        @media (max-width: 450px) {
+            #bookViewerWrapper {
+                transform: scale(0.85);
+                transform-origin: top center;
+                height: 520px; 
+            }
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans">
-
-    <div class="container mx-auto px-4 py-8 max-w-3xl">
-        <!-- Header -->
-        <header class="mb-8 flex flex-col md:flex-row justify-between items-end md:items-center border-b pb-4 gap-4">
-            <div class="flex items-baseline gap-3">
-                <h1 class="text-3xl font-bold text-gray-800">소설 내지 생성기</h1>
-                <span class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded">A6 문고판</span>
+<body>
+    <!-- 1. 입력 단계 -->
+    <div id="inputSection" class="input-area">
+        <div class="flex items-center justify-between mb-6 border-b pb-4">
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-serif font-medium text-slate-800">소설 내지 생성기</h1>
+                <span class="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-bold">A6 문고판</span>
             </div>
-            <a href="https://yuliyulidaz.github.io/yulilog/" target="_blank" class="flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 transition-colors px-3 py-1.5 rounded-full bg-gray-100 hover:bg-indigo-50">
-                <span>발췌 문구 생성기</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            
+            <a href="https://yuliyulidaz.github.io/yulilog/" target="_blank" class="flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 transition-colors py-1 px-2 rounded hover:bg-indigo-50" title="자매 사이트로 이동">
+                <span class="text-lg">🔗</span>
+                <span class="text-xs font-medium hidden sm:inline">발췌 문구 생성기</span>
             </a>
-        </header>
-
-        <!-- Input Section -->
-        <div id="inputSection" class="space-y-6 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-2">소설 제목 (1페이지 표시)</label>
-                    <input type="text" id="novelTitle" class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all" placeholder="제목을 입력하세요">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-2">플랫폼 아이콘 선택</label>
-                    <select id="platformSelect" class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-white">
-                        <!-- Options populated by JS -->
-                    </select>
-                    <p class="text-xs text-gray-400 mt-1">* 1페이지 제목 위에 작게 표시됩니다 (자동 흑백 처리)</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-2">지은이 / 캐릭터</label>
-                    <input type="text" id="authorName" class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all" placeholder="">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-600 mb-2">출판사 / 제작자</label>
-                    <input type="text" id="publisherName" class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all" placeholder="">
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-600 mb-2">본문 내용</label>
-                <textarea id="textInput" class="w-full h-64 px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all resize-none font-serif" placeholder="여기에 소설 본문을 붙여넣으세요.&#10;엔터로 구분된 줄은 자동으로 문단 들여쓰기가 적용됩니다."></textarea>
-            </div>
-
-            <button onclick="startGeneration()" class="btn w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg shadow-md flex justify-center items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                <span>A6 레이아웃 생성하기</span>
-            </button>
         </div>
 
-        <!-- Preview Section (Hidden initially) -->
-        <div id="previewSection" class="hidden space-y-6">
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-4">
-                    <button onclick="goBack()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><arrow-left class="w-6 h-6"></arrow-left><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                    </button>
-                    <div class="flex items-center gap-2">
-                        <button onclick="changePage(-1)" class="p-1.5 hover:bg-gray-100 rounded transition-colors disabled:opacity-30" id="prevBtn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                        </button>
-                        <span class="text-sm font-mono" id="pageIndicator">1 / 5</span>
-                        <button onclick="changePage(1)" class="p-1.5 hover:bg-gray-100 rounded transition-colors disabled:opacity-30" id="nextBtn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="flex items-center gap-3">
-                    <button onclick="toggleHighlightMode()" id="highlightToggleBtn" class="px-3 py-1.5 text-sm rounded-lg border transition-colors flex items-center gap-2 bg-yellow-50 text-yellow-700 border-yellow-200">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
-                        <span>형광펜 모드 ON</span>
-                    </button>
-                    <button onclick="downloadCurrentPage()" id="downloadBtn" class="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white text-sm rounded-lg transition-colors shadow-sm flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        <span>현재 페이지 저장</span>
-                    </button>
-                </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+                <label class="block text-sm text-slate-500 mb-1">소설 제목 (1페이지 표시)</label>
+                <input type="text" id="novelTitle" class="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all" placeholder="제목을 입력하세요">
             </div>
-
-            <div class="bg-gray-200 p-8 rounded-xl flex justify-center overflow-auto">
-                <div id="previewContainer" class="preview-container">
-                    <!-- Content injected by JS -->
-                </div>
+            <div>
+                <label class="block text-sm text-slate-500 mb-1">플랫폼 아이콘 선택</label>
+                <select id="iconSelect" class="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all text-slate-700">
+                    <option value="">선택 안함</option>
+                    <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/dokichat.jpg">도키챗</option>
+                    <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/LoveyDovey.jpg">러비더비</option>
+                    <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/reppley.jpg">레플리</option>
+                    <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/rplay.png">로맨틱플레이</option>
+                    <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/rofan.png">로판AI</option>
+                    <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/melting.jpg">멜팅</option>
+                    <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/bloom.jpg">블룸</option>
+                    <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/inkchat.jpg">잉크챗</option>
+                    <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/zeta.jpg">제타</option>
+                    <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/carat.png">캐럿</option>
+                    <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/chemi.png">케밍</option>
+                    <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/Caveduck.jpg">케이브덕</option>
+                    <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/crack.png">크랙</option>
+                    <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/pulse.jpg">펄스</option>
+                    <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/Fizzchat.png">피즈챗</option>
+                    <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/whif.jpg">WHIF</option>
+                </select>
+                <p class="text-xs text-slate-400 mt-1">* 1페이지 제목 위에 작게 표시됩니다 (자동 흑백 처리)</p>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+             <div>
+                <label class="block text-sm text-slate-500 mb-1">지은이 / 캐릭터</label>
+                <input type="text" id="authorName" class="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all">
+            </div>
+            <div>
+                <label class="block text-sm text-slate-500 mb-1">출판사 / 제작자</label>
+                <input type="text" id="producerName" class="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all">
             </div>
         </div>
 
-        <!-- Footer -->
-        <footer class="mt-12 pt-8 border-t border-gray-200 text-gray-500 text-xs leading-relaxed">
-            <div class="mb-4">
-                <h3 class="font-bold text-gray-700 mb-1">📖 소설 내지 생성기 v1.0.0</h3>
-                <p>본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
-            </div>
-            <div class="mb-4">
-                <strong class="text-gray-600 block mb-1">⚠️ 이용 시 주의사항</strong>
-                <ul class="list-disc pl-4 space-y-1">
-                    <li>텍스트 인용: 책이나 기타 저작물의 텍스트를 발췌할 경우, 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요.</li>
-                    <li>플랫폼 로고: 각 플랫폼의 로고는 해당 플랫폼의 상표이며, 사용 시 각 플랫폼의 브랜드 가이드라인을 준수해야 합니다.</li>
-                    <li>상업적 이용: 생성된 이미지는 상업적으로 사용할 수 없습니다.</li>
-                </ul>
-            </div>
-            <div>
-                <p>본 도구의 제작자는 사용자가 생성한 콘텐츠에 대해 어떠한 책임도 지지 않습니다.<br>이미지 및 텍스트 사용으로 인해 발생하는 모든 법적 문제는 사용자 본인의 책임입니다.</p>
-            </div>
-        </footer>
+        <div class="mb-6">
+            <label class="block text-sm text-slate-500 mb-1">본문 내용</label>
+            <textarea id="textInput" class="w-full h-[400px] p-5 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all resize-none font-serif leading-loose" placeholder="여기에 소설 본문을 붙여넣으세요.&#13;&#10;엔터로 구분된 줄은 자동으로 문단 들여쓰기가 적용됩니다."></textarea>
+        </div>
+
+        <button onclick="startGeneration()" class="btn w-full py-4 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-700 shadow-lg flex justify-center items-center gap-2">
+            <span>A6 레이아웃 생성하기</span>
+        </button>
     </div>
 
+    <!-- 2. 미리보기 및 편집 단계 -->
+    <div id="previewSection" class="hidden pb-20">
+        <!-- 툴바 -->
+        <div class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b shadow-sm mb-8">
+            <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-center md:justify-between items-center gap-4">
+                <!-- 왼쪽: 홈/페이지이동 -->
+                <div class="flex items-center gap-4">
+                    <button onclick="resetApp()" class="text-sm text-slate-500 hover:text-red-600 flex items-center gap-1 border-r pr-4">
+                        <span>↺ 처음으로</span>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <button onclick="prevPage()" id="btnPrev" class="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-slate-50 disabled:opacity-30">◀</button>
+                        <span id="pageIndicator" class="font-serif tabular-nums text-sm w-12 text-center">1 / 1</span>
+                        <button onclick="nextPage()" id="btnNext" class="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-slate-50 disabled:opacity-30">▶</button>
+                    </div>
+                </div>
+
+                <!-- 중간: 형광펜 도구 -->
+                <div class="flex items-center gap-3 bg-slate-100 px-3 py-1.5 rounded-full">
+                    <button id="highlightToggle" onclick="toggleHighlightMode()" class="text-xs font-medium px-2 py-1 rounded transition-colors text-slate-600 hover:text-slate-900">형광펜 끄기</button>
+                    <div class="h-4 w-px bg-slate-300"></div>
+                    <div class="flex gap-1" id="colorPalette">
+                        <div class="color-btn active highlight-yellow" onclick="setHighlightColor('highlight-yellow', this)"></div>
+                        <div class="color-btn highlight-pink" onclick="setHighlightColor('highlight-pink', this)"></div>
+                        <div class="color-btn highlight-mint" onclick="setHighlightColor('highlight-mint', this)"></div>
+                        <div class="color-btn highlight-blue" onclick="setHighlightColor('highlight-blue', this)"></div>
+                    </div>
+                </div>
+
+                <!-- 오른쪽: 다운로드/공유 버튼 (동적 텍스트) -->
+                <div class="flex items-center gap-2">
+                    <button onclick="downloadCurrentPage()" id="downloadBtn" class="bg-white border border-slate-200 text-slate-700 px-4 py-1.5 rounded-full text-xs hover:bg-slate-50 shadow-sm btn">
+                        현재 페이지 저장
+                    </button>
+                    <button onclick="downloadAllPages()" id="downloadAllBtn" class="bg-slate-800 text-white px-4 py-1.5 rounded-full text-xs hover:bg-slate-700 shadow-md btn">
+                        전체 저장
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 책 뷰어 -->
+        <div class="flex justify-center overflow-visible px-4 select-text" id="bookViewerWrapper">
+            <div id="bookViewer">
+                <!-- 페이지가 여기에 렌더링됩니다 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 푸터 -->
+    <footer class="max-w-4xl mx-auto px-6 py-10 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
+        <p class="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.0</p>
+        <p class="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
+        
+        <div class="bg-slate-50 rounded-xl p-6 text-left inline-block w-full max-w-2xl border border-slate-100">
+            <p class="font-bold mb-3 text-slate-700 flex items-center gap-2">
+                <span class="text-base">⚠️</span> 이용 시 주의사항
+            </p>
+            <ul class="list-disc pl-4 space-y-2 mb-5 text-slate-600">
+                <li><strong class="text-slate-700">텍스트 인용:</strong> 책이나 기타 저작물의 텍스트를 발췌할 경우, 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요.</li>
+                <li><strong class="text-slate-700">플랫폼 로고:</strong> 각 플랫폼의 로고는 해당 플랫폼의 상표이며, 사용 시 각 플랫폼의 브랜드 가이드라인을 준수해야 합니다.</li>
+                <li><strong class="text-slate-700">상업적 이용:</strong> 생성된 이미지는 상업적으로 사용할 수 없습니다.</li>
+            </ul>
+            <p class="text-slate-400 text-[11px] pt-4 border-t border-slate-200">
+                본 도구의 제작자는 사용자가 생성한 콘텐츠에 대해 어떠한 책임도 지지 않습니다.<br>
+                이미지 및 텍스트 사용으로 인해 발생하는 모든 법적 문제는 사용자 본인의 책임입니다.
+            </p>
+        </div>
+    </footer>
+
+    <!-- 로딩 오버레이 -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="text-2xl mb-4">이미지 생성 중...</div>
+        <div class="text-sm opacity-80">잠시만 기다려주세요 (<span id="loadingProgress">0</span>%)</div>
+    </div>
+
+    <!-- 측정용 숨겨진 엘리먼트 -->
+    <div id="measureContainer" class="hidden-measure"></div>
+
     <script>
-        // Global State
-        let pages = [];
+        // --- 전역 변수 ---
+        let pages = []; 
+        let pageHighlights = {}; 
         let currentPageIdx = 0;
-        let pageHighlights = {}; // Stores highlight indices per page: { pageIdx: [wordIdx, wordIdx...] }
-        let isHighlightMode = true;
+        
+        let isHighlightMode = false;
+        let currentHighlightColor = 'highlight-yellow';
+
+        const PAGE_CONTENT_HEIGHT = 460;
+        const BOTTOM_BUFFER_P1 = 15;
+
         let cachedFontEmbedCSS = null;
 
-        // Platform Icons Configuration
-        const platformIcons = {
-            "선택 안함": "",
-            "도키챗": "https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/dokichat.jpg",
-            "러비더비": "https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/LoveyDovey.jpg",
-            "레플리": "https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/reppley.jpg",
-            "로맨틱플레이": "https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/rplay.png",
-            "로판AI": "https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/rofan.png",
-            "멜팅": "https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/melting.jpg",
-            "블룸": "https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/bloom.jpg",
-            "잉크챗": "https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/inkchat.jpg",
-            "제타": "https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/zeta.jpg",
-            "캐럿": "https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/carat.png",
-            "케밍": "https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/chemi.png",
-            "케이브덕": "https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/Caveduck.jpg",
-            "크랙": "https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/crack.png",
-            "펄스": "https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/pulse.jpg",
-            "피즈챗": "https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/Fizzchat.png",
-            "WHIF": "https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/whif.jpg"
-        };
+        // iOS 감지 함수
+        function isIOS() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        }
 
-        // Initialize Platform Select
-        window.onload = function() {
-            const select = document.getElementById('platformSelect');
-            for (const [name, url] of Object.entries(platformIcons)) {
-                const option = document.createElement('option');
-                option.value = name;
-                option.textContent = name;
-                select.appendChild(option);
+        // 페이지 로드 시 버튼 텍스트 설정
+        window.addEventListener('DOMContentLoaded', () => {
+            updateDownloadButtonText();
+        });
+
+        // 다운로드 버튼 텍스트 업데이트 (iOS에서는 전체저장 버튼 숨김)
+        function updateDownloadButtonText() {
+            const downloadBtn = document.getElementById('downloadBtn');
+            const downloadAllBtn = document.getElementById('downloadAllBtn');
+            const isiOSDevice = isIOS();
+
+            if (downloadBtn) {
+                downloadBtn.textContent = '현재 페이지 저장';
             }
-        };
+
+            if (downloadAllBtn) {
+                if (isiOSDevice) {
+                    // [iOS 대응] 오류가 잦은 전체 저장 기능을 아예 숨김 처리
+                    downloadAllBtn.style.display = 'none';
+                } else {
+                    // PC/Android는 정상 표시
+                    downloadAllBtn.style.display = ''; 
+                    downloadAllBtn.textContent = '전체 저장';
+                }
+            }
+        }
+
+        // 폰트 로드 보장 함수
+        async function ensureFontsLoaded() {
+            console.log('[폰트] 로드 상태 확인 중...');
+            try {
+                await document.fonts.ready;
+                if (document.fonts.check('12px "Noto Serif KR"')) {
+                    console.log('[폰트] 이미 로드됨');
+                    return;
+                }
+            } catch (e) {
+                console.warn('폰트 API 확인 실패', e);
+            }
+            // 안전장치: 시간 지연
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        // [핵심] 폰트 임베드 CSS 수동 생성 (Base64 변환) - iOS 폰트 깨짐 방지용
+        async function prepareFontEmbedCSS() {
+            if (cachedFontEmbedCSS) {
+                return cachedFontEmbedCSS;
+            }
+            
+            console.log('[폰트] Base64 임베드 CSS 생성 시작...');
+            
+            try {
+                // 1. 구글 폰트 CSS 가져오기
+                const cssUrl = 'https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=swap';
+                const cssRes = await fetch(cssUrl);
+                let cssText = await cssRes.text();
+
+                // 2. CSS 내부의 url(...) 패턴 찾기
+                const urlRegex = /url\(([^)]+)\)/g;
+                let match;
+                const replacements = [];
+
+                while ((match = urlRegex.exec(cssText)) !== null) {
+                    const fullUrl = match[1].replace(/['"]/g, ''); 
+                    replacements.push({
+                        original: match[0], 
+                        url: fullUrl
+                    });
+                }
+
+                // 3. 각 폰트 파일 다운로드 및 Base64 변환
+                await Promise.all(replacements.map(async (item) => {
+                    try {
+                        const fontRes = await fetch(item.url);
+                        const fontBlob = await fontRes.blob();
+                        
+                        return new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                                const base64data = reader.result;
+                                cssText = cssText.replace(item.url, base64data);
+                                resolve();
+                            };
+                            reader.onerror = reject;
+                            reader.readAsDataURL(fontBlob);
+                        });
+                    } catch (e) {
+                        console.warn('개별 폰트 로드 실패:', item.url, e);
+                    }
+                }));
+
+                cachedFontEmbedCSS = cssText;
+                return cssText;
+
+            } catch (e) {
+                console.error('[폰트] 수동 임베드 생성 실패:', e);
+                return null;
+            }
+        }
 
         // --- 핵심 로직: 페이지 분할 엔진 ---
         function startGeneration() {
@@ -275,6 +446,9 @@
                 
                 document.getElementById('inputSection').classList.add('hidden');
                 document.getElementById('previewSection').classList.remove('hidden');
+                
+                window.scrollTo(0, 0); // 스크롤을 맨 위로 이동
+                
                 document.querySelector('.btn span').textContent = "A6 레이아웃 생성하기";
                 
                 isHighlightMode = true;
@@ -282,292 +456,472 @@
                 updateDownloadButtonText(); // 버튼 텍스트 업데이트
                 
                 renderCurrentPage();
-
-                // 스크롤 최상단으로 이동
-                window.scrollTo(0, 0);
             }, 50);
         }
 
         function splitTextIntoPages(fullText, title) {
-            // A6 Size (105mm x 148mm)
-            // Margins: Top 15mm, Bottom 15mm, Left/Right 12mm
-            // Content Width ~ 81mm
-            // Font: 10.5pt (~3.7mm height with 1.8 line-height -> ~6.6mm per line)
-            // Content Height: 118mm
-            // Lines per page: approx 16-18 lines depending on title/spacing
+            const resultPages = [];
+            const measureBox = document.getElementById('measureContainer');
             
-            // Simple greedy algorithm for text splitting
-            // In a real browser env, we need to measure elements.
-            // Here we use a hidden container to measure text flow.
+            const rawParagraphs = fullText.split('\n').filter(p => p.trim().length > 0);
             
-            const container = document.createElement('div');
-            container.style.width = '81mm'; // 105 - 24
-            container.style.visibility = 'hidden';
-            container.style.position = 'absolute';
-            container.style.fontFamily = "'Noto Serif KR', serif";
-            container.style.fontSize = '10.5pt';
-            container.style.lineHeight = '1.8';
-            container.style.textAlign = 'justify';
-            container.className = 'novel-text';
-            document.body.appendChild(container);
+            let currentParagraphs = [];
+            let pageNum = 1;
+            
+            let queue = rawParagraphs.map(text => ({ text: text, isContinued: false }));
 
-            const MAX_HEIGHT_PX = 118 * 3.7795275591; // mm to px approx
-            // Adjust pixels for screen resolution (96dpi) -> 1mm ~ 3.78px
-            // 118mm ~ 446px available height
+            measureBox.innerHTML = ''; 
             
-            // Split by paragraphs
-            const paragraphs = fullText.split('\n');
-            
-            let pages = [];
-            let currentPageContent = [];
-            let currentHeight = 0;
-            
-            // Helper to measure paragraph height
-            const measurePara = (text, isIndent = true) => {
+            if (title && pageNum === 1) {
+                const titlePlaceholder = document.createElement('div');
+                titlePlaceholder.style.height = "200px";
+                titlePlaceholder.style.width = "100%";
+                titlePlaceholder.style.marginBottom = "0"; 
+                measureBox.appendChild(titlePlaceholder);
+            }
+
+            while (queue.length > 0) {
+                const item = queue.shift();
+                
                 const p = document.createElement('p');
-                p.textContent = text;
-                if (isIndent) p.style.textIndent = '1em';
-                p.style.margin = '0';
-                container.innerHTML = '';
-                container.appendChild(p);
-                return container.offsetHeight;
-            };
+                p.textContent = item.text;
+                p.style.lineHeight = "1.8";
+                p.style.marginBottom = "0";
+                
+                if (item.isContinued) p.classList.add('continued');
+                else p.style.textIndent = '1em';
 
-            // If title is present, first page has title
-            // Title height approx: font-size * 1.5 + margin
-            // Let's simply reduce available height for page 1 if title exists
-            let availableHeight = MAX_HEIGHT_PX;
-            if (title && title.trim()) {
-                // Give some space for title header on page 1
-                availableHeight -= 60; // Rough estimate for title spacing
-            }
+                measureBox.appendChild(p);
+                
+                const currentHeight = measureBox.scrollHeight;
 
-            paragraphs.forEach((para, idx) => {
-                if (!para.trim()) {
-                    // Empty line (margin)
-                    currentHeight += 20; // height of empty line
-                } else {
-                    let paraHeight = measurePara(para);
+                const currentBuffer = (pageNum === 1) ? BOTTOM_BUFFER_P1 : 0;
+                const limitHeight = PAGE_CONTENT_HEIGHT - currentBuffer;
+
+                if (currentHeight <= limitHeight) {
+                    currentParagraphs.push({
+                        text: item.text,
+                        isContinued: item.isContinued
+                    });
+                } 
+                else {
+                    measureBox.removeChild(p); 
                     
-                    if (currentHeight + paraHeight > availableHeight) {
-                        // If paragraph is too long to fit at all, we should split it (complex)
-                        // For MVP, we push to next page
-                        if (currentPageContent.length > 0) {
-                            pages.push(currentPageContent);
-                            currentPageContent = [];
-                            currentHeight = 0;
-                            availableHeight = MAX_HEIGHT_PX; // Reset for next pages
-                        }
-                        
-                        // Re-measure in case it's still too large (splitting long paragraph logic omitted for simplicity)
-                        // Ideally we split the paragraph word by word.
-                        // Let's just push it now.
-                        currentPageContent.push({ type: 'p', text: para });
-                        currentHeight += paraHeight;
-                    } else {
-                        currentPageContent.push({ type: 'p', text: para });
-                        currentHeight += paraHeight;
-                    }
-                }
-            });
+                    const currentBaseHeight = measureBox.scrollHeight;
+                    const availableHeight = limitHeight - currentBaseHeight;
 
-            if (currentPageContent.length > 0) {
-                pages.push(currentPageContent);
+                    if (availableHeight < 18) {
+                        queue.unshift(item);
+                    } else {
+                        const splitIdx = findSplitIndex(item.text, availableHeight, item.isContinued);
+                        
+                        if (splitIdx > 0) {
+                            const partA = item.text.substring(0, splitIdx);
+                            const partB = item.text.substring(splitIdx);
+
+                            currentParagraphs.push({
+                                text: partA,
+                                isContinued: item.isContinued
+                            });
+
+                            if (partB.length > 0) {
+                                queue.unshift({
+                                    text: partB,
+                                    isContinued: true
+                                });
+                            }
+                        } else {
+                            queue.unshift(item);
+                        }
+                    }
+
+                    resultPages.push(currentParagraphs);
+                    currentParagraphs = [];
+                    
+                    pageNum++;
+                    measureBox.innerHTML = '';
+                }
             }
 
-            document.body.removeChild(container);
-            return pages;
+            if (currentParagraphs.length > 0) {
+                resultPages.push(currentParagraphs);
+            }
+
+            return resultPages;
         }
 
-        function renderCurrentPage() {
-            const container = document.getElementById('previewContainer');
-            const pageData = pages[currentPageIdx];
+        function findSplitIndex(text, maxHeight, isContinued) {
+            const measureBox = document.getElementById('measureContainer');
+            const tempP = document.createElement('p');
+            tempP.style.lineHeight = "1.8";
+            tempP.style.marginBottom = "0";
             
-            if (!pageData) {
-                container.innerHTML = '';
+            if (isContinued) tempP.classList.add('continued');
+            else tempP.style.textIndent = '1em';
+            
+            measureBox.appendChild(tempP);
+            
+            let low = 0;
+            let high = text.length;
+            let bestIdx = 0;
+
+            while (low <= high) {
+                const mid = Math.floor((low + high) / 2);
+                const subText = text.substring(0, mid);
+                tempP.textContent = subText;
+                
+                if (tempP.offsetHeight <= maxHeight) {
+                    bestIdx = mid;
+                    low = mid + 1;
+                } else {
+                    high = mid - 1;
+                }
+            }
+            
+            measureBox.removeChild(tempP);
+            return bestIdx;
+        }
+
+
+        // --- 렌더링 및 UI ---
+        function renderCurrentPage() {
+            const viewer = document.getElementById('bookViewer');
+            
+            if (pageHighlights[currentPageIdx]) {
+                viewer.innerHTML = pageHighlights[currentPageIdx];
+                attachHighlightEvents(); 
+                updateNavButtons();
                 return;
             }
 
-            // Header
-            const title = document.getElementById('novelTitle').value;
-            const platformName = document.getElementById('platformSelect').value;
-            const iconUrl = platformIcons[platformName];
+            const pageData = pages[currentPageIdx];
+            const novelTitle = document.getElementById('novelTitle').value;
+            const authorName = document.getElementById('authorName').value;
+            const producerName = document.getElementById('producerName').value;
+            const iconUrl = document.getElementById('iconSelect').value;
             
-            let headerHTML = '';
-            
-            // Page 1 Header Logic
-            if (currentPageIdx === 0) {
-                // Platform Icon (Grayscale)
-                let iconHTML = '';
-                if (iconUrl) {
-                    // Use mix-blend-mode or filter for grayscale
-                    iconHTML = `<img src="${iconUrl}" style="height: 16px; width: auto; filter: grayscale(100%); opacity: 0.7; margin-right: 6px;" alt="icon">`;
-                }
-                
-                if (title) {
-                    headerHTML = `
-                        <div class="page-header" style="justify-content: flex-start; margin-bottom: 2mm;">
-                            ${iconHTML}
-                            <span>${platformName !== '선택 안함' ? platformName : ''}</span>
-                        </div>
-                        <div style="text-align: center; margin-bottom: 8mm;">
-                            <h2 style="font-size: 14pt; font-weight: 600; margin-bottom: 2mm;">${title}</h2>
-                            <div style="font-size: 9pt; color: #666;">
-                                ${document.getElementById('authorName').value ? document.getElementById('authorName').value : ''}
-                                ${document.getElementById('publisherName').value ? ' / ' + document.getElementById('publisherName').value : ''}
-                            </div>
-                        </div>
-                    `;
-                }
-            } else {
-                // Normal Header for other pages
-                headerHTML = `
-                    <div class="page-header" style="justify-content: space-between;">
-                        <span>${title || ''}</span>
-                        <span></span> 
+            const pageNum = currentPageIdx + 1;
+            const isOdd = pageNum % 2 !== 0;
+
+            let html = `
+                <div id="captureTarget" class="page-container">
+            `;
+
+            // [기능 추가] 1페이지 상단 아이콘
+            if (currentPageIdx === 0 && iconUrl) {
+                html += `
+                    <img src="${iconUrl}" 
+                         style="position: absolute; top: 50px; left: 50%; transform: translateX(-50%); 
+                                width: 36px; height: 36px; object-fit: cover; 
+                                border-radius: 50%; filter: grayscale(100%); opacity: 0.8; z-index: 10;"
+                         alt="icon" crossorigin="anonymous"
+                    >
+                `;
+            }
+
+            html += `<div class="page-content" id="pageContentArea">`;
+
+            if (currentPageIdx === 0 && novelTitle) {
+                html += `
+                    <div style="height: 200px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin-bottom: 0;">
+                        <h1 class="text-base tracking-[0.1em] text-slate-700 font-normal text-center px-4" style="line-height: 1.8; max-height: 70px; overflow: hidden;">${novelTitle}</h1>
+                        <div class="w-8 h-[1px] bg-slate-400 opacity-50 mx-auto mt-14"></div>
                     </div>
                 `;
             }
 
-            // Content
-            let contentHTML = '<div class="novel-text">';
-            pageData.forEach((item, itemIdx) => {
-                if (item.type === 'p') {
-                    // Split paragraph into spans for highlighting
-                    const words = item.text.split(''); // char by char for precision or word by word?
-                    // Let's do simplistic word/segment splitting for highlighting
-                    // Actually, character level is best for Korean.
-                    const chars = item.text.split('').map((char, charIdx) => {
-                        const globalIdx = `${currentPageIdx}-${itemIdx}-${charIdx}`;
-                        const isHighlighted = pageHighlights[currentPageIdx] && pageHighlights[currentPageIdx].has(globalIdx);
-                        return `<span class="${isHighlighted ? 'highlighted' : ''}" onclick="toggleHighlight('${globalIdx}')">${char}</span>`;
-                    }).join('');
-                    
-                    contentHTML += `<p>${chars}</p>`;
-                }
+            pageData.forEach(p => {
+                const className = p.isContinued ? 'continued' : '';
+                html += `<p class="${className}" style="line-height: 1.8 !important">${p.text}</p>`;
             });
-            contentHTML += '</div>';
 
-            // Footer (Page Number)
-            const footerHTML = `
-                <div class="page-footer">
-                    - ${currentPageIdx + 1} -
-                </div>
-            `;
+            html += `</div>`;
 
-            container.innerHTML = `
-                <div class="page-content">
-                    <div>
-                        ${headerHTML}
-                        ${contentHTML}
+            const footerInfo = [producerName, authorName].filter(Boolean).join(' · ');
+            
+            html += `
+                <div class="page-footer-area text-[9px] text-gray-400 ${isOdd ? 'justify-end' : 'justify-start'}">
+                    <div class="flex items-center gap-2 ${isOdd ? 'flex-row' : 'flex-row-reverse'}">
+                        ${footerInfo ? `<span>${footerInfo}</span>` : ''}
+                        <span class="font-normal text-gray-500">${pageNum}</span>
                     </div>
-                    ${footerHTML}
                 </div>
-            `;
-            
-            // Update UI controls
-            document.getElementById('pageIndicator').textContent = `${currentPageIdx + 1} / ${pages.length}`;
-            document.getElementById('prevBtn').disabled = currentPageIdx === 0;
-            document.getElementById('nextBtn').disabled = currentPageIdx === pages.length - 1;
-            
-            updateDownloadButtonText();
+            </div>`;
+
+            viewer.innerHTML = html;
+            attachHighlightEvents();
+            updateNavButtons();
         }
 
-        function toggleHighlight(id) {
-            if (!isHighlightMode) return;
-            
-            if (!pageHighlights[currentPageIdx]) {
-                pageHighlights[currentPageIdx] = new Set();
-            }
-            
-            if (pageHighlights[currentPageIdx].has(id)) {
-                pageHighlights[currentPageIdx].delete(id);
-            } else {
-                pageHighlights[currentPageIdx].add(id);
-            }
-            
-            renderCurrentPage();
+        function updateNavButtons() {
+            const pageNum = currentPageIdx + 1;
+            document.getElementById('pageIndicator').textContent = `${pageNum} / ${pages.length}`;
+            document.getElementById('btnPrev').disabled = currentPageIdx === 0;
+            document.getElementById('btnNext').disabled = currentPageIdx === pages.length - 1;
         }
 
+        function saveCurrentPageState() {
+            const target = document.getElementById('captureTarget');
+            if (target) {
+                pageHighlights[currentPageIdx] = document.getElementById('bookViewer').innerHTML;
+            }
+        }
+
+        function prevPage() {
+            if (currentPageIdx > 0) {
+                saveCurrentPageState();
+                currentPageIdx--;
+                renderCurrentPage();
+            }
+        }
+
+        function nextPage() {
+            if (currentPageIdx < pages.length - 1) {
+                saveCurrentPageState();
+                currentPageIdx++;
+                renderCurrentPage();
+            }
+        }
+
+        // --- 형광펜 기능 ---
         function toggleHighlightMode() {
             isHighlightMode = !isHighlightMode;
             updateHighlightUI();
         }
 
         function updateHighlightUI() {
-            const btn = document.getElementById('highlightToggleBtn');
+            const btn = document.getElementById('highlightToggle');
+            const palette = document.getElementById('colorPalette');
+            
             if (isHighlightMode) {
-                btn.classList.remove('bg-gray-50', 'text-gray-600', 'border-gray-200');
-                btn.classList.add('bg-yellow-50', 'text-yellow-700', 'border-yellow-200');
-                btn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
-                    <span>형광펜 모드 ON</span>
-                `;
-                document.getElementById('previewContainer').style.cursor = 'text';
+                btn.textContent = "형광펜 끄기";
+                btn.classList.add('bg-slate-200');
+                palette.style.display = 'flex';
             } else {
-                btn.classList.remove('bg-yellow-50', 'text-yellow-700', 'border-yellow-200');
-                btn.classList.add('bg-gray-50', 'text-gray-600', 'border-gray-200');
-                btn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"></line><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
-                    <span>형광펜 모드 OFF</span>
-                `;
-                document.getElementById('previewContainer').style.cursor = 'default';
+                btn.textContent = "형광펜 켜기";
+                btn.classList.remove('bg-slate-200');
+                palette.style.display = 'none';
             }
         }
 
-        function changePage(delta) {
-            const newIdx = currentPageIdx + delta;
-            if (newIdx >= 0 && newIdx < pages.length) {
-                currentPageIdx = newIdx;
-                renderCurrentPage();
-            }
+        function setHighlightColor(colorClass, btnElement) {
+            currentHighlightColor = colorClass;
+            document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
         }
 
-        function goBack() {
-            document.getElementById('inputSection').classList.remove('hidden');
-            document.getElementById('previewSection').classList.add('hidden');
-            document.querySelector('.btn span').textContent = "A6 레이아웃 생성하기";
-        }
-        
-        function updateDownloadButtonText() {
-            const btnText = document.getElementById('downloadBtn').querySelector('span');
-            const hasHighlights = pageHighlights[currentPageIdx] && pageHighlights[currentPageIdx].size > 0;
-            
-            if (hasHighlights) {
-                btnText.textContent = "현재 페이지 저장 (형광펜 제외)";
-            } else {
-                btnText.textContent = "현재 페이지 저장";
-            }
-        }
+        function attachHighlightEvents() {
+            const contentArea = document.getElementById('pageContentArea');
+            if (!contentArea) return;
 
-        function downloadCurrentPage() {
-            const container = document.getElementById('previewContainer');
+            contentArea.addEventListener('mouseup', handleSelection);
+            contentArea.addEventListener('touchend', handleSelection); 
             
-            // Temporarily remove highlight classes for clean capture
-            // Actually, users usually want to capture WITH highlights if they added them, 
-            // BUT the prompt implied they might want to choose? 
-            // The previous logic (btn text) suggests "Save (Excluding Highlights)" implies we should strip them.
-            // Let's stick to the implied logic: If highlights exist, we remove them for the "clean" version, 
-            // or we could offer two buttons.
-            // Given the button text "현재 페이지 저장 (형광펜 제외)", we must hide highlights.
-            
-            const highlights = container.querySelectorAll('.highlighted');
-            highlights.forEach(el => el.classList.add('download-highlighted')); // Add class that overrides bg color
-
-            html2canvas(container, {
-                scale: 3, // High res
-                useCORS: true,
-                logging: false,
-                backgroundColor: '#ffffff'
-            }).then(canvas => {
-                // Restore highlights
-                highlights.forEach(el => el.classList.remove('download-highlighted'));
-
-                const link = document.createElement('a');
-                link.download = `novel_page_${currentPageIdx + 1}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
+            contentArea.querySelectorAll('.highlight').forEach(span => {
+                span.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (!isHighlightMode) return;
+                    const text = this.textContent;
+                    const textNode = document.createTextNode(text);
+                    this.parentNode.replaceChild(textNode, this);
+                    saveCurrentPageState();
+                });
             });
+        }
+
+        function handleSelection() {
+            if (!isHighlightMode) return;
+
+            const selection = window.getSelection();
+            if (!selection.rangeCount || selection.toString().trim() === '') return;
+
+            const range = selection.getRangeAt(0);
+            const contentArea = document.getElementById('pageContentArea');
+            if (!contentArea.contains(range.commonAncestorContainer)) return;
+
+            try {
+                const span = document.createElement('span');
+                span.className = `highlight ${currentHighlightColor}`;
+                
+                span.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (!isHighlightMode) return;
+                    const text = this.textContent;
+                    const textNode = document.createTextNode(text);
+                    this.parentNode.replaceChild(textNode, this);
+                    saveCurrentPageState();
+                });
+                
+                range.surroundContents(span);
+                selection.removeAllRanges();
+                saveCurrentPageState();
+            } catch (e) {
+                console.log("복잡한 선택 영역입니다. 단일 문단 내에서 선택해주세요.");
+            }
+        }
+
+        // --- 다운로드 기능 (html-to-image 사용) ---
+        async function downloadCurrentPage() {
+            const page = document.getElementById('captureTarget');
+            const title = document.getElementById('novelTitle').value || 'novel';
+            const fileName = `${title}_${currentPageIdx + 1}p.png`;
+            
+            if (typeof htmlToImage === 'undefined') {
+                alert('이미지 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+                return;
+            }
+            
+            // 로딩 표시
+            const downloadBtn = document.getElementById('downloadBtn');
+            const originalBtnText = downloadBtn.textContent;
+            downloadBtn.textContent = '생성 중...';
+            downloadBtn.disabled = true;
+
+            try {
+                console.log('[다운로드] 이미지 생성 시작...');
+                
+                // 1. 폰트 로드 보장
+                await ensureFontsLoaded();
+                
+                // 2. iOS 대응: 폰트 임베드 CSS
+                const fontEmbedCSS = await prepareFontEmbedCSS();
+                
+                // 3. 옵션
+                const options = {
+                    quality: 1.0,
+                    pixelRatio: 2,
+                    cacheBust: true,
+                    backgroundColor: '#ffffff',
+                    preferredFontFormat: 'woff2',
+                    skipFonts: true 
+                };
+                
+                if (fontEmbedCSS) {
+                    options.fontEmbedCSS = fontEmbedCSS;
+                }
+                
+                // 4. Blob 생성
+                const blob = await htmlToImage.toBlob(page, options);
+                
+                console.log('[다운로드] 이미지 생성 완료, 크기:', blob.size);
+                
+                // 5. iOS 공유 또는 다운로드
+                if (isIOS() && navigator.share && navigator.canShare) {
+                    const file = new File([blob], fileName, { type: 'image/png' });
+                    if (navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({
+                                files: [file],
+                                title: fileName
+                            });
+                        } catch (shareError) {
+                            if (shareError.name !== 'AbortError') {
+                                console.error('공유 실패:', shareError);
+                                downloadBlobFallback(blob, fileName);
+                            }
+                        }
+                    } else {
+                        downloadBlobFallback(blob, fileName);
+                    }
+                } else {
+                    downloadBlobFallback(blob, fileName);
+                }
+                
+            } catch (error) {
+                console.error('[다운로드] 실패:', error);
+                alert('이미지 생성에 실패했습니다. 다시 시도해주세요.');
+            } finally {
+                downloadBtn.textContent = originalBtnText;
+                downloadBtn.disabled = false;
+            }
+        }
+
+        function downloadBlobFallback(blob, fileName) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function downloadAllPages() {
+            const title = document.getElementById('novelTitle').value || 'novel';
+            const total = pages.length;
+            
+            // [iOS 대응] 버튼이 숨겨져 있지만 혹시 실행될 경우 차단
+            if (isIOS()) {
+                alert('iOS에서는 현재 페이지 저장 기능만 지원합니다.');
+                return;
+            }
+            
+            if (typeof htmlToImage === 'undefined') {
+                alert('이미지 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+                return;
+            }
+            
+            if (!confirm(`총 ${total}장의 이미지를 저장합니다.`)) return;
+
+            // 1. 현재 상태 저장
+            saveCurrentPageState();
+            const originalPageIdx = currentPageIdx;
+            
+            window.scrollTo(0, 0);
+
+            // 2. 로딩 오버레이 표시
+            const overlay = document.getElementById('loadingOverlay');
+            const progress = document.getElementById('loadingProgress');
+            overlay.style.display = 'flex';
+            progress.textContent = '준비 중...';
+
+            // 3. 폰트 CSS 준비
+            await ensureFontsLoaded();
+            const fontEmbedCSS = await prepareFontEmbedCSS();
+
+            // 4. PC/안드로이드 순차 다운로드
+            for (let i = 0; i < total; i++) {
+                currentPageIdx = i;
+                renderCurrentPage();
+                
+                // 렌더링 대기 (PC는 짧아도 됨)
+                await new Promise(resolve => setTimeout(resolve, 300));
+                progress.textContent = Math.floor(((i + 1) / total) * 100);
+                
+                try {
+                    const page = document.getElementById('captureTarget');
+                    const options = {
+                        quality: 1.0,
+                        pixelRatio: 2,
+                        cacheBust: true,
+                        backgroundColor: '#ffffff',
+                        skipFonts: true
+                    };
+                    
+                    if (fontEmbedCSS) options.fontEmbedCSS = fontEmbedCSS;
+                    
+                    const blob = await htmlToImage.toBlob(page, options);
+                    const fileName = `${title}_${String(i+1).padStart(3, '0')}p.png`;
+                    
+                    downloadBlobFallback(blob, fileName);
+                    
+                    // 브라우저 부하 방지용 딜레이
+                    await new Promise(resolve => setTimeout(resolve, 200));
+
+                } catch (error) {
+                    console.error(`[다운로드] 페이지 ${i+1} 생성 실패:`, error);
+                }
+            }
+
+            overlay.style.display = 'none';
+            currentPageIdx = originalPageIdx;
+            renderCurrentPage();
+            alert("완료되었습니다.");
+        }
+
+        function resetApp() {
+            if (confirm('작업 내용을 지우고 처음으로 돌아가시겠습니까?')) {
+                location.reload();
+            }
         }
     </script>
 </body>
