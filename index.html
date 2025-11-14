@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4소설 내지 생성기 (A6 문고판)</title>
+    <title>1소설 내지 생성기 (A6 문고판)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=swap" rel="stylesheet">
@@ -796,6 +796,9 @@
             // 1. 현재 상태 저장
             saveCurrentPageState();
             const originalPageIdx = currentPageIdx;
+            
+            // [중요] 스크롤 강제 초기화 (iOS 캡처 오류 방지)
+            window.scrollTo(0, 0);
 
             // 2. 로딩 오버레이 표시
             const overlay = document.getElementById('loadingOverlay');
@@ -805,11 +808,14 @@
 
             // [iOS 버그 수정] 렌더링 안정화를 위해 강제로 1페이지로 이동 후 대기
             // 1페이지가 아닌 상태에서 시작하면 렌더링이 꼬이는 현상 방지
+            let didJumpToFirst = false;
+            
             if (currentPageIdx !== 0) {
                 currentPageIdx = 0;
                 renderCurrentPage();
-                // 화면이 완전히 그려질 때까지 충분히 대기
-                await new Promise(resolve => setTimeout(resolve, 500));
+                didJumpToFirst = true;
+                // iOS에서 페이지가 급격히 바뀌었을 때 레이아웃 계산 시간을 충분히 줌 (1초)
+                await new Promise(resolve => setTimeout(resolve, 1000));
             } else {
                  // 이미 1페이지여도 안전하게 잠시 대기
                 await new Promise(resolve => setTimeout(resolve, 200));
@@ -834,13 +840,18 @@
             }
 
             for (let i = 0; i < total; i++) {
-                currentPageIdx = i;
-                renderCurrentPage();
+                // [중요] 1페이지이고, 방금 강제로 이동했다면 다시 그리지 않음 (중복 렌더링 방지)
+                if (i === 0 && didJumpToFirst) {
+                    // 이미 위에서 renderCurrentPage() 하고 1초 기다렸으므로 패스
+                    console.log('[다운로드] 1페이지 중복 렌더링 건너뜀');
+                } else {
+                    currentPageIdx = i;
+                    renderCurrentPage();
+                    // 페이지 렌더링 대기
+                    await new Promise(resolve => setTimeout(resolve, isiOSDevice ? 500 : 300));
+                }
                 
                 progress.textContent = Math.floor(((i + 1) / total) * 100);
-                
-                // 페이지 렌더링 대기 (iOS는 조금 더 넉넉하게)
-                await new Promise(resolve => setTimeout(resolve, isiOSDevice ? 500 : 300));
                 
                 try {
                     const page = document.getElementById('captureTarget');
