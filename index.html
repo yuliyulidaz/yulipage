@@ -3,227 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1소설 내지 생성기 (B6 문고판)</title>
+    <title>소설 내지 생성기 (A6 문고판)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- dom-to-image 라이브러리로 교체 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
     <style>
-        * {
+        /* 인쇄 설정 - A6 (105mm x 148mm) */
+        @page {
+            size: 105mm 148mm;
             margin: 0;
-            padding: 0;
-            box-sizing: border-box;
         }
-
+        
         body {
             font-family: 'Noto Serif KR', serif;
-            background: #f5f5f5;
-            padding: 20px;
+            background: #f0f2f5;
+            color: #1a1a1a;
         }
 
-        /* 입력 단계 */
-        .input-section {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .input-section h1 {
-            font-size: 24px;
-            font-weight: 300;
-            margin-bottom: 10px;
-            color: #333;
-        }
-
-        .input-section .version {
-            font-size: 12px;
-            font-weight: 200;
-            color: #7f8c8d;
-            margin-bottom: 20px;
-        }
-
-        .input-section textarea {
-            width: 100%;
-            min-height: 300px;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-family: 'Noto Serif KR', serif;
-            font-size: 14px;
-            font-weight: 300;
-            line-height: 1.8;
-            resize: vertical;
-        }
-
-        .input-info {
-            margin: 15px 0;
-            display: flex;
-            gap: 15px;
-        }
-
-        .input-info input {
-            flex: 1;
-            padding: 10px 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-family: 'Noto Serif KR', serif;
-            font-size: 14px;
-            font-weight: 300;
-        }
-
-        .btn-primary {
-            width: 100%;
-            padding: 15px;
-            background: #2c3e50;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-family: 'Noto Serif KR', serif;
-            font-size: 16px;
-            font-weight: 300;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: background 0.3s;
-        }
-
-        .btn-primary:hover {
-            background: #34495e;
-        }
-
-        /* 편집 단계 */
-        .editor-section {
-            display: none;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .editor-header {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .editor-controls {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .btn-secondary {
-            padding: 10px 20px;
-            background: white;
-            color: #2c3e50;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-family: 'Noto Serif KR', serif;
-            font-size: 14px;
-            font-weight: 300;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-secondary:hover {
-            background: #f8f9fa;
-            border-color: #2c3e50;
-        }
-
-        .btn-secondary.active {
-            background: #fff3cd;
-            border-color: #ffc107;
-            color: #856404;
-        }
-
-        .highlight-colors {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            margin-left: 10px;
-        }
-
-        .color-btn {
-            width: 32px;
-            height: 32px;
-            border: 2px solid #ddd;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .color-btn:hover {
-            transform: scale(1.1);
-        }
-
-        .color-btn.active {
-            border-color: #2c3e50;
-            border-width: 3px;
-        }
-
-        /* 페이지 - B6 문고판 (128×188mm) */
-        .page-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 30px;
-        }
-
-        .book-page {
-            width: 384px;
-            height: 564px;
-            background: white;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            position: relative;
-            padding: 55px 65px 70px 65px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .page-content {
-            flex: 1;
-            font-family: 'Noto Serif KR', serif;
-            font-size: 12px;
-            font-weight: 200;
-            line-height: 1.85;
-            text-align: justify;
-            color: #2c3e50;
-            letter-spacing: -0.02em;
-            word-break: keep-all;
-            overflow: hidden;
-            user-select: text;
-            cursor: text;
-        }
-
-        .page-content p {
-            text-indent: 1em;
-            margin-bottom: 0.7em;
-        }
-
-        .page-content p:last-child {
-            margin-bottom: 0;
-        }
-
-        .page-title {
-            font-size: 18px;
-            font-weight: 400;
-            text-align: center;
-            margin-top: 60px;
-            margin-bottom: 30px;
-            letter-spacing: 0.1em;
-            color: #2c3e50;
-        }
-
-        .title-divider {
-            width: 30px;
-            height: 1px;
-            background: #7f8c8d;
-            margin: 25px auto;
-            opacity: 0.5;
-        }
-
+        /* 하이라이트 스타일 - 단순하게 */
         .highlight {
             display: inline;
             background: rgba(255, 235, 59, 0.4);
@@ -234,662 +34,568 @@
             border: none;
             outline: none;
         }
+        
+        .highlight-yellow { background: rgba(255, 235, 59, 0.4); }
+        .highlight-pink { background: rgba(255, 182, 193, 0.4); }
+        .highlight-mint { background: rgba(178, 255, 222, 0.4); }
+        .highlight-blue { background: rgba(173, 216, 230, 0.4); }
 
-        .highlight.pink {
-            background: rgba(255, 182, 193, 0.4);
-        }
-
-        .highlight.mint {
-            background: rgba(178, 255, 222, 0.4);
-        }
-
-        .highlight.blue {
-            background: rgba(173, 216, 230, 0.4);
-        }
-
-        .page-footer {
-            font-size: 8px;
-            font-weight: 200;
-            color: #999;
-            margin-top: auto;
-            padding-top: 20px;
-            display: flex;
-        }
-
-        .page-footer.odd {
-            justify-content: flex-end;
-        }
-
-        .page-footer.even {
-            justify-content: flex-start;
-        }
-
-        .footer-content {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .page-navigation {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .nav-btn {
-            padding: 10px 30px;
+        /* 화면용 스타일 - A6 비율 (105:148) */
+        .page-container {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             background: white;
-            color: #2c3e50;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-family: 'Noto Serif KR', serif;
-            font-size: 14px;
+            margin: 0 auto;
+            width: 420px;  
+            height: 600px; 
+            padding: 60px 60px 30px 60px; 
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            transform-origin: top center;
+        }
+
+        .page-content {
+            height: 460px; 
+            overflow: hidden;
+            font-size: 12px;
+            line-height: 1.8 !important;
+            text-align: justify;
+            letter-spacing: -0.02em;
+            word-break: break-all;
+            overflow-wrap: anywhere;
             font-weight: 300;
+            cursor: text;
+        }
+
+        /* 문단 스타일 */
+        .page-content p {
+            margin-bottom: 0;
+            padding: 0;
+            text-indent: 1em;
+            line-height: 1.8 !important;
+        }
+
+        /* 이어진 문단 */
+        .page-content p.continued {
+            text-indent: 0 !important;
+        }
+        
+        .page-footer-area {
+            height: 30px;
+            margin-top: auto;
+            display: flex;
+            align-items: flex-end;
+        }
+
+        /* 입력 화면 */
+        .input-area {
+            max-width: 900px;
+            margin: 40px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        /* 측정용 숨겨진 박스 */
+        .hidden-measure {
+            position: absolute;
+            visibility: hidden;
+            top: -9999px;
+            left: -9999px;
+            width: 300px; 
+            font-family: 'Noto Serif KR', serif;
+            font-size: 12px;
+            line-height: 1.8 !important;
+            text-align: justify;
+            letter-spacing: -0.02em;
+            word-break: break-all;
+            overflow-wrap: anywhere;
+            font-weight: 300;
+        }
+        
+        .hidden-measure p {
+            margin-bottom: 0;
+            line-height: 1.8 !important;
+        }
+
+        /* 색상 선택 버튼 */
+        .color-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid transparent;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: transform 0.2s;
+        }
+        .color-btn:hover { transform: scale(1.1); }
+        .color-btn.active { border-color: #333; transform: scale(1.1); }
+
+        /* 유틸리티 */
+        .btn {
+            transition: all 0.2s;
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        /* 로딩 오버레이 */
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            display: none;
         }
 
-        .nav-btn:hover:not(:disabled) {
-            background: #f8f9fa;
-            border-color: #2c3e50;
-        }
-
-        .nav-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-
-        /* 반응형 */
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-
-            .book-page {
-                width: 100%;
-                max-width: 384px;
-                height: auto;
-                aspect-ratio: 128/188;
-            }
-
-            .input-section {
-                padding: 20px;
-            }
-
-            .editor-controls {
-                justify-content: center;
+        /* 모바일 반응형 */
+        @media (max-width: 450px) {
+            #bookViewerWrapper {
+                transform: scale(0.85);
+                transform-origin: top center;
+                height: 520px; 
             }
         }
     </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.553.0"
+  }
+}
+</script>
 </head>
 <body>
-    <!-- 입력 단계 -->
-    <div class="input-section" id="inputSection">
-        <h1>소설 내지 생성기</h1>
-        <div class="version">B6 문고판 (128×188mm)</div>
-        <textarea id="textInput" placeholder="소설 텍스트를 입력하세요...
-
-엔터 한 번으로 문단이 구분됩니다."></textarea>
-        <div class="input-info">
-            <input type="text" id="novelTitle" placeholder="제목 (선택, 첫 페이지에만 표시)" value="">
+    <!-- 1. 입력 단계 -->
+    <div id="inputSection" class="input-area">
+        <div class="flex items-center gap-3 mb-6 border-b pb-4">
+            <h1 class="text-2xl font-serif font-medium text-slate-800">소설 내지 생성기</h1>
+            <span class="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-bold">A6 문고판</span>
         </div>
-        <div class="input-info">
-            <input type="text" id="bookTitle" placeholder="제작자" value="">
-            <input type="text" id="authorName" placeholder="캐릭터" value="">
-        </div>
-        <button class="btn-primary" onclick="generatePages()">페이지 생성</button>
-    </div>
 
-    <!-- 편집 단계 -->
-    <div class="editor-section" id="editorSection">
-        <div class="editor-header">
-            <div class="editor-controls">
-                <button class="btn-secondary" id="highlightBtn" onclick="toggleHighlightMode()">
-                    형광펜 모드
-                </button>
-                <div class="highlight-colors" id="colorPicker" style="display: none;">
-                    <span style="font-size: 12px; color: #7f8c8d;">색상:</span>
-                    <div class="color-btn active" style="background: rgba(255, 235, 59, 0.6);" onclick="selectColor('yellow')"></div>
-                    <div class="color-btn" style="background: rgba(255, 182, 193, 0.6);" onclick="selectColor('pink')"></div>
-                    <div class="color-btn" style="background: rgba(178, 255, 222, 0.6);" onclick="selectColor('mint')"></div>
-                    <div class="color-btn" style="background: rgba(173, 216, 230, 0.6);" onclick="selectColor('blue')"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+                <label class="block text-sm text-slate-500 mb-1">소설 제목 (1페이지 표시)</label>
+                <input type="text" id="novelTitle" class="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all" placeholder="제목을 입력하세요">
+            </div>
+            <div class="flex gap-3">
+                <div class="flex-1">
+                    <label class="block text-sm text-slate-500 mb-1">지은이 / 캐릭터</label>
+                    <input type="text" id="authorName" class="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all">
                 </div>
-                <button class="btn-secondary" onclick="downloadCurrentPage()">
-                    현재 페이지 다운로드
-                </button>
-                <button class="btn-secondary" onclick="downloadAllPages()">
-                    전체 페이지 다운로드
-                </button>
-                <button class="btn-secondary" onclick="resetToInput()">
-                    새로 만들기
-                </button>
+                <div class="flex-1">
+                    <label class="block text-sm text-slate-500 mb-1">출판사 / 제작자</label>
+                    <input type="text" id="producerName" class="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all">
+                </div>
             </div>
         </div>
 
-        <div class="page-navigation">
-            <button class="nav-btn" id="prevBtn" onclick="changePage(-1)">◀ 이전</button>
-            <span id="pageIndicator" style="font-size: 14px; color: #7f8c8d; font-weight: 300;">1 / 1</span>
-            <button class="nav-btn" id="nextBtn" onclick="changePage(1)">다음 ▶</button>
+        <div class="mb-6">
+            <label class="block text-sm text-slate-500 mb-1">본문 내용</label>
+            <textarea id="textInput" class="w-full h-[400px] p-5 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all resize-none font-serif leading-loose" placeholder="여기에 소설 본문을 붙여넣으세요.&#13;&#10;엔터로 구분된 줄은 자동으로 문단 들여쓰기가 적용됩니다."></textarea>
         </div>
 
-        <div class="page-container" id="pageContainer"></div>
+        <button onclick="startGeneration()" class="btn w-full py-4 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-700 shadow-lg flex justify-center items-center gap-2">
+            <span>A6 레이아웃 생성하기</span>
+        </button>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.3.0/dist/dom-to-image-more.min.js"></script>
+    <!-- 2. 미리보기 및 편집 단계 -->
+    <div id="previewSection" class="hidden pb-20">
+        <!-- 툴바 -->
+        <div class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b shadow-sm mb-8">
+            <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-center md:justify-between items-center gap-4">
+                <!-- 왼쪽: 홈/페이지이동 -->
+                <div class="flex items-center gap-4">
+                    <button onclick="resetApp()" class="text-sm text-slate-500 hover:text-red-600 flex items-center gap-1 border-r pr-4">
+                        <span>↺ 처음으로</span>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <button onclick="prevPage()" id="btnPrev" class="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-slate-50 disabled:opacity-30">◀</button>
+                        <span id="pageIndicator" class="font-serif tabular-nums text-sm w-12 text-center">1 / 1</span>
+                        <button onclick="nextPage()" id="btnNext" class="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-slate-50 disabled:opacity-30">▶</button>
+                    </div>
+                </div>
+
+                <!-- 중간: 형광펜 도구 -->
+                <div class="flex items-center gap-3 bg-slate-100 px-3 py-1.5 rounded-full">
+                    <button id="highlightToggle" onclick="toggleHighlightMode()" class="text-xs font-medium px-2 py-1 rounded transition-colors text-slate-600 hover:text-slate-900">형광펜 끄기</button>
+                    <div class="h-4 w-px bg-slate-300"></div>
+                    <div class="flex gap-1" id="colorPalette">
+                        <div class="color-btn active highlight-yellow" onclick="setHighlightColor('highlight-yellow', this)"></div>
+                        <div class="color-btn highlight-pink" onclick="setHighlightColor('highlight-pink', this)"></div>
+                        <div class="color-btn highlight-mint" onclick="setHighlightColor('highlight-mint', this)"></div>
+                        <div class="color-btn highlight-blue" onclick="setHighlightColor('highlight-blue', this)"></div>
+                    </div>
+                </div>
+
+                <!-- 오른쪽: 다운로드 -->
+                <div class="flex items-center gap-2">
+                    <button onclick="downloadCurrentPage()" class="bg-white border border-slate-200 text-slate-700 px-4 py-1.5 rounded-full text-xs hover:bg-slate-50 shadow-sm btn">
+                        현재 페이지 저장
+                    </button>
+                    <button onclick="downloadAllPages()" class="bg-slate-800 text-white px-4 py-1.5 rounded-full text-xs hover:bg-slate-700 shadow-md btn">
+                        전체 저장 (ZIP)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 책 뷰어 -->
+        <div class="flex justify-center overflow-visible px-4 select-text" id="bookViewerWrapper">
+            <div id="bookViewer">
+                <!-- 페이지가 여기에 렌더링됩니다 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 로딩 오버레이 -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="text-2xl mb-4">이미지 생성 중...</div>
+        <div class="text-sm opacity-80">잠시만 기다려주세요 (<span id="loadingProgress">0</span>%)</div>
+    </div>
+
+    <!-- 측정용 숨겨진 엘리먼트 -->
+    <div id="measureContainer" class="hidden-measure"></div>
+
     <script>
-        // 전역 변수
-        let pages = [];
-        let currentPage = 0;
-        let highlightMode = false;
-        let currentColor = 'yellow';
-        let bookTitle = '';
-        let authorName = '';
-        let pageHighlights = {};
+        // --- 전역 변수 ---
+        let pages = []; 
+        let pageHighlights = {}; 
+        let currentPageIdx = 0;
+        
+        let isHighlightMode = false;
+        let currentHighlightColor = 'highlight-yellow';
 
-        // 페이지 생성 - 줄 수 기반 (17줄)
-        function generatePages() {
-            const text = document.getElementById('textInput').value.trim();
-            bookTitle = document.getElementById('bookTitle').value.trim();
-            authorName = document.getElementById('authorName').value.trim();
-            const novelTitle = document.getElementById('novelTitle').value.trim();
+        const PAGE_CONTENT_HEIGHT = 460;
+        const BOTTOM_BUFFER_P1 = 15;
 
-            if (!text) {
-                alert('텍스트를 입력해주세요.');
+        // --- 핵심 로직: 페이지 분할 엔진 ---
+        function startGeneration() {
+            const text = document.getElementById('textInput').value;
+            const novelTitle = document.getElementById('novelTitle').value;
+            
+            if (!text.trim()) {
+                alert("본문 내용을 입력해주세요.");
                 return;
             }
 
-            // 문단 분리
-            const paragraphs = text.split('\n').filter(p => p.trim());
+            document.querySelector('.btn span').textContent = "생성 중...";
             
-            // 페이지 분할 (실제 렌더링 높이 기반)
-            pages = splitIntoPages(paragraphs);
-
-            // 첫 페이지에 제목이 있으면 저장
-            if (novelTitle && pages.length > 0) {
-                // 첫 페이지 앞에 제목 표시를 위한 플래그 저장
-                window.firstPageTitle = novelTitle;
-            } else {
-                window.firstPageTitle = null;
-            }
-
-            // 화면 전환
-            document.getElementById('inputSection').style.display = 'none';
-            document.getElementById('editorSection').style.display = 'block';
-            
-            currentPage = 0;
-            pageHighlights = {};
-            renderPage();
+            setTimeout(() => {
+                pageHighlights = {}; 
+                pages = splitTextIntoPages(text, novelTitle);
+                currentPageIdx = 0;
+                
+                document.getElementById('inputSection').classList.add('hidden');
+                document.getElementById('previewSection').classList.remove('hidden');
+                document.querySelector('.btn span').textContent = "A6 레이아웃 생성하기";
+                
+                isHighlightMode = true;
+                updateHighlightUI();
+                
+                renderCurrentPage();
+            }, 50);
         }
 
-        // 실제 렌더링 높이 기반으로 페이지 분할
-        function splitIntoPages(paragraphs) {
-            const pages = [];
+        function splitTextIntoPages(fullText, title) {
+            const resultPages = [];
+            const measureBox = document.getElementById('measureContainer');
             
-            // 임시 측정용 페이지 생성 (실제 페이지와 동일한 구조)
-            const tempPage = document.createElement('div');
-            tempPage.style.cssText = `
-                position: absolute;
-                visibility: hidden;
-                width: 254px;
-                font-family: 'Noto Serif KR', serif;
-                font-size: 12px;
-                font-weight: 200;
-                line-height: 1.85;
-                text-align: justify;
-                letter-spacing: -0.02em;
-                word-break: keep-all;
-            `;
-            document.body.appendChild(tempPage);
+            const rawParagraphs = fullText.split('\n').filter(p => p.trim().length > 0);
             
-            // 페이지 콘텐츠 최대 높이 (실제 측정)
-            const maxHeight = 430; // B6 페이지에서 콘텐츠가 들어갈 수 있는 높이 (footer 최소화로 증가)
-            console.log('페이지 최대 높이:', maxHeight);
+            let currentParagraphs = [];
+            let pageNum = 1;
             
-            let remainingParagraphs = [...paragraphs];
-            let pageNum = 0;
+            let queue = rawParagraphs.map(text => ({ text: text, isContinued: false }));
+
+            measureBox.innerHTML = ''; 
             
-            while (remainingParagraphs.length > 0) {
-                pageNum++;
-                console.log(`\n📄 페이지 ${pageNum} 생성 중...`);
+            if (title && pageNum === 1) {
+                const titlePlaceholder = document.createElement('div');
+                titlePlaceholder.style.height = "200px";
+                titlePlaceholder.style.width = "100%";
+                titlePlaceholder.style.marginBottom = "0"; 
+                measureBox.appendChild(titlePlaceholder);
+            }
+
+            while (queue.length > 0) {
+                const item = queue.shift();
                 
-                tempPage.innerHTML = '';
-                const currentPageContent = [];
+                const p = document.createElement('p');
+                p.textContent = item.text;
+                p.style.lineHeight = "1.8";
+                p.style.marginBottom = "0";
                 
-                // 문단을 하나씩 추가하면서 높이 체크
-                for (let i = 0; i < remainingParagraphs.length; i++) {
-                    const para = remainingParagraphs[i];
+                if (item.isContinued) p.classList.add('continued');
+                else p.style.textIndent = '1em';
+
+                measureBox.appendChild(p);
+                
+                const currentHeight = measureBox.scrollHeight;
+
+                const currentBuffer = (pageNum === 1) ? BOTTOM_BUFFER_P1 : 0;
+                const limitHeight = PAGE_CONTENT_HEIGHT - currentBuffer;
+
+                if (currentHeight <= limitHeight) {
+                    currentParagraphs.push({
+                        text: item.text,
+                        isContinued: item.isContinued
+                    });
+                } 
+                else {
+                    measureBox.removeChild(p); 
                     
-                    // 임시로 추가
-                    const p = document.createElement('p');
-                    // 마지막 문단이 아니면 margin-bottom 적용
-                    const isLast = (i === remainingParagraphs.length - 1);
-                    p.style.cssText = isLast ? 
-                        'text-indent: 1em; margin-bottom: 0;' : 
-                        'text-indent: 1em; margin-bottom: 0.7em;';
-                    p.textContent = para;
-                    tempPage.appendChild(p);
-                    
-                    const currentHeight = tempPage.scrollHeight;
-                    console.log(`+ 문단 추가 "${para.substring(0, 20)}..." (현재 ${currentHeight}px)`);
-                    
-                    // 높이 체크
-                    if (currentHeight > maxHeight) {
-                        console.log(`⚠️ 높이 초과: ${currentHeight}px > ${maxHeight}px`);
+                    const currentBaseHeight = measureBox.scrollHeight;
+                    const availableHeight = limitHeight - currentBaseHeight;
+
+                    if (availableHeight < 18) {
+                        queue.unshift(item);
+                    } else {
+                        const splitIdx = findSplitIndex(item.text, availableHeight, item.isContinued);
                         
-                        // 방금 추가한 문단 제거
-                        tempPage.removeChild(p);
-                        
-                        // 이미 추가된 내용이 있으면 그것만 저장하고, 초과한 문단은 쪼개기
-                        if (currentPageContent.length > 0) {
-                            // 현재 페이지에 들어간 내용 저장
-                            console.log(`📄 현재 페이지에 ${currentPageContent.length}개 문단 저장`);
-                            
-                            // 초과한 문단을 쪼개서 일부를 현재 페이지에 추가 시도
-                            const remainingSpace = maxHeight - tempPage.scrollHeight;
-                            console.log(`📏 남은 공간: ${remainingSpace}px`);
-                            
-                            if (remainingSpace > 50) { // 충분한 공간이 있으면 쪼개기 시도
-                                console.log(`🔪 문단 분할 시도...`);
-                                const splitResult = splitParagraphToFit(para, remainingSpace, tempPage);
-                                
-                                if (splitResult.fitted) {
-                                    currentPageContent.push(splitResult.fitted);
-                                    console.log(`✂️ 문단 일부 추가: "${splitResult.fitted.substring(0, 30)}..."`);
-                                    pages.push([...currentPageContent]);
-                                    
-                                    // 나머지를 다음 문단들 앞에 추가
-                                    remainingParagraphs = [splitResult.remaining, ...remainingParagraphs.slice(i + 1)];
-                                } else {
-                                    // 분할 실패 - 현재까지만 저장
-                                    pages.push([...currentPageContent]);
-                                    remainingParagraphs = remainingParagraphs.slice(i);
-                                }
-                            } else {
-                                // 공간 부족 - 현재까지만 저장
-                                pages.push([...currentPageContent]);
-                                remainingParagraphs = remainingParagraphs.slice(i);
+                        if (splitIdx > 0) {
+                            const partA = item.text.substring(0, splitIdx);
+                            const partB = item.text.substring(splitIdx);
+
+                            currentParagraphs.push({
+                                text: partA,
+                                isContinued: item.isContinued
+                            });
+
+                            if (partB.length > 0) {
+                                queue.unshift({
+                                    text: partB,
+                                    isContinued: true
+                                });
                             }
-                            
-                            console.log(`✅ 페이지 저장 완료`);
-                            break;
                         } else {
-                            // 첫 문단부터 넘치는 경우 - 문단을 쪼개야 함
-                            console.log('🔪 문단이 너무 김 - 분할 필요');
-                            const splitResult = splitLongParagraph(para, maxHeight, tempPage);
-                            
-                            if (splitResult.fitted) {
-                                pages.push([splitResult.fitted]);
-                                remainingParagraphs[0] = splitResult.remaining;
-                                console.log(`✅ 문단 분할 저장`);
-                                break;
-                            } else {
-                                // 분할도 실패 - 강제로 넣기
-                                pages.push([para]);
-                                remainingParagraphs = remainingParagraphs.slice(1);
-                                console.log(`⚠️ 강제 저장`);
-                                break;
-                            }
-                        }
-                    } else {
-                        // 높이 OK - 계속 추가
-                        currentPageContent.push(para);
-                        
-                        // 마지막 문단이면 페이지 저장
-                        if (i === remainingParagraphs.length - 1) {
-                            pages.push([...currentPageContent]);
-                            remainingParagraphs = [];
-                            console.log(`✅ 마지막 페이지 저장 (${currentHeight}px)`);
+                            queue.unshift(item);
                         }
                     }
-                }
-            }
-            
-            // 정리
-            document.body.removeChild(tempPage);
-            console.log(`\n🎉 총 ${pages.length}페이지 생성 완료!`);
-            
-            return pages;
-        }
-        
-        // 남은 공간에 맞게 문단을 쪼개기
-        function splitParagraphToFit(paragraph, remainingHeight, container) {
-            // 문장 단위로 분할 시도
-            const sentences = paragraph.match(/[^.!?]+[.!?]+/g) || [paragraph];
-            
-            if (sentences.length > 1) {
-                let fitted = [];
-                const originalHTML = container.innerHTML;
-                
-                for (let i = 0; i < sentences.length; i++) {
-                    const testText = [...fitted, sentences[i]].join('');
-                    const p = document.createElement('p');
-                    p.style.cssText = 'text-indent: 1em; margin-bottom: 0;';
-                    p.textContent = testText;
-                    container.appendChild(p);
+
+                    resultPages.push(currentParagraphs);
+                    currentParagraphs = [];
                     
-                    if (container.scrollHeight - container.scrollHeight + p.offsetHeight <= remainingHeight) {
-                        fitted.push(sentences[i]);
-                    } else {
-                        container.removeChild(p);
-                        break;
-                    }
-                    container.removeChild(p);
-                }
-                
-                container.innerHTML = originalHTML;
-                
-                if (fitted.length > 0) {
-                    return {
-                        fitted: fitted.join(''),
-                        remaining: sentences.slice(fitted.length).join('')
-                    };
+                    pageNum++;
+                    measureBox.innerHTML = '';
                 }
             }
-            
-            // 문장 분할 실패 - 단어 단위로 시도
-            const words = paragraph.split(' ');
-            if (words.length > 1) {
-                let fitted = [];
-                const originalHTML = container.innerHTML;
-                
-                for (let i = 0; i < words.length; i++) {
-                    const testText = [...fitted, words[i]].join(' ');
-                    const p = document.createElement('p');
-                    p.style.cssText = 'text-indent: 1em; margin-bottom: 0;';
-                    p.textContent = testText;
-                    container.appendChild(p);
-                    
-                    if (p.offsetHeight <= remainingHeight) {
-                        fitted.push(words[i]);
-                    } else {
-                        container.removeChild(p);
-                        break;
-                    }
-                    container.removeChild(p);
-                }
-                
-                container.innerHTML = originalHTML;
-                
-                if (fitted.length > 0) {
-                    return {
-                        fitted: fitted.join(' '),
-                        remaining: words.slice(fitted.length).join(' ')
-                    };
-                }
+
+            if (currentParagraphs.length > 0) {
+                resultPages.push(currentParagraphs);
             }
-            
-            return { fitted: null, remaining: paragraph };
-        }
-        
-        // 긴 문단을 두 부분으로 분할
-        function splitLongParagraph(paragraph, maxHeight, container) {
-            // 문장 단위로 분할 시도
-            const sentences = paragraph.match(/[^.!?]+[.!?]+/g) || [paragraph];
-            
-            if (sentences.length > 1) {
-                // 문장별로 추가하면서 최대한 채우기
-                container.innerHTML = '';
-                let fitted = [];
-                
-                for (let i = 0; i < sentences.length; i++) {
-                    const p = document.createElement('p');
-                    p.style.cssText = 'text-indent: 1em; margin-bottom: 0.7em;';
-                    p.textContent = [...fitted, sentences[i]].join('');
-                    container.innerHTML = '';
-                    container.appendChild(p);
-                    
-                    if (container.scrollHeight <= maxHeight) {
-                        fitted.push(sentences[i]);
-                    } else {
-                        break;
-                    }
-                }
-                
-                if (fitted.length > 0) {
-                    return {
-                        fitted: fitted.join(''),
-                        remaining: sentences.slice(fitted.length).join('')
-                    };
-                }
-            }
-            
-            // 문장 분할 실패 - 단어 단위로 시도
-            const words = paragraph.split(' ');
-            if (words.length > 1) {
-                container.innerHTML = '';
-                let fitted = [];
-                
-                for (let i = 0; i < words.length; i++) {
-                    const p = document.createElement('p');
-                    p.style.cssText = 'text-indent: 1em; margin-bottom: 0.7em;';
-                    p.textContent = [...fitted, words[i]].join(' ');
-                    container.innerHTML = '';
-                    container.appendChild(p);
-                    
-                    if (container.scrollHeight <= maxHeight) {
-                        fitted.push(words[i]);
-                    } else {
-                        break;
-                    }
-                }
-                
-                if (fitted.length > 0) {
-                    return {
-                        fitted: fitted.join(' '),
-                        remaining: words.slice(fitted.length).join(' ')
-                    };
-                }
-            }
-            
-            // 모든 분할 실패
-            return { fitted: null, remaining: paragraph };
+
+            return resultPages;
         }
 
-        // 현재 페이지 렌더링
-        function renderPage() {
-            const container = document.getElementById('pageContainer');
-            container.innerHTML = '';
+        function findSplitIndex(text, maxHeight, isContinued) {
+            const measureBox = document.getElementById('measureContainer');
+            const tempP = document.createElement('p');
+            tempP.style.lineHeight = "1.8";
+            tempP.style.marginBottom = "0";
+            
+            if (isContinued) tempP.classList.add('continued');
+            else tempP.style.textIndent = '1em';
+            
+            measureBox.appendChild(tempP);
+            
+            let low = 0;
+            let high = text.length;
+            let bestIdx = 0;
 
-            const pageDiv = document.createElement('div');
-            pageDiv.className = 'book-page';
-            pageDiv.id = 'currentPage';
-
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'page-content';
-            contentDiv.id = 'pageContent';
-
-            // 저장된 HTML이 있으면 복원, 없으면 새로 생성
-            if (pageHighlights[currentPage]) {
-                contentDiv.innerHTML = pageHighlights[currentPage];
-                // 복원된 형광펜에 클릭 이벤트 다시 추가
-                attachHighlightClickEvents(contentDiv);
-            } else {
-                // 첫 페이지에 제목이 있으면 표시 (최초 생성 시에만)
-                if (currentPage === 0 && window.firstPageTitle) {
-                    const titleDiv = document.createElement('div');
-                    titleDiv.className = 'page-title';
-                    titleDiv.textContent = window.firstPageTitle;
-                    contentDiv.appendChild(titleDiv);
-                    
-                    const divider = document.createElement('div');
-                    divider.className = 'title-divider';
-                    contentDiv.appendChild(divider);
-                }
+            while (low <= high) {
+                const mid = Math.floor((low + high) / 2);
+                const subText = text.substring(0, mid);
+                tempP.textContent = subText;
                 
-                pages[currentPage].forEach(para => {
-                    const p = document.createElement('p');
-                    p.textContent = para;
-                    contentDiv.appendChild(p);
-                });
-            }
-
-            // Footer
-            const footer = document.createElement('div');
-            const pageNumber = currentPage + 1;
-            const isOdd = pageNumber % 2 === 1;
-            
-            footer.className = `page-footer ${isOdd ? 'odd' : 'even'}`;
-            
-            const footerContent = document.createElement('div');
-            footerContent.className = 'footer-content';
-            
-            if (isOdd) {
-                // 홀수 페이지: 제작자 · 캐릭터  페이지
-                if (bookTitle || authorName) {
-                    const info = [];
-                    if (bookTitle) info.push(bookTitle);
-                    if (authorName) info.push(authorName);
-                    const infoSpan = document.createElement('span');
-                    infoSpan.textContent = info.join(' · ');
-                    footerContent.appendChild(infoSpan);
-                }
-                const pageSpan = document.createElement('span');
-                pageSpan.textContent = pageNumber;
-                footerContent.appendChild(pageSpan);
-            } else {
-                // 짝수 페이지: 페이지  제작자 · 캐릭터
-                const pageSpan = document.createElement('span');
-                pageSpan.textContent = pageNumber;
-                footerContent.appendChild(pageSpan);
-                
-                if (bookTitle || authorName) {
-                    const info = [];
-                    if (bookTitle) info.push(bookTitle);
-                    if (authorName) info.push(authorName);
-                    const infoSpan = document.createElement('span');
-                    infoSpan.textContent = info.join(' · ');
-                    footerContent.appendChild(infoSpan);
+                if (tempP.offsetHeight <= maxHeight) {
+                    bestIdx = mid;
+                    low = mid + 1;
+                } else {
+                    high = mid - 1;
                 }
             }
             
-            footer.appendChild(footerContent);
-
-            pageDiv.appendChild(contentDiv);
-            pageDiv.appendChild(footer);
-            container.appendChild(pageDiv);
-
-            // 네비게이션 업데이트
-            document.getElementById('pageIndicator').textContent = `${currentPage + 1} / ${pages.length}`;
-            document.getElementById('prevBtn').disabled = currentPage === 0;
-            document.getElementById('nextBtn').disabled = currentPage === pages.length - 1;
-
-            // 형광펜 모드 유지
-            if (highlightMode) {
-                enableHighlightMode();
-            }
+            measureBox.removeChild(tempP);
+            return bestIdx;
         }
 
-        // 페이지 이동
-        function changePage(direction) {
-            // 현재 페이지 저장
-            const content = document.getElementById('pageContent');
-            if (content) {
-                pageHighlights[currentPage] = content.innerHTML;
-            }
 
-            const newPage = currentPage + direction;
-            if (newPage >= 0 && newPage < pages.length) {
-                currentPage = newPage;
-                renderPage();
-            }
-        }
-
-        // 형광펜 모드
-        function toggleHighlightMode() {
-            highlightMode = !highlightMode;
-            const btn = document.getElementById('highlightBtn');
-            const colorPicker = document.getElementById('colorPicker');
+        // --- 렌더링 및 UI ---
+        function renderCurrentPage() {
+            const viewer = document.getElementById('bookViewer');
             
-            if (highlightMode) {
-                btn.classList.add('active');
-                btn.textContent = '형광펜 모드 (ON)';
-                colorPicker.style.display = 'flex';
-                enableHighlightMode();
-            } else {
-                btn.classList.remove('active');
-                btn.textContent = '형광펜 모드';
-                colorPicker.style.display = 'none';
-                disableHighlightMode();
+            if (pageHighlights[currentPageIdx]) {
+                viewer.innerHTML = pageHighlights[currentPageIdx];
+                attachHighlightEvents(); 
+                updateNavButtons();
+                return;
             }
-        }
 
-        function selectColor(color) {
-            currentColor = color;
-            document.querySelectorAll('.color-btn').forEach(btn => {
-                btn.classList.remove('active');
+            const pageData = pages[currentPageIdx];
+            const novelTitle = document.getElementById('novelTitle').value;
+            const authorName = document.getElementById('authorName').value;
+            const producerName = document.getElementById('producerName').value;
+            
+            const pageNum = currentPageIdx + 1;
+            const isOdd = pageNum % 2 !== 0;
+
+            let html = `
+                <div id="captureTarget" class="page-container">
+                    <div class="page-content" id="pageContentArea">
+            `;
+
+            if (currentPageIdx === 0 && novelTitle) {
+                html += `
+                    <div style="height: 200px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin-bottom: 0;">
+                        <h1 class="text-lg tracking-[0.1em] text-slate-700 font-normal text-center px-4" style="line-height: 1.8; max-height: 70px; overflow: hidden;">${novelTitle}</h1>
+                        <div class="w-8 h-[1px] bg-slate-400 opacity-50 mx-auto mt-14"></div>
+                    </div>
+                `;
+            }
+
+            pageData.forEach(p => {
+                const className = p.isContinued ? 'continued' : '';
+                html += `<p class="${className}" style="line-height: 1.8 !important">${p.text}</p>`;
             });
-            event.target.classList.add('active');
+
+            html += `</div>`;
+
+            const footerInfo = [producerName, authorName].filter(Boolean).join(' · ');
+            
+            html += `
+                <div class="page-footer-area text-[9px] text-gray-400 ${isOdd ? 'justify-end' : 'justify-start'}">
+                    <div class="flex items-center gap-2 ${isOdd ? 'flex-row' : 'flex-row-reverse'}">
+                        ${footerInfo ? `<span>${footerInfo}</span>` : ''}
+                        <span class="font-normal text-gray-500">${pageNum}</span>
+                    </div>
+                </div>
+            </div>`;
+
+            viewer.innerHTML = html;
+            attachHighlightEvents();
+            updateNavButtons();
         }
 
-        function enableHighlightMode() {
-            document.addEventListener('mouseup', handleTextSelection);
+        function updateNavButtons() {
+            const pageNum = currentPageIdx + 1;
+            document.getElementById('pageIndicator').textContent = `${pageNum} / ${pages.length}`;
+            document.getElementById('btnPrev').disabled = currentPageIdx === 0;
+            document.getElementById('btnNext').disabled = currentPageIdx === pages.length - 1;
         }
 
-        function disableHighlightMode() {
-            document.removeEventListener('mouseup', handleTextSelection);
+        function saveCurrentPageState() {
+            const target = document.getElementById('captureTarget');
+            if (target) {
+                pageHighlights[currentPageIdx] = document.getElementById('bookViewer').innerHTML;
+            }
         }
 
-        // 복원된 형광펜에 클릭 이벤트 다시 추가
-        function attachHighlightClickEvents(container) {
-            const highlights = container.querySelectorAll('.highlight');
-            highlights.forEach(span => {
+        function prevPage() {
+            if (currentPageIdx > 0) {
+                saveCurrentPageState();
+                currentPageIdx--;
+                renderCurrentPage();
+            }
+        }
+
+        function nextPage() {
+            if (currentPageIdx < pages.length - 1) {
+                saveCurrentPageState();
+                currentPageIdx++;
+                renderCurrentPage();
+            }
+        }
+
+        // --- 형광펜 기능 ---
+        function toggleHighlightMode() {
+            isHighlightMode = !isHighlightMode;
+            updateHighlightUI();
+        }
+
+        function updateHighlightUI() {
+            const btn = document.getElementById('highlightToggle');
+            const palette = document.getElementById('colorPalette');
+            
+            if (isHighlightMode) {
+                btn.textContent = "형광펜 끄기";
+                btn.classList.add('bg-slate-200');
+                palette.style.display = 'flex';
+            } else {
+                btn.textContent = "형광펜 켜기";
+                btn.classList.remove('bg-slate-200');
+                palette.style.display = 'none';
+            }
+        }
+
+        function setHighlightColor(colorClass, btnElement) {
+            currentHighlightColor = colorClass;
+            document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+        }
+
+        function attachHighlightEvents() {
+            const contentArea = document.getElementById('pageContentArea');
+            if (!contentArea) return;
+
+            contentArea.addEventListener('mouseup', handleSelection);
+            contentArea.addEventListener('touchend', handleSelection); 
+            
+            contentArea.querySelectorAll('.highlight').forEach(span => {
                 span.addEventListener('click', function(e) {
                     e.stopPropagation();
+                    if (!isHighlightMode) return;
                     const text = this.textContent;
                     const textNode = document.createTextNode(text);
                     this.parentNode.replaceChild(textNode, this);
-                    
-                    // 상태 저장
-                    const content = document.getElementById('pageContent');
-                    if (content) {
-                        pageHighlights[currentPage] = content.innerHTML;
-                    }
+                    saveCurrentPageState();
                 });
             });
         }
 
-        function handleTextSelection() {
-            if (!highlightMode) return;
+        function handleSelection() {
+            if (!isHighlightMode) return;
 
             const selection = window.getSelection();
-            if (selection.toString().trim().length === 0) return;
+            if (!selection.rangeCount || selection.toString().trim() === '') return;
 
             const range = selection.getRangeAt(0);
-            const span = document.createElement('span');
-            span.className = `highlight ${currentColor}`;
-            
+            const contentArea = document.getElementById('pageContentArea');
+            if (!contentArea.contains(range.commonAncestorContainer)) return;
+
             try {
-                range.surroundContents(span);
-                selection.removeAllRanges();
+                const span = document.createElement('span');
+                span.className = `highlight ${currentHighlightColor}`;
                 
-                // 형광펜 클릭 시 제거 기능 추가
                 span.addEventListener('click', function(e) {
                     e.stopPropagation();
+                    if (!isHighlightMode) return;
                     const text = this.textContent;
                     const textNode = document.createTextNode(text);
                     this.parentNode.replaceChild(textNode, this);
-                    
-                    // 상태 저장
-                    const content = document.getElementById('pageContent');
-                    if (content) {
-                        pageHighlights[currentPage] = content.innerHTML;
-                    }
+                    saveCurrentPageState();
                 });
                 
-                // 상태 저장
-                const content = document.getElementById('pageContent');
-                if (content) {
-                    pageHighlights[currentPage] = content.innerHTML;
-                }
+                range.surroundContents(span);
+                selection.removeAllRanges();
+                saveCurrentPageState();
             } catch (e) {
-                console.log('하이라이트 적용 실패');
+                console.log("복잡한 선택 영역입니다. 단일 문단 내에서 선택해주세요.");
             }
         }
 
-        // 다운로드
+        // --- 다운로드 기능 (dom-to-image 사용) ---
         async function downloadCurrentPage() {
-            const page = document.getElementById('currentPage');
+            const page = document.getElementById('captureTarget');
+            const title = document.getElementById('novelTitle').value || 'novel';
             
             try {
                 const dataUrl = await domtoimage.toPng(page, {
@@ -906,8 +612,7 @@
                 });
                 
                 const link = document.createElement('a');
-                const fileName = bookTitle || '소설';
-                link.download = `${fileName}_${currentPage + 1}페이지.png`;
+                link.download = `${title}_${currentPageIdx + 1}p.png`;
                 link.href = dataUrl;
                 link.click();
             } catch (error) {
@@ -917,20 +622,27 @@
         }
 
         async function downloadAllPages() {
-            if (!confirm(`총 ${pages.length}개의 페이지를 다운로드하시겠습니까?`)) {
-                return;
-            }
+            const title = document.getElementById('novelTitle').value || 'novel';
+            const total = pages.length;
+            
+            if (!confirm(`총 ${total}장의 이미지를 다운로드합니다.`)) return;
 
-            const fileName = bookTitle || '소설';
+            saveCurrentPageState();
+            const originalPageIdx = currentPageIdx;
+            const overlay = document.getElementById('loadingOverlay');
+            const progress = document.getElementById('loadingProgress');
+            overlay.style.display = 'flex';
 
-            for (let i = 0; i < pages.length; i++) {
-                currentPage = i;
-                renderPage();
+            for (let i = 0; i < total; i++) {
+                currentPageIdx = i;
+                renderCurrentPage();
                 
+                progress.textContent = Math.floor(((i + 1) / total) * 100);
                 await new Promise(resolve => setTimeout(resolve, 500));
                 
                 try {
-                    const page = document.getElementById('currentPage');
+                    const page = document.getElementById('captureTarget');
+                    
                     const dataUrl = await domtoimage.toPng(page, {
                         width: page.offsetWidth * 2,
                         height: page.offsetHeight * 2,
@@ -945,35 +657,25 @@
                     });
                     
                     const link = document.createElement('a');
-                    link.download = `${fileName}_${i + 1}페이지.png`;
+                    link.download = `${title}_${String(i+1).padStart(3, '0')}p.png`;
                     link.href = dataUrl;
                     link.click();
                     
-                    await new Promise(resolve => setTimeout(resolve, 300));
+                    await new Promise(resolve => setTimeout(resolve, 200));
                 } catch (error) {
-                    console.error(`페이지 ${i + 1} 다운로드 실패:`, error);
+                    console.error(`페이지 ${i+1} 생성 실패:`, error);
                 }
             }
 
-            alert('모든 페이지 다운로드가 완료되었습니다!');
-            currentPage = 0;
-            renderPage();
+            overlay.style.display = 'none';
+            currentPageIdx = originalPageIdx;
+            renderCurrentPage();
+            alert("완료되었습니다.");
         }
 
-        // 초기화
-        function resetToInput() {
-            if (confirm('처음부터 다시 시작하시겠습니까?')) {
-                document.getElementById('inputSection').style.display = 'block';
-                document.getElementById('editorSection').style.display = 'none';
-                document.getElementById('textInput').value = '';
-                document.getElementById('novelTitle').value = '';
-                document.getElementById('bookTitle').value = '';
-                document.getElementById('authorName').value = '';
-                pages = [];
-                currentPage = 0;
-                highlightMode = false;
-                pageHighlights = {};
-                window.firstPageTitle = null;
+        function resetApp() {
+            if (confirm('작업 내용을 지우고 처음으로 돌아가시겠습니까?')) {
+                location.reload();
             }
         }
     </script>
