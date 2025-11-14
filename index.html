@@ -3,27 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>소설 내지 생성기 (A6 문고판)</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- 폰트 웨이트를 더 명확하게 로드 -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=swap" rel="stylesheet">
+    <title>3소설 내지 생성기 (A6 문고판)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
     <style>
+        /* Noto Serif KR 폰트를 직접 로드 (iOS 안정성을 위해) */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=block');
+        
         /* 폰트 강제 적용 */
         * {
-            font-family: 'Noto Serif KR', serif !important;
+            font-family: 'Noto Serif KR', -apple-system, BlinkMacSystemFont, serif !important;
         }
 
-        /* 인쇄 설정 - A6 (105mm x 148mm) */
-        @page {
-            size: 105mm 148mm;
-            margin: 0;
-        }
-        
         body {
-            font-family: 'Noto Serif KR', serif;
+            font-family: 'Noto Serif KR', -apple-system, BlinkMacSystemFont, serif;
             background: #f0f2f5;
             color: #1a1a1a;
         }
@@ -167,15 +160,6 @@
             }
         }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.553.0"
-  }
-}
-</script>
 </head>
 <body>
     <!-- 1. 입력 단계 -->
@@ -287,24 +271,31 @@
             return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         }
 
-        // 폰트 로드 보장 함수 (개선)
+        // iOS 전용 폰트 로드 보장 (더 긴 대기 시간)
         async function ensureFontsLoaded() {
-            // 1단계: document.fonts API 사용
+            console.log('폰트 로드 시작...');
+            
             if ('fonts' in document) {
                 try {
-                    await document.fonts.load('200 12px "Noto Serif KR"');
-                    await document.fonts.load('300 12px "Noto Serif KR"');
-                    await document.fonts.load('400 18px "Noto Serif KR"');
+                    // 여러 웨이트를 명시적으로 로드
+                    await Promise.all([
+                        document.fonts.load('200 12px "Noto Serif KR"'),
+                        document.fonts.load('300 12px "Noto Serif KR"'),
+                        document.fonts.load('400 12px "Noto Serif KR"'),
+                        document.fonts.load('400 18px "Noto Serif KR"')
+                    ]);
                     await document.fonts.ready;
+                    console.log('document.fonts 로드 완료');
                 } catch (e) {
-                    console.warn('폰트 로드 API 실패:', e);
+                    console.warn('폰트 API 로드 실패:', e);
                 }
             }
             
-            // 2단계: 충분한 대기 시간 (모바일에서 중요)
-            await new Promise(resolve => setTimeout(resolve, 800));
+            // iOS는 더 긴 대기 시간 필요
+            const waitTime = isIOS() ? 2000 : 1000;
+            await new Promise(resolve => setTimeout(resolve, waitTime));
             
-            console.log('폰트 로드 완료');
+            console.log('폰트 로드 완료 (대기 완료)');
         }
 
         // --- 핵심 로직: 페이지 분할 엔진 ---
@@ -622,15 +613,19 @@
             }
         }
 
-        // --- 다운로드 기능 (iOS 공유 + 폰트 보장) ---
+        // --- 다운로드 기능 ---
         async function downloadCurrentPage() {
             const page = document.getElementById('captureTarget');
             const title = document.getElementById('novelTitle').value || 'novel';
             const fileName = `${title}_${currentPageIdx + 1}p.png`;
             
             try {
-                // 폰트 로드 확인
+                console.log('이미지 생성 시작...');
+                
+                // 폰트 로드 대기
                 await ensureFontsLoaded();
+                
+                console.log('dom-to-image 변환 시작...');
                 
                 // 이미지 생성
                 const blob = await domtoimage.toBlob(page, {
@@ -640,27 +635,34 @@
                         transform: 'scale(2)',
                         transformOrigin: 'top left',
                         width: page.offsetWidth + 'px',
-                        height: page.offsetHeight + 'px',
-                        fontFamily: "'Noto Serif KR', serif"
+                        height: page.offsetHeight + 'px'
                     },
                     quality: 1.0,
-                    bgcolor: '#ffffff'
+                    bgcolor: '#ffffff',
+                    cacheBust: true  // iOS에서 캐시 문제 방지
                 });
                 
+                console.log('이미지 생성 완료');
+                
                 // iOS인 경우 공유 기능 사용
-                if (isIOS() && navigator.share) {
+                if (isIOS() && navigator.share && navigator.canShare) {
                     const file = new File([blob], fileName, { type: 'image/png' });
                     
-                    try {
-                        await navigator.share({
-                            files: [file],
-                            title: fileName
-                        });
-                    } catch (shareError) {
-                        // 공유 취소 시 일반 다운로드로 폴백
-                        if (shareError.name !== 'AbortError') {
-                            downloadBlobFallback(blob, fileName);
+                    if (navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({
+                                files: [file],
+                                title: fileName
+                            });
+                            console.log('공유 완료');
+                        } catch (shareError) {
+                            if (shareError.name !== 'AbortError') {
+                                console.log('공유 실패, 다운로드로 전환:', shareError);
+                                downloadBlobFallback(blob, fileName);
+                            }
                         }
+                    } else {
+                        downloadBlobFallback(blob, fileName);
                     }
                 } else {
                     // 안드로이드 및 PC는 일반 다운로드
@@ -673,7 +675,6 @@
             }
         }
 
-        // Blob을 일반 다운로드로 처리
         function downloadBlobFallback(blob, fileName) {
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -703,7 +704,10 @@
                 renderCurrentPage();
                 
                 progress.textContent = Math.floor(((i + 1) / total) * 100);
-                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                // iOS는 더 긴 대기 시간
+                const waitTime = isIOS() ? 1500 : 800;
+                await new Promise(resolve => setTimeout(resolve, waitTime));
                 
                 try {
                     const page = document.getElementById('captureTarget');
@@ -715,11 +719,11 @@
                             transform: 'scale(2)',
                             transformOrigin: 'top left',
                             width: page.offsetWidth + 'px',
-                            height: page.offsetHeight + 'px',
-                            fontFamily: "'Noto Serif KR', serif"
+                            height: page.offsetHeight + 'px'
                         },
                         quality: 1.0,
-                        bgcolor: '#ffffff'
+                        bgcolor: '#ffffff',
+                        cacheBust: true
                     });
                     
                     const fileName = `${title}_${String(i+1).padStart(3, '0')}p.png`;
