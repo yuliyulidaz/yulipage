@@ -3,20 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3소설 내지 생성기 (A6 문고판)</title>
+    <title>1소설 내지 생성기 (A6 문고판)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+    <!-- html-to-image 라이브러리 (dom-to-image보다 iOS에서 안정적) -->
+    <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
     <style>
-        /* Noto Serif KR 폰트를 직접 로드 (iOS 안정성을 위해) */
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=block');
-        
         /* 폰트 강제 적용 */
         * {
-            font-family: 'Noto Serif KR', -apple-system, BlinkMacSystemFont, serif !important;
+            font-family: 'Noto Serif KR', serif !important;
         }
 
         body {
-            font-family: 'Noto Serif KR', -apple-system, BlinkMacSystemFont, serif;
+            font-family: 'Noto Serif KR', serif;
             background: #f0f2f5;
             color: #1a1a1a;
         }
@@ -266,18 +267,20 @@
         const PAGE_CONTENT_HEIGHT = 460;
         const BOTTOM_BUFFER_P1 = 15;
 
+        // 폰트 임베드 CSS 캐시 (iOS 최적화)
+        let cachedFontEmbedCSS = null;
+
         // iOS 감지 함수
         function isIOS() {
             return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         }
 
-        // iOS 전용 폰트 로드 보장 (더 긴 대기 시간)
+        // 폰트 로드 보장 (html-to-image 방식)
         async function ensureFontsLoaded() {
             console.log('폰트 로드 시작...');
             
             if ('fonts' in document) {
                 try {
-                    // 여러 웨이트를 명시적으로 로드
                     await Promise.all([
                         document.fonts.load('200 12px "Noto Serif KR"'),
                         document.fonts.load('300 12px "Noto Serif KR"'),
@@ -285,17 +288,40 @@
                         document.fonts.load('400 18px "Noto Serif KR"')
                     ]);
                     await document.fonts.ready;
-                    console.log('document.fonts 로드 완료');
+                    console.log('폰트 API 로드 완료');
                 } catch (e) {
                     console.warn('폰트 API 로드 실패:', e);
                 }
             }
             
-            // iOS는 더 긴 대기 시간 필요
-            const waitTime = isIOS() ? 2000 : 1000;
-            await new Promise(resolve => setTimeout(resolve, waitTime));
+            // 충분한 대기
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
-            console.log('폰트 로드 완료 (대기 완료)');
+            console.log('폰트 로드 완료');
+        }
+
+        // 폰트 임베드 CSS 미리 생성 (첫 다운로드 시 한 번만)
+        async function prepareFontEmbedCSS() {
+            if (cachedFontEmbedCSS) {
+                console.log('캐시된 폰트 CSS 사용');
+                return cachedFontEmbedCSS;
+            }
+            
+            console.log('폰트 임베드 CSS 생성 중...');
+            const page = document.getElementById('captureTarget');
+            
+            if (page && typeof htmlToImage !== 'undefined' && htmlToImage.getFontEmbedCSS) {
+                try {
+                    cachedFontEmbedCSS = await htmlToImage.getFontEmbedCSS(page);
+                    console.log('폰트 임베드 CSS 생성 완료');
+                    return cachedFontEmbedCSS;
+                } catch (e) {
+                    console.warn('폰트 임베드 CSS 생성 실패:', e);
+                    return null;
+                }
+            }
+            
+            return null;
         }
 
         // --- 핵심 로직: 페이지 분할 엔진 ---
@@ -613,11 +639,16 @@
             }
         }
 
-        // --- 다운로드 기능 ---
+        // --- 다운로드 기능 (html-to-image 사용) ---
         async function downloadCurrentPage() {
             const page = document.getElementById('captureTarget');
             const title = document.getElementById('novelTitle').value || 'novel';
             const fileName = `${title}_${currentPageIdx + 1}p.png`;
+            
+            if (typeof htmlToImage === 'undefined') {
+                alert('이미지 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+                return;
+            }
             
             try {
                 console.log('이미지 생성 시작...');
@@ -625,22 +656,27 @@
                 // 폰트 로드 대기
                 await ensureFontsLoaded();
                 
-                console.log('dom-to-image 변환 시작...');
+                // 폰트 임베드 CSS 준비
+                const fontEmbedCSS = await prepareFontEmbedCSS();
+                
+                console.log('html-to-image 변환 시작...');
+                
+                // html-to-image 옵션 (iOS 최적화)
+                const options = {
+                    quality: 1.0,
+                    pixelRatio: 2,
+                    cacheBust: true,
+                    backgroundColor: '#ffffff',
+                    preferredFontFormat: 'woff2', // iOS 최적화
+                };
+                
+                // 폰트 임베드 CSS가 있으면 사용 (성능 최적화)
+                if (fontEmbedCSS) {
+                    options.fontEmbedCSS = fontEmbedCSS;
+                }
                 
                 // 이미지 생성
-                const blob = await domtoimage.toBlob(page, {
-                    width: page.offsetWidth * 2,
-                    height: page.offsetHeight * 2,
-                    style: {
-                        transform: 'scale(2)',
-                        transformOrigin: 'top left',
-                        width: page.offsetWidth + 'px',
-                        height: page.offsetHeight + 'px'
-                    },
-                    quality: 1.0,
-                    bgcolor: '#ffffff',
-                    cacheBust: true  // iOS에서 캐시 문제 방지
-                });
+                const blob = await htmlToImage.toBlob(page, options);
                 
                 console.log('이미지 생성 완료');
                 
@@ -655,19 +691,19 @@
                                 title: fileName
                             });
                             console.log('공유 완료');
+                            return;
                         } catch (shareError) {
-                            if (shareError.name !== 'AbortError') {
-                                console.log('공유 실패, 다운로드로 전환:', shareError);
-                                downloadBlobFallback(blob, fileName);
+                            if (shareError.name === 'AbortError') {
+                                console.log('공유 취소됨');
+                                return;
                             }
+                            console.log('공유 실패, 다운로드로 전환:', shareError);
                         }
-                    } else {
-                        downloadBlobFallback(blob, fileName);
                     }
-                } else {
-                    // 안드로이드 및 PC는 일반 다운로드
-                    downloadBlobFallback(blob, fileName);
                 }
+                
+                // 안드로이드 및 PC, 또는 공유 실패 시 일반 다운로드
+                downloadBlobFallback(blob, fileName);
                 
             } catch (error) {
                 console.error('다운로드 실패:', error);
@@ -688,6 +724,11 @@
             const title = document.getElementById('novelTitle').value || 'novel';
             const total = pages.length;
             
+            if (typeof htmlToImage === 'undefined') {
+                alert('이미지 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+                return;
+            }
+            
             if (!confirm(`총 ${total}장의 이미지를 다운로드합니다.`)) return;
 
             saveCurrentPageState();
@@ -698,33 +739,36 @@
 
             // 폰트 로드 확인
             await ensureFontsLoaded();
+            
+            // 폰트 임베드 CSS 미리 준비 (전체 페이지에서 재사용)
+            currentPageIdx = 0;
+            renderCurrentPage();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const fontEmbedCSS = await prepareFontEmbedCSS();
 
             for (let i = 0; i < total; i++) {
                 currentPageIdx = i;
                 renderCurrentPage();
                 
                 progress.textContent = Math.floor(((i + 1) / total) * 100);
-                
-                // iOS는 더 긴 대기 시간
-                const waitTime = isIOS() ? 1500 : 800;
-                await new Promise(resolve => setTimeout(resolve, waitTime));
+                await new Promise(resolve => setTimeout(resolve, 800));
                 
                 try {
                     const page = document.getElementById('captureTarget');
                     
-                    const blob = await domtoimage.toBlob(page, {
-                        width: page.offsetWidth * 2,
-                        height: page.offsetHeight * 2,
-                        style: {
-                            transform: 'scale(2)',
-                            transformOrigin: 'top left',
-                            width: page.offsetWidth + 'px',
-                            height: page.offsetHeight + 'px'
-                        },
+                    const options = {
                         quality: 1.0,
-                        bgcolor: '#ffffff',
-                        cacheBust: true
-                    });
+                        pixelRatio: 2,
+                        cacheBust: true,
+                        backgroundColor: '#ffffff',
+                        preferredFontFormat: 'woff2',
+                    };
+                    
+                    if (fontEmbedCSS) {
+                        options.fontEmbedCSS = fontEmbedCSS;
+                    }
+                    
+                    const blob = await htmlToImage.toBlob(page, options);
                     
                     const fileName = `${title}_${String(i+1).padStart(3, '0')}p.png`;
                     downloadBlobFallback(blob, fileName);
