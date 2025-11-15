@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -344,11 +345,24 @@
                         return;
                     }
 
-                    const rawParagraphs = textInput.split('\n').filter(p => p.trim().length > 0);
+                    // [Empty Lines Logic] 빈 줄을 유지하기 위해 filter를 제거했습니다.
+                    const rawParagraphs = textInput.split('\n');
                     let currentParagraphs = [];
                     let pageNum = 1;
                     
-                    let queue = rawParagraphs.map(text => ({ text: text, isContinued: false }));
+                    // 장면 전환(***) 식별 로직
+                    let queue = rawParagraphs.map(text => {
+                        const trimmed = text.trim();
+                        if (trimmed === '***') {
+                            return { 
+                                // 중앙 정렬될 별표와 간격 (NBSP 사용)
+                                text: '*\u00A0\u00A0\u00A0\u00A0\u00A0*\u00A0\u00A0\u00A0\u00A0\u00A0*', 
+                                isContinued: false, 
+                                isSceneBreak: true 
+                            };
+                        }
+                        return { text: text, isContinued: false, isSceneBreak: false };
+                    });
 
                     measureBox.innerHTML = ''; 
                     
@@ -364,13 +378,23 @@
                     while (queue.length > 0) {
                         const item = queue.shift();
                         
+                        // [Empty Lines Logic] 내용이 없는 줄은 높이를 차지하도록 공백 문자(\u00A0)로 대체
+                        const effectiveText = (!item.isSceneBreak && item.text.trim().length === 0) ? '\u00A0' : item.text;
+
                         const p = document.createElement('p');
-                        p.textContent = item.text;
+                        p.textContent = effectiveText;
                         p.style.lineHeight = "1.8";
                         p.style.marginBottom = "0";
                         
-                        if (item.isContinued) p.classList.add('continued');
-                        else p.style.textIndent = '1em';
+                        if (item.isSceneBreak) {
+                            p.style.textAlign = 'center';
+                            p.style.textIndent = '0';
+                        } else if (item.isContinued) {
+                            p.classList.add('continued');
+                        } else {
+                            // 일반 문단은 들여쓰기 적용
+                            p.style.textIndent = '1em';
+                        }
 
                         measureBox.appendChild(p);
                         
@@ -380,8 +404,9 @@
 
                         if (currentHeight <= limitHeight) {
                             currentParagraphs.push({
-                                text: item.text,
-                                isContinued: item.isContinued
+                                text: effectiveText,
+                                isContinued: item.isContinued,
+                                isSceneBreak: item.isSceneBreak
                             });
                         } 
                         else {
@@ -393,21 +418,23 @@
                             if (availableHeight < 18) {
                                 queue.unshift(item);
                             } else {
-                                const splitIdx = findSplitIndex(item.text, availableHeight, item.isContinued);
+                                const splitIdx = findSplitIndex(effectiveText, availableHeight, item.isContinued);
                                 
                                 if (splitIdx > 0) {
-                                    const partA = item.text.substring(0, splitIdx);
-                                    const partB = item.text.substring(splitIdx);
+                                    const partA = effectiveText.substring(0, splitIdx);
+                                    const partB = effectiveText.substring(splitIdx);
 
                                     currentParagraphs.push({
                                         text: partA,
-                                        isContinued: item.isContinued
+                                        isContinued: item.isContinued,
+                                        isSceneBreak: item.isSceneBreak
                                     });
 
                                     if (partB.length > 0) {
                                         queue.unshift({
                                             text: partB,
-                                            isContinued: true
+                                            isContinued: true,
+                                            isSceneBreak: item.isSceneBreak
                                         });
                                     }
                                 } else {
@@ -548,6 +575,11 @@
                 try {
                     // 1. 폰트 로딩 확인
                     await ensureFontsLoaded();
+                    
+                    // [iPad Fix] Delay
+                    if (isIOS()) {
+                         await new Promise(resolve => setTimeout(resolve, 300));
+                    }
                     
                     // 2. CSS 준비
                     const fontEmbedCSS = await prepareFontEmbedCSS();
@@ -740,7 +772,7 @@
                                     value={textInput}
                                     onChange={(e) => setTextInput(e.target.value)}
                                     className="w-full h-[400px] p-5 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all resize-none font-serif leading-loose" 
-                                    placeholder={"여기에 소설 본문을 붙여넣으세요.\n엔터로 구분된 줄은 자동으로 문단 들여쓰기가 적용됩니다."}
+                                    placeholder={"여기에 소설 본문을 붙여넣으세요.\n엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.\n*** 를 입력하면 장면 전환(중앙 정렬)이 적용됩니다."}
                                 ></textarea>
                             </div>
 
@@ -842,7 +874,16 @@
 
                                                 {/* Content */}
                                                 {pages[currentPageIdx]?.paragraphs.map((p, i) => (
-                                                    <p key={i} className={p.isContinued ? 'continued' : ''} style={{lineHeight: 1.8}}>{p.text}</p>
+                                                    <p key={i} 
+                                                        className={p.isContinued ? 'continued' : ''} 
+                                                        style={{
+                                                            lineHeight: 1.8,
+                                                            textAlign: p.isSceneBreak ? 'center' : undefined,
+                                                            textIndent: p.isSceneBreak ? '0' : undefined
+                                                        }}
+                                                    >
+                                                        {p.text}
+                                                    </p>
                                                 ))}
                                             </div>
 
@@ -865,7 +906,7 @@
                     {/* Footer (Global) - Only show on input step */}
                     {step === 'input' && (
                         <footer className="max-w-4xl mx-auto px-6 py-10 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
-                            <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.0</p>
+                            <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.1</p>
                             <p className="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br/>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
                             
                             <div className="bg-slate-50 rounded-xl p-6 text-left inline-block w-full max-w-2xl border border-slate-100">
@@ -874,7 +915,6 @@
                                 </p>
                                 <ul className="list-disc pl-4 space-y-2 mb-5 text-slate-600">
                                     <li><strong className="text-slate-700">텍스트 인용:</strong> 책이나 기타 저작물의 텍스트를 발췌할 경우, 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요.</li>
-                                    <li><strong className="text-slate-700">플랫폼 로고:</strong> 각 플랫폼의 로고는 해당 플랫폼의 상표이며, 사용 시 각 플랫폼의 브랜드 가이드라인을 준수해야 합니다.</li>
                                     <li><strong className="text-slate-700">상업적 이용:</strong> 생성된 이미지는 상업적으로 사용할 수 없습니다.</li>
                                 </ul>
                                 <p className="text-slate-400 text-[11px] pt-4 border-t border-slate-200">
@@ -893,3 +933,4 @@
     </script>
 </body>
 </html>
+
