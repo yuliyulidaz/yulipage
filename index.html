@@ -927,13 +927,13 @@
                                         />
                                     ) : (
                                         <>
-                                            {/* Icon (Page 1) - Use Base64 if available, fallback to URL */}
+                                            {/* Icon (Page 1) - Use Base64 if available, fallback to URL with crossOrigin */}
                                             {currentPageIdx === 0 && (currentIconBase64 || metadata.iconUrl) && (
                                                 <img 
                                                     src={currentIconBase64 || metadata.iconUrl} 
                                                     style={getIconStyle()}
                                                     alt="icon" 
-                                                    crossOrigin="anonymous"
+                                                    {...(currentIconBase64 ? {} : { crossOrigin: 'anonymous' })}
                                                 />
                                             )}
 
@@ -973,7 +973,7 @@
                     {/* Footer (Global) - [MODIFIED] Only show on input step */}
                     {step === 'input' && (
                         <footer className="max-w-4xl mx-auto px-6 py-10 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
-                            <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.6</p>
+                            <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.7</p>
                             <p className="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br/>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
                             
                             <div className="bg-slate-50 rounded-xl p-6 text-left inline-block w-full max-w-2xl border border-slate-100">
