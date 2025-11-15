@@ -57,6 +57,10 @@
             background: white;
             margin: 0 auto;
             width: 420px;  
+            /* [중요] 모바일에서 화면 폭이 좁아도 절대 줄어들지 않도록 강제 */
+            min-width: 420px; 
+            flex-shrink: 0;
+            
             height: 600px; 
             /* 하단 여백 50px로 페이지 번호 위치 확보 */
             padding: 60px 60px 50px 60px; 
@@ -157,6 +161,7 @@
             #bookViewerWrapper {
                 transform: scale(0.85);
                 transform-origin: top center;
+                /* scale로 인해 줄어든 만큼 높이 공간도 조정 */
                 height: 520px; 
             }
         }
@@ -850,11 +855,11 @@
                                 <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-center md:justify-between items-center gap-4">
                                     {/* Navigation */}
                                     <div className="flex items-center gap-4">
-                                        <button onClick={resetApp} className="text-sm text-slate-500 hover:text-red-600 flex items-center gap-1 border-r pr-4 transition-colors">
-                                            <span>↺ 처음으로</span>
-                                        </button>
                                         <button onClick={backToEdit} className="text-sm text-slate-500 hover:text-indigo-600 flex items-center gap-1 border-r pr-4 transition-colors">
                                             <span>✎ 본문 수정</span>
+                                        </button>
+                                        <button onClick={resetApp} className="text-sm text-slate-500 hover:text-red-600 flex items-center gap-1 border-r pr-4 transition-colors">
+                                            <span>↺ 처음으로</span>
                                         </button>
                                         <div className="flex items-center gap-2">
                                             <button onClick={() => goToPage(currentPageIdx - 1)} disabled={currentPageIdx === 0} className="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-slate-50 disabled:opacity-30">◀</button>
