@@ -325,13 +325,14 @@
                 return bestIdx;
             };
 
-            // [iOS Fix] Helper to convert URL to Base64 using Canvas (safest method)
-            const convertIconToBase64 = async (url) => {
-                if (!url) return null;
-                
+            // [iOS Fix] Helper to convert URL to Base64 using Canvas
+            // This is the most robust method for iOS Safari to avoid "Tainted Canvas" and CORS issues
+            const convertIconToBase64 = (url) => {
+                if (!url) return Promise.resolve(null);
+
                 return new Promise((resolve) => {
                     const img = new Image();
-                    // [Critical] Set crossOrigin BEFORE setting src
+                    // 1. CORS 요청 명시
                     img.crossOrigin = 'Anonymous';
                     
                     img.onload = () => {
@@ -341,10 +342,11 @@
                             canvas.height = img.height;
                             const ctx = canvas.getContext('2d');
                             ctx.drawImage(img, 0, 0);
+                            // 2. Canvas를 통해 깨끗한 Data URL 추출
                             const dataURL = canvas.toDataURL('image/png');
                             resolve(dataURL);
                         } catch (e) {
-                            console.error("Canvas conversion error (Tainted?):", e);
+                            console.error("Canvas conversion failed (likely CORS):", e);
                             resolve(null);
                         }
                     };
@@ -354,7 +356,7 @@
                         resolve(null);
                     };
                     
-                    // [Cache Busting] Force browser to fetch fresh image
+                    // 3. [중요] 캐시 버스팅: 아이폰의 망가진 캐시를 우회하기 위해 타임스탬프 추가
                     img.src = url + (url.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
                 });
             };
@@ -949,7 +951,7 @@
                                                     src={currentIconBase64 || metadata.iconUrl} 
                                                     style={getIconStyle()}
                                                     alt="icon" 
-                                                    {...(currentIconBase64 && currentIconBase64.startsWith('data:') ? {} : { crossOrigin: 'anonymous' })}
+                                                    {...(currentIconBase64 ? {} : { crossOrigin: 'anonymous' })}
                                                 />
                                             )}
 
@@ -989,7 +991,7 @@
                     {/* Footer (Global) - [MODIFIED] Only show on input step */}
                     {step === 'input' && (
                         <footer className="max-w-4xl mx-auto px-6 py-10 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
-                            <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.3</p>
+                            <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.5</p>
                             <p className="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br/>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
                             
                             <div className="bg-slate-50 rounded-xl p-6 text-left inline-block w-full max-w-2xl border border-slate-100">
