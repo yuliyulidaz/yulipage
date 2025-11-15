@@ -58,8 +58,8 @@
             margin: 0 auto;
             width: 420px;  
             height: 600px; 
-            /* 하단 여백 60px로 페이지 번호 위치 확보 */
-            padding: 60px 60px 60px 60px; 
+            /* 하단 여백 50px로 페이지 번호 위치 확보 */
+            padding: 60px 60px 50px 60px; 
             position: relative;
             display: flex;
             flex-direction: column;
@@ -97,8 +97,7 @@
             margin-top: auto;
             display: flex;
             align-items: flex-end;
-            /* 기존보다 조금 더 위로 올리기 위해 padding-bottom 추가 */
-            padding-bottom: 10px;
+            padding-bottom: 0px;
         }
 
         /* 입력 화면 */
@@ -165,9 +164,9 @@
 <script type="importmap">
 {
   "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
     "html-to-image": "https://aistudiocdn.com/html-to-image@^1.11.13"
   }
 }
@@ -592,9 +591,18 @@
                         backgroundColor: '#ffffff',
                         preferredFontFormat: 'woff2',
                         skipFonts: true, // Use embedded CSS instead
+                        // [FIX] PC/iPad White Screen Fix: Explicit dimensions & Reset margin
+                        width: 420,
+                        height: 600,
                         style: {
                             fontFamily: '"Noto Serif KR", serif',
-                            letterSpacing: '-0.02em'
+                            letterSpacing: '-0.02em',
+                            margin: '0',       // Reset centering
+                            transform: 'none', // Reset transforms
+                            left: 'auto',
+                            right: 'auto',
+                            top: 'auto',
+                            bottom: 'auto'
                         }
                     };
                     if (fontEmbedCSS) options.fontEmbedCSS = fontEmbedCSS;
@@ -659,8 +667,15 @@
                                 cacheBust: true,
                                 backgroundColor: '#ffffff',
                                 skipFonts: true,
+                                // [FIX] PC/iPad White Screen Fix: Explicit dimensions & Reset margin
+                                width: 420,
+                                height: 600,
                                 style: {
-                                    fontFamily: '"Noto Serif KR", serif'
+                                    fontFamily: '"Noto Serif KR", serif',
+                                    margin: '0',
+                                    transform: 'none',
+                                    left: 'auto',
+                                    right: 'auto'
                                 }
                             };
                             if (fontEmbedCSS) options.fontEmbedCSS = fontEmbedCSS;
@@ -825,7 +840,9 @@
                                 <span>{isGenerating ? '생성 중...' : 'A6 레이아웃 생성하기'}</span>
                             </button>
                             
-                            
+                            <p className="text-red-500 text-sm mt-4 text-center font-bold">
+                                ⚠️ 생성하기 이후로는 본문을 편집할 수 없습니다.
+                            </p>
                         </div>
                     )}
 
