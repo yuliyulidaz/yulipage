@@ -825,9 +825,7 @@
                                 <span>{isGenerating ? '생성 중...' : 'A6 레이아웃 생성하기'}</span>
                             </button>
                             
-                            <!--p className="text-red-500 text-sm mt-4 text-center font-bold">
-                                ⚠️ 생성하기 이후로는 본문을 편집할 수 없습니다.
-                            </p-->
+                            
                         </div>
                     )}
 
@@ -839,11 +837,11 @@
                                 <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-center md:justify-between items-center gap-4">
                                     {/* Navigation */}
                                     <div className="flex items-center gap-4">
-                                          <button onClick={resetApp} className="text-sm text-slate-500 hover:text-red-600 flex items-center gap-1 border-r pr-4 transition-colors">
-                                            <span>↺ 초기화</span>
-                                        </button>
                                         <button onClick={backToEdit} className="text-sm text-slate-500 hover:text-indigo-600 flex items-center gap-1 border-r pr-4 transition-colors">
                                             <span>✎ 본문 수정</span>
+                                        </button>
+                                        <button onClick={resetApp} className="text-sm text-slate-500 hover:text-red-600 flex items-center gap-1 border-r pr-4 transition-colors">
+                                            <span>↺ 처음으로</span>
                                         </button>
                                         <div className="flex items-center gap-2">
                                             <button onClick={() => goToPage(currentPageIdx - 1)} disabled={currentPageIdx === 0} className="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-slate-50 disabled:opacity-30">◀</button>
@@ -955,7 +953,7 @@
 
                     {/* Footer (Global) */}
                     <footer className="max-w-4xl mx-auto px-6 py-10 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
-                        <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.4</p>
+                        <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.0</p>
                         <p className="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br/>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
                         
                         <div className="bg-slate-50 rounded-xl p-6 text-left inline-block w-full max-w-2xl border border-slate-100">
