@@ -268,7 +268,6 @@
             const [textInput, setTextInput] = useState('');
             const [metadata, setMetadata] = useState({
                 title: '',
-                iconUrl: '',
                 author: '',
                 producer: ''
             });
@@ -277,9 +276,6 @@
             const [currentPageIdx, setCurrentPageIdx] = useState(0);
             const [pageHighlights, setPageHighlights] = useState({});
             
-            // [iOS Fix] Store Base64 icon
-            const [currentIconBase64, setCurrentIconBase64] = useState(null);
-
             const [isHighlightMode, setIsHighlightMode] = useState(false);
             const [currentHighlightColor, setCurrentHighlightColor] = useState('highlight-yellow');
             
@@ -326,24 +322,6 @@
                 return bestIdx;
             };
 
-            // [iOS Fix] Helper to convert URL to Base64
-            const convertIconToBase64 = async (url) => {
-                if (!url) return '';
-                try {
-                    const response = await fetch(url);
-                    const blob = await response.blob();
-                    return new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve(reader.result);
-                        reader.onerror = reject;
-                        reader.readAsDataURL(blob);
-                    });
-                } catch (e) {
-                    console.error("아이콘 변환 실패:", e);
-                    return url; // Fallback to original URL
-                }
-            };
-
             const startGeneration = async () => {
                 if (!textInput.trim()) {
                     alert("본문 내용을 입력해주세요.");
@@ -357,15 +335,6 @@
 
                 setIsGenerating(true);
                 
-                // [iOS Fix] Pre-fetch icon
-                let base64Icon = null;
-                if (metadata.iconUrl) {
-                    base64Icon = await convertIconToBase64(metadata.iconUrl);
-                    setCurrentIconBase64(base64Icon);
-                } else {
-                    setCurrentIconBase64(null);
-                }
-                
                 // setTimeout to allow UI update and keyboard dismissal
                 setTimeout(() => {
                     const resultPages = [];
@@ -376,16 +345,17 @@
                         return;
                     }
 
-                    // [Modified] Do not filter empty lines.
+                    // [Empty Lines Logic] 빈 줄을 유지하기 위해 filter를 제거했습니다.
                     const rawParagraphs = textInput.split('\n');
                     let currentParagraphs = [];
                     let pageNum = 1;
                     
-                    // Identify scene breaks
+                    // 장면 전환(***) 식별 로직
                     let queue = rawParagraphs.map(text => {
                         const trimmed = text.trim();
                         if (trimmed === '***') {
                             return { 
+                                // 중앙 정렬될 별표와 간격 (NBSP 사용)
                                 text: '*\u00A0\u00A0\u00A0\u00A0\u00A0*\u00A0\u00A0\u00A0\u00A0\u00A0*', 
                                 isContinued: false, 
                                 isSceneBreak: true 
@@ -408,7 +378,7 @@
                     while (queue.length > 0) {
                         const item = queue.shift();
                         
-                        // [Modified] Handle empty lines: replace with non-breaking space to ensure height
+                        // [Empty Lines Logic] 내용이 없는 줄은 높이를 차지하도록 공백 문자(\u00A0)로 대체
                         const effectiveText = (!item.isSceneBreak && item.text.trim().length === 0) ? '\u00A0' : item.text;
 
                         const p = document.createElement('p');
@@ -422,6 +392,7 @@
                         } else if (item.isContinued) {
                             p.classList.add('continued');
                         } else {
+                            // 일반 문단은 들여쓰기 적용
                             p.style.textIndent = '1em';
                         }
 
@@ -577,7 +548,7 @@
                     setPages([]);
                     setPageHighlights({});
                     setTextInput('');
-                    setMetadata({ ...metadata, title: '', author: '', producer: '', iconUrl: '' });
+                    setMetadata({ ...metadata, title: '', author: '', producer: '' });
                     window.scrollTo(0, 0);
                 }
             };
@@ -614,6 +585,7 @@
                     const fontEmbedCSS = await prepareFontEmbedCSS();
 
                     // 3. [중요] 아이패드/PC 등 고해상도 및 레이아웃 안정화를 위한 추가 대기
+                    // PC White Screen Fix(margin reset) 적용 후 렌더링 안정화 시간 확보
                     await new Promise(resolve => setTimeout(resolve, 500));
                     
                     const options = {
@@ -732,41 +704,6 @@
                 }
             };
 
-            // -- Render Helpers --
-            // Determine icon position style
-            const getIconStyle = () => {
-                if (metadata.title && metadata.title.trim().length > 0) {
-                    // Has Title: Top Center
-                    return {
-                        position: 'absolute',
-                        top: '50px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: '30px',
-                        height: '30px',
-                        objectFit: 'cover',
-                        borderRadius: '50%',
-                        filter: 'grayscale(100%)',
-                        opacity: 0.8,
-                        zIndex: 10
-                    };
-                } else {
-                    // No Title: Bottom Left (adjusted for new padding)
-                    return {
-                        position: 'absolute',
-                        bottom: '55px',
-                        left: '60px',
-                        width: '30px',
-                        height: '30px',
-                        objectFit: 'cover',
-                        borderRadius: '50%',
-                        filter: 'grayscale(100%)',
-                        opacity: 0.8,
-                        zIndex: 10
-                    };
-                }
-            };
-
             // -- Render --
             return (
                 <div className="min-h-screen font-serif">
@@ -797,44 +734,15 @@
                                 </a>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                <div>
-                                    <label className="block text-sm text-slate-500 mb-1">제목 (필요시 입력)</label>
-                                    <input 
-                                        type="text" 
-                                        value={metadata.title}
-                                        onChange={(e) => setMetadata({...metadata, title: e.target.value})}
-                                        className="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all" 
-                                        placeholder="제목을 입력하세요" 
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-slate-500 mb-1">플랫폼 아이콘 선택</label>
-                                    <select 
-                                        value={metadata.iconUrl}
-                                        onChange={(e) => setMetadata({...metadata, iconUrl: e.target.value})}
-                                        className="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all text-slate-700"
-                                    >
-                                        <option value="">선택 안함</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/dokichat.jpg">도키챗</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/LoveyDovey.jpg">러비더비</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/reppley.jpg">레플리</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/rplay.png">로맨틱플레이</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/rofan.png">로판AI</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/melting.jpg">멜팅</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/bloom.jpg">블룸</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/inkchat.jpg">잉크챗</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/zeta.jpg">제타</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/carat.png">캐럿</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/chemi.png">케밍</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/Caveduck.jpg">케이브덕</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/crack.png">크랙</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/pulse.jpg">펄스</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/Fizzchat.png">피즈챗</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/whif.jpg">WHIF</option>
-                                    </select>
-                                    <p className="text-xs text-slate-400 mt-1">* 1페이지 제목 위 혹은 좌측 하단에 표시됩니다.</p>
-                                </div>
+                            <div className="mb-6">
+                                <label className="block text-sm text-slate-500 mb-1">제목 (필요시 입력)</label>
+                                <input 
+                                    type="text" 
+                                    value={metadata.title}
+                                    onChange={(e) => setMetadata({...metadata, title: e.target.value})}
+                                    className="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all" 
+                                    placeholder="제목을 입력하세요" 
+                                />
                             </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -953,16 +861,6 @@
                                         />
                                     ) : (
                                         <>
-                                            {/* Icon (Page 1) - Use Base64 if available, fallback to URL with crossOrigin */}
-                                            {currentPageIdx === 0 && (currentIconBase64 || metadata.iconUrl) && (
-                                                <img 
-                                                    src={currentIconBase64 || metadata.iconUrl} 
-                                                    style={getIconStyle()}
-                                                    alt="icon" 
-                                                    {...(currentIconBase64 ? {} : { crossOrigin: 'anonymous' })}
-                                                />
-                                            )}
-
                                             <div ref={contentRef} className="page-content" id="pageContentArea" onMouseUp={handleHighlightSelection} onTouchEnd={handleHighlightSelection}>
                                                 {/* Title (Page 1) */}
                                                 {currentPageIdx === 0 && metadata.title && (
@@ -1031,8 +929,7 @@
             );
         }
 
-        const rootElement = document.getElementById('root');
-        const root = ReactDOM.createRoot(rootElement);
+        const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
 </body>
