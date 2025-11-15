@@ -325,24 +325,38 @@
                 return bestIdx;
             };
 
-            // [iOS Fix] Helper to convert URL to Base64
+            // [iOS Fix] Helper to convert URL to Base64 using Canvas (safest method)
             const convertIconToBase64 = async (url) => {
                 if (!url) return null;
-                try {
-                    // [iOS Fix] Add cache busting timestamp to bypass Safari's CORS cache
-                    const fetchUrl = url + (url.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
-                    const response = await fetch(fetchUrl, { mode: 'cors' });
-                    const blob = await response.blob();
-                    return new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve(reader.result);
-                        reader.onerror = reject;
-                        reader.readAsDataURL(blob);
-                    });
-                } catch (e) {
-                    console.error("아이콘 변환 실패:", e);
-                    return null; // Return null so fallback logic works
-                }
+                
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    // [Critical] Set crossOrigin BEFORE setting src
+                    img.crossOrigin = 'Anonymous';
+                    
+                    img.onload = () => {
+                        try {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0);
+                            const dataURL = canvas.toDataURL('image/png');
+                            resolve(dataURL);
+                        } catch (e) {
+                            console.error("Canvas conversion error (Tainted?):", e);
+                            resolve(null);
+                        }
+                    };
+                    
+                    img.onerror = (e) => {
+                        console.error("Image load failed:", e);
+                        resolve(null);
+                    };
+                    
+                    // [Cache Busting] Force browser to fetch fresh image
+                    img.src = url + (url.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+                });
             };
 
             const startGeneration = async () => {
@@ -975,7 +989,7 @@
                     {/* Footer (Global) - [MODIFIED] Only show on input step */}
                     {step === 'input' && (
                         <footer className="max-w-4xl mx-auto px-6 py-10 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
-                            <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.0</p>
+                            <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.3</p>
                             <p className="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br/>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
                             
                             <div className="bg-slate-50 rounded-xl p-6 text-left inline-block w-full max-w-2xl border border-slate-100">
