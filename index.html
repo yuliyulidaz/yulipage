@@ -46,8 +46,8 @@
             margin: 0 auto;
             width: 420px;  
             height: 600px; 
-            /* 하단 여백을 40px에서 50px로 수정하여 페이지 번호 위치 10px 추가 상승 */
-            padding: 60px 60px 50px 60px; 
+            /* 하단 여백을 50px에서 60px로 수정하여 페이지 번호 및 아이콘 위치 10px 추가 상승 */
+            padding: 60px 60px 60px 60px; 
             position: relative;
             display: flex;
             flex-direction: column;
@@ -281,7 +281,7 @@
                     </button>
                 </div>
             </div>
-            <!-- 형광펜 안내 문구 (수정됨) -->
+            <!-- 형광펜 안내 문구 -->
             <div id="highlightGuide" class="w-full bg-yellow-50 border-t border-yellow-100 py-2 text-center hidden">
                 <p class="text-[11px] text-yellow-800 font-medium leading-relaxed">
                     드래그로 형광펜 적용, 적용 후 터치시 삭제<br>
@@ -300,7 +300,7 @@
 
     <!-- 푸터 -->
     <footer class="max-w-4xl mx-auto px-6 py-10 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
-        <p class="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.1</p>
+        <p class="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.2</p>
         <p class="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
         
         <div class="bg-slate-50 rounded-xl p-6 text-left inline-block w-full max-w-2xl border border-slate-100">
@@ -466,8 +466,14 @@
                 return;
             }
 
+            // [키보드 이슈 해결] 생성 시작 시 인풋 포커스 해제하여 키보드 내리기
+            if (document.activeElement && document.activeElement.blur) {
+                document.activeElement.blur();
+            }
+
             document.querySelector('.btn span').textContent = "생성 중...";
             
+            // [키보드 이슈 해결] 키보드가 내려가는 애니메이션 시간(약 300~400ms)을 고려해 지연 실행
             setTimeout(() => {
                 pageHighlights = {}; 
                 cachedFontEmbedCSS = null; // 캐시 초기화
@@ -477,7 +483,8 @@
                 document.getElementById('inputSection').classList.add('hidden');
                 document.getElementById('previewSection').classList.remove('hidden');
                 
-                window.scrollTo(0, 0); // 스크롤을 맨 위로 이동
+                // 화면 최상단 이동
+                window.scrollTo(0, 0);
                 
                 document.querySelector('.btn span').textContent = "A6 레이아웃 생성하기";
                 
@@ -486,7 +493,7 @@
                 updateDownloadButtonText(); // 버튼 텍스트 업데이트
                 
                 renderCurrentPage();
-            }, 50);
+            }, 400); // 딜레이 증가
         }
 
         function splitTextIntoPages(fullText, title) {
@@ -645,8 +652,8 @@
                     iconStyle = "top: 50px; left: 50%; transform: translateX(-50%);";
                 } else {
                     // 제목 없음: 좌측 하단 (붉은 원 위치)
-                    // 하단 여백이 40px -> 50px로 늘어남에 따라 아이콘 위치도 35px -> 45px로 상향 조정
-                    iconStyle = "bottom: 45px; left: 60px;";
+                    // 하단 여백이 60px로 늘어남에 따라 아이콘 위치도 55px로 상향 조정
+                    iconStyle = "bottom: 55px; left: 60px;";
                 }
 
                 html += `
@@ -825,6 +832,11 @@
                 
                 // 1. 폰트 로드 보장
                 await ensureFontsLoaded();
+
+                // [iPad Fix] iOS 환경에서 렌더링 타이밍 확보
+                if (isIOS()) {
+                     await new Promise(resolve => setTimeout(resolve, 300));
+                }
                 
                 // 2. iOS 대응: 폰트 임베드 CSS
                 const fontEmbedCSS = await prepareFontEmbedCSS();
@@ -836,7 +848,12 @@
                     cacheBust: true,
                     backgroundColor: '#ffffff',
                     preferredFontFormat: 'woff2',
-                    skipFonts: true 
+                    skipFonts: true,
+                    // [iPad Fix] 캡처 시 스타일 명시 (폰트 적용 강화)
+                    style: {
+                        fontFamily: '"Noto Serif KR", serif',
+                        letterSpacing: '-0.02em'
+                    }
                 };
                 
                 if (fontEmbedCSS) {
@@ -937,7 +954,10 @@
                         pixelRatio: 2,
                         cacheBust: true,
                         backgroundColor: '#ffffff',
-                        skipFonts: true
+                        skipFonts: true,
+                        style: {
+                             fontFamily: '"Noto Serif KR", serif'
+                        }
                     };
                     
                     if (fontEmbedCSS) options.fontEmbedCSS = fontEmbedCSS;
