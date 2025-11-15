@@ -267,7 +267,6 @@
             const [textInput, setTextInput] = useState('');
             const [metadata, setMetadata] = useState({
                 title: '',
-                iconUrl: '',
                 author: '',
                 producer: ''
             });
@@ -275,9 +274,6 @@
             const [pages, setPages] = useState([]);
             const [currentPageIdx, setCurrentPageIdx] = useState(0);
             const [pageHighlights, setPageHighlights] = useState({});
-            
-            // [iOS Fix] Store Base64 icon
-            const [currentIconBase64, setCurrentIconBase64] = useState(null);
             
             const [isHighlightMode, setIsHighlightMode] = useState(false);
             const [currentHighlightColor, setCurrentHighlightColor] = useState('highlight-yellow');
@@ -325,42 +321,6 @@
                 return bestIdx;
             };
 
-            // [iOS Fix] Helper to convert URL to Base64 using Canvas
-            // This is the most robust method for iOS Safari to avoid "Tainted Canvas" and CORS issues
-            const convertIconToBase64 = (url) => {
-                if (!url) return Promise.resolve(null);
-
-                return new Promise((resolve) => {
-                    const img = new Image();
-                    // 1. CORS 요청 명시
-                    img.crossOrigin = 'Anonymous';
-                    
-                    img.onload = () => {
-                        try {
-                            const canvas = document.createElement('canvas');
-                            canvas.width = img.width;
-                            canvas.height = img.height;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0);
-                            // 2. Canvas를 통해 깨끗한 Data URL 추출
-                            const dataURL = canvas.toDataURL('image/png');
-                            resolve(dataURL);
-                        } catch (e) {
-                            console.error("Canvas conversion failed (likely CORS):", e);
-                            resolve(null);
-                        }
-                    };
-                    
-                    img.onerror = (e) => {
-                        console.error("Image load failed:", e);
-                        resolve(null);
-                    };
-                    
-                    // 3. [중요] 캐시 버스팅: 아이폰의 망가진 캐시를 우회하기 위해 타임스탬프 추가
-                    img.src = url + (url.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
-                });
-            };
-
             const startGeneration = async () => {
                 if (!textInput.trim()) {
                     alert("본문 내용을 입력해주세요.");
@@ -373,18 +333,6 @@
                 }
 
                 setIsGenerating(true);
-                
-                // [iOS Fix] Pre-fetch icon
-                if (metadata.iconUrl) {
-                    try {
-                        const base64Icon = await convertIconToBase64(metadata.iconUrl);
-                        setCurrentIconBase64(base64Icon);
-                    } catch (e) {
-                        setCurrentIconBase64(null);
-                    }
-                } else {
-                    setCurrentIconBase64(null);
-                }
                 
                 // setTimeout to allow UI update and keyboard dismissal
                 setTimeout(() => {
@@ -573,7 +521,7 @@
                     setPages([]);
                     setPageHighlights({});
                     setTextInput('');
-                    setMetadata({ ...metadata, title: '', author: '', producer: '', iconUrl: '' });
+                    setMetadata({ ...metadata, title: '', author: '', producer: '' });
                     window.scrollTo(0, 0);
                 }
             };
@@ -611,7 +559,7 @@
                     const options = {
                         quality: 1.0,
                         pixelRatio: 2,
-                        cacheBust: false, // [FIXED] iOS 아이콘 깨짐 방지
+                        cacheBust: false,
                         backgroundColor: '#ffffff',
                         preferredFontFormat: 'woff2',
                         skipFonts: true, // Use embedded CSS instead
@@ -688,7 +636,7 @@
                             const options = {
                                 quality: 1.0,
                                 pixelRatio: 2,
-                                cacheBust: false, // [FIXED] iOS 아이콘 깨짐 방지
+                                cacheBust: false,
                                 backgroundColor: '#ffffff',
                                 skipFonts: true,
                                 // [FIX] PC/iPad White Screen Fix: Explicit dimensions & Reset margin
@@ -724,41 +672,6 @@
                 }
             };
 
-            // -- Render Helpers --
-            // 아이콘 위치 결정
-            const getIconStyle = () => {
-                if (metadata.title && metadata.title.trim().length > 0) {
-                    // 제목 있음: 상단 중앙 (기존)
-                    return {
-                        position: 'absolute',
-                        top: '50px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: '30px',
-                        height: '30px',
-                        objectFit: 'cover',
-                        borderRadius: '50%',
-                        filter: 'grayscale(100%)',
-                        opacity: 0.8,
-                        zIndex: 10
-                    };
-                } else {
-                    // 제목 없음: 좌측 하단 (수정됨: 10px 더 위로)
-                    return {
-                        position: 'absolute',
-                        bottom: '55px', // 기존 35px -> 45px -> 55px로 조정
-                        left: '60px',
-                        width: '30px',
-                        height: '30px',
-                        objectFit: 'cover',
-                        borderRadius: '50%',
-                        filter: 'grayscale(100%)',
-                        opacity: 0.8,
-                        zIndex: 10
-                    };
-                }
-            };
-
             // -- Render --
             return (
                 <div className="min-h-screen font-serif">
@@ -789,44 +702,15 @@
                                 </a>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                <div>
-                                    <label className="block text-sm text-slate-500 mb-1">제목 (필요시 입력)</label>
-                                    <input 
-                                        type="text" 
-                                        value={metadata.title}
-                                        onChange={(e) => setMetadata({...metadata, title: e.target.value})}
-                                        className="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all" 
-                                        placeholder="제목을 입력하세요" 
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-slate-500 mb-1">플랫폼 아이콘 선택</label>
-                                    <select 
-                                        value={metadata.iconUrl}
-                                        onChange={(e) => setMetadata({...metadata, iconUrl: e.target.value})}
-                                        className="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all text-slate-700"
-                                    >
-                                        <option value="">선택 안함</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/dokichat.jpg">도키챗</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/LoveyDovey.jpg">러비더비</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/reppley.jpg">레플리</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/rplay.png">로맨틱플레이</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/rofan.png">로판AI</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/melting.jpg">멜팅</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/bloom.jpg">블룸</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/inkchat.jpg">잉크챗</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/zeta.jpg">제타</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/carat.png">캐럿</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/chemi.png">케밍</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/Caveduck.jpg">케이브덕</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/crack.png">크랙</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/pulse.jpg">펄스</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/Fizzchat.png">피즈챗</option>
-                                        <option value="https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/whif.jpg">WHIF</option>
-                                    </select>
-                                    <p className="text-xs text-slate-400 mt-1">* 1페이지 제목 위 혹은 좌측 하단에 표시됩니다.</p>
-                                </div>
+                            <div className="mb-6">
+                                <label className="block text-sm text-slate-500 mb-1">제목 (필요시 입력)</label>
+                                <input 
+                                    type="text" 
+                                    value={metadata.title}
+                                    onChange={(e) => setMetadata({...metadata, title: e.target.value})}
+                                    className="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all" 
+                                    placeholder="제목을 입력하세요" 
+                                />
                             </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -945,16 +829,6 @@
                                         />
                                     ) : (
                                         <>
-                                            {/* Icon (Page 1) - Use Base64 if available, fallback to URL with crossOrigin */}
-                                            {currentPageIdx === 0 && (currentIconBase64 || metadata.iconUrl) && (
-                                                <img 
-                                                    src={currentIconBase64 || metadata.iconUrl} 
-                                                    style={getIconStyle()}
-                                                    alt="icon" 
-                                                    {...(currentIconBase64 ? {} : { crossOrigin: 'anonymous' })}
-                                                />
-                                            )}
-
                                             <div ref={contentRef} className="page-content" id="pageContentArea" onMouseUp={handleHighlightSelection} onTouchEnd={handleHighlightSelection}>
                                                 {/* Title (Page 1) */}
                                                 {currentPageIdx === 0 && metadata.title && (
@@ -988,10 +862,10 @@
                         </div>
                     )}
 
-                    {/* Footer (Global) - [MODIFIED] Only show on input step */}
+                    {/* Footer (Global) - Only show on input step */}
                     {step === 'input' && (
                         <footer className="max-w-4xl mx-auto px-6 py-10 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
-                            <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.5</p>
+                            <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.0</p>
                             <p className="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br/>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
                             
                             <div className="bg-slate-50 rounded-xl p-6 text-left inline-block w-full max-w-2xl border border-slate-100">
