@@ -593,7 +593,7 @@
                     const options = {
                         quality: 1.0,
                         pixelRatio: 2,
-                        cacheBust: true,
+                        cacheBust: false, // [FIXED] iOS 아이콘 깨짐 방지
                         backgroundColor: '#ffffff',
                         preferredFontFormat: 'woff2',
                         skipFonts: true, // Use embedded CSS instead
@@ -670,7 +670,7 @@
                             const options = {
                                 quality: 1.0,
                                 pixelRatio: 2,
-                                cacheBust: true,
+                                cacheBust: false, // [FIXED] iOS 아이콘 깨짐 방지
                                 backgroundColor: '#ffffff',
                                 skipFonts: true,
                                 // [FIX] PC/iPad White Screen Fix: Explicit dimensions & Reset margin
@@ -970,26 +970,28 @@
                         </div>
                     )}
 
-                    {/* Footer (Global) */}
-                    <footer className="max-w-4xl mx-auto px-6 py-10 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
-                        <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.5</p>
-                        <p className="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br/>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
-                        
-                        <div className="bg-slate-50 rounded-xl p-6 text-left inline-block w-full max-w-2xl border border-slate-100">
-                            <p className="font-bold mb-3 text-slate-700 flex items-center gap-2">
-                                <span className="text-base">⚠️</span> 이용 시 주의사항
-                            </p>
-                            <ul className="list-disc pl-4 space-y-2 mb-5 text-slate-600">
-                                <li><strong className="text-slate-700">텍스트 인용:</strong> 책이나 기타 저작물의 텍스트를 발췌할 경우, 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요.</li>
-                                <li><strong className="text-slate-700">플랫폼 로고:</strong> 각 플랫폼의 로고는 해당 플랫폼의 상표이며, 사용 시 각 플랫폼의 브랜드 가이드라인을 준수해야 합니다.</li>
-                                <li><strong className="text-slate-700">상업적 이용:</strong> 생성된 이미지는 상업적으로 사용할 수 없습니다.</li>
-                            </ul>
-                            <p className="text-slate-400 text-[11px] pt-4 border-t border-slate-200">
-                                본 도구의 제작자는 사용자가 생성한 콘텐츠에 대해 어떠한 책임도 지지 않습니다.<br/>
-                                이미지 및 텍스트 사용으로 인해 발생하는 모든 법적 문제는 사용자 본인의 책임입니다.
-                            </p>
-                        </div>
-                    </footer>
+                    {/* Footer (Global) - [MODIFIED] Only show on input step */}
+                    {step === 'input' && (
+                        <footer className="max-w-4xl mx-auto px-6 py-10 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
+                            <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.0.6</p>
+                            <p className="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br/>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
+                            
+                            <div className="bg-slate-50 rounded-xl p-6 text-left inline-block w-full max-w-2xl border border-slate-100">
+                                <p className="font-bold mb-3 text-slate-700 flex items-center gap-2">
+                                    <span className="text-base">⚠️</span> 이용 시 주의사항
+                                </p>
+                                <ul className="list-disc pl-4 space-y-2 mb-5 text-slate-600">
+                                    <li><strong className="text-slate-700">텍스트 인용:</strong> 책이나 기타 저작물의 텍스트를 발췌할 경우, 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요.</li>
+                                    <li><strong className="text-slate-700">플랫폼 로고:</strong> 각 플랫폼의 로고는 해당 플랫폼의 상표이며, 사용 시 각 플랫폼의 브랜드 가이드라인을 준수해야 합니다.</li>
+                                    <li><strong className="text-slate-700">상업적 이용:</strong> 생성된 이미지는 상업적으로 사용할 수 없습니다.</li>
+                                </ul>
+                                <p className="text-slate-400 text-[11px] pt-4 border-t border-slate-200">
+                                    본 도구의 제작자는 사용자가 생성한 콘텐츠에 대해 어떠한 책임도 지지 않습니다.<br/>
+                                    이미지 및 텍스트 사용으로 인해 발생하는 모든 법적 문제는 사용자 본인의 책임입니다.
+                                </p>
+                            </div>
+                        </footer>
+                    )}
                 </div>
             );
         }
