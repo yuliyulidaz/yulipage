@@ -427,7 +427,7 @@
                 }, 400); 
             };
 
-            // -- Logic: Robust Highlighting (Cross-Paragraph) --
+            // -- Logic: Robust Highlighting --
             
             const saveCurrentPageState = useCallback(() => {
                 if (contentRef.current && viewerRef.current) {
@@ -438,10 +438,8 @@
                 }
             }, [currentPageIdx]);
 
-            // 형광펜 삭제 (그룹 단위)
             const removeHighlightGroup = useCallback((groupId) => {
                 if (!contentRef.current) return;
-                // 현재 페이지 내에서 같은 그룹 ID를 가진 모든 span 찾기
                 const spans = contentRef.current.querySelectorAll(`span[data-group-id="${groupId}"]`);
                 spans.forEach(span => {
                     const parent = span.parentNode;
@@ -449,13 +447,33 @@
                         parent.insertBefore(span.firstChild, span);
                     }
                     parent.removeChild(span);
-                    // 텍스트 노드 병합 (clean up)
-                    parent.normalize();
+                    parent.normalize(); // 텍스트 노드 병합
                 });
                 saveCurrentPageState();
             }, [saveCurrentPageState]);
 
-            // 형광펜 적용 (Selection API + TreeWalker)
+            // [FIX] 이벤트 위임: 페이지 전체 클릭 핸들러
+            const handlePageClick = useCallback((e) => {
+                if (!isHighlightMode) return;
+                
+                // 클릭된 요소가 형광펜인지 확인
+                const target = e.target;
+                if (target.classList.contains('highlight')) {
+                    e.stopPropagation(); // 드래그 선택 등 다른 이벤트 방지
+                    const groupId = target.dataset.groupId;
+                    
+                    if (groupId) {
+                        removeHighlightGroup(groupId);
+                    } else {
+                        // 레거시 호환 (혹시 그룹 ID 없는 경우)
+                        const text = target.textContent || '';
+                        const textNode = document.createTextNode(text);
+                        target.parentNode.replaceChild(textNode, target);
+                        saveCurrentPageState();
+                    }
+                }
+            }, [isHighlightMode, removeHighlightGroup, saveCurrentPageState]);
+
             const handleHighlightSelection = useCallback(() => {
                 if (!isHighlightMode) return;
                 const selection = window.getSelection();
@@ -464,51 +482,44 @@
                 const range = selection.getRangeAt(0);
                 const container = contentRef.current;
                 
-                // 선택 영역이 뷰어 내부에 있는지 확인
                 if (!container || !container.contains(range.commonAncestorContainer)) return;
 
                 const groupId = `hl-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                
-                // 1. TreeWalker로 범위 내의 모든 텍스트 노드 수집
-                const walker = document.createTreeWalker(
-                    range.commonAncestorContainer,
-                    NodeFilter.SHOW_TEXT,
-                    {
-                        acceptNode: (node) => {
-                            if (!container.contains(node)) return NodeFilter.FILTER_REJECT;
-                            // 범위와 교차하는지 확인
-                            const nodeRange = document.createRange();
-                            nodeRange.selectNodeContents(node);
-                            if (range.intersectsNode(node) && node.nodeValue.trim().length > 0) {
-                                return NodeFilter.FILTER_ACCEPT;
-                            }
-                            return NodeFilter.FILTER_SKIP;
-                        }
-                    }
-                );
-
                 const textNodes = [];
-                let currentNode;
-                while (currentNode = walker.nextNode()) {
-                    textNodes.push(currentNode);
+                
+                // [FIX] 단일 텍스트 노드 선택 시 TreeWalker가 스킵하는 문제 해결
+                if (range.commonAncestorContainer.nodeType === Node.TEXT_NODE) {
+                    textNodes.push(range.commonAncestorContainer);
+                } else {
+                    const walker = document.createTreeWalker(
+                        range.commonAncestorContainer,
+                        NodeFilter.SHOW_TEXT,
+                        {
+                            acceptNode: (node) => {
+                                if (!container.contains(node)) return NodeFilter.FILTER_REJECT;
+                                const nodeRange = document.createRange();
+                                nodeRange.selectNodeContents(node);
+                                if (range.intersectsNode(node) && node.nodeValue.trim().length > 0) {
+                                    return NodeFilter.FILTER_ACCEPT;
+                                }
+                                return NodeFilter.FILTER_SKIP;
+                            }
+                        }
+                    );
+                    let currentNode;
+                    while (currentNode = walker.nextNode()) {
+                        textNodes.push(currentNode);
+                    }
                 }
 
-                // 2. 각 텍스트 노드를 감싸기
                 let modified = false;
                 textNodes.forEach(node => {
                     const nodeRange = document.createRange();
-                    
-                    // 시작점 처리
                     let start = 0;
-                    if (node === range.startContainer) {
-                        start = range.startOffset;
-                    }
-                    
-                    // 끝점 처리
                     let end = node.nodeValue.length;
-                    if (node === range.endContainer) {
-                        end = range.endOffset;
-                    }
+
+                    if (node === range.startContainer) start = range.startOffset;
+                    if (node === range.endContainer) end = range.endOffset;
 
                     if (start < end) {
                         try {
@@ -518,21 +529,12 @@
                             const span = document.createElement('span');
                             span.className = `highlight ${currentHighlightColor}`;
                             span.dataset.groupId = groupId;
-                            
-                            // 삭제 이벤트 리스너는 useEffect에서 위임 처리하거나 여기서 직접 연결
-                            // 리액트 리렌더링 시 함수 재생성을 피하기 위해 직접 연결이 나을 수 있음
-                            span.onclick = (e) => {
-                                e.stopPropagation();
-                                if (!isHighlightMode) return;
-                                // 본인 그룹 ID를 확인해서 일괄 삭제 요청
-                                const gid = e.target.dataset.groupId;
-                                if (gid) removeHighlightGroup(gid);
-                            };
+                            // [FIX] onclick 핸들러 제거 (handlePageClick으로 위임)
 
                             nodeRange.surroundContents(span);
                             modified = true;
                         } catch (e) {
-                            console.error("Highlight error on node", e);
+                            console.warn("Highlight skip", e);
                         }
                     }
                 });
@@ -541,31 +543,7 @@
                     selection.removeAllRanges();
                     saveCurrentPageState();
                 }
-            }, [isHighlightMode, currentHighlightColor, removeHighlightGroup, saveCurrentPageState]);
-
-            // 기존 하이라이트에 클릭 이벤트 복구 (페이지 이동 시)
-            useEffect(() => {
-                if (step === 'preview' && contentRef.current) {
-                    const spans = contentRef.current.querySelectorAll('.highlight');
-                    spans.forEach(span => {
-                        // 중복 바인딩 방지를 위해 기존 핸들러 제거 로직은 없지만, onclick 덮어쓰기
-                        span.onclick = (e) => {
-                            e.stopPropagation();
-                            if (!isHighlightMode) return;
-                            const gid = e.target.dataset.groupId;
-                            // 구버전 호환 (ID 없는 경우 자신만 삭제)
-                            if (gid) {
-                                removeHighlightGroup(gid);
-                            } else {
-                                const text = span.textContent || '';
-                                const textNode = document.createTextNode(text);
-                                span.parentNode.replaceChild(textNode, span);
-                                saveCurrentPageState();
-                            }
-                        };
-                    });
-                }
-            }, [currentPageIdx, step, isHighlightMode, removeHighlightGroup, saveCurrentPageState]);
+            }, [isHighlightMode, currentHighlightColor, saveCurrentPageState]);
 
             // -- Logic: Download --
             const downloadBlobFallback = (blob, fileName) => {
@@ -653,7 +631,7 @@
 
                     for (let i = 0; i < pages.length; i++) {
                         setCurrentPageIdx(i);
-                        await new Promise(resolve => setTimeout(resolve, 300)); // Render wait
+                        await new Promise(resolve => setTimeout(resolve, 300)); 
                         setLoadingMessage(`저장 중... (${i + 1}/${pages.length})`);
                         setLoadingProgress(Math.floor(((i + 1) / pages.length) * 100));
 
@@ -852,6 +830,7 @@
                                         {pageHighlights[currentPageIdx] ? (
                                             <div 
                                                 ref={contentRef}
+                                                onClick={handlePageClick} /* 이벤트 위임 */
                                                 onMouseUp={handleHighlightSelection}
                                                 onTouchEnd={handleHighlightSelection}
                                                 dangerouslySetInnerHTML={{ __html: pageHighlights[currentPageIdx] }}
@@ -859,7 +838,13 @@
                                             />
                                         ) : (
                                             <>
-                                                <div ref={contentRef} className="page-content" onMouseUp={handleHighlightSelection} onTouchEnd={handleHighlightSelection}>
+                                                <div 
+                                                    ref={contentRef} 
+                                                    className="page-content" 
+                                                    onClick={handlePageClick} /* 이벤트 위임 */
+                                                    onMouseUp={handleHighlightSelection} 
+                                                    onTouchEnd={handleHighlightSelection}
+                                                >
                                                     {currentPageIdx === 0 && metadata.title && (
                                                         <div style={{height: '200px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginBottom: 0}}>
                                                             <h1 className="text-lg tracking-[0.1em] font-normal text-center px-4" style={{lineHeight: 1.6, maxHeight: '80px', overflow: 'hidden'}}>
