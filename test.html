@@ -957,6 +957,13 @@
                                             <span>📥</span>
                                             <span>저장</span>
                                         </button>
+                                        {/* PC 전용 전체 저장 버튼 */}
+                                        {!isMobile && (
+                                            <button onClick={downloadAllPages} className="bg-white text-slate-700 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-50 shadow-sm btn flex items-center gap-1" title="PC 전용 전체 페이지 다운로드">
+                                                <span>📦</span>
+                                                <span className="hidden sm:inline">전체 저장</span>
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
