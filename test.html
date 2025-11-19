@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -125,7 +126,7 @@
         .btn:active { transform: scale(0.98); }
         
         .color-btn {
-            width: 20px; height: 20px;
+            width: 24px; height: 24px;
             border-radius: 50%;
             cursor: pointer;
             transition: transform 0.2s;
@@ -149,7 +150,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-fadeIn {
-            animation: fadeIn 0.3s ease-out forwards;
+            animation: fadeIn 0.2s ease-out forwards;
         }
         
         /* 패턴 배경 (크라프트용) */
@@ -274,19 +275,19 @@
             const [currentPageIdx, setCurrentPageIdx] = useState(0);
             const [pageHighlights, setPageHighlights] = useState({});
             
-            // Highlight Tool
-            const [isHighlightMode, setIsHighlightMode] = useState(false);
+            // Tool State (Mutex: 'style' | 'highlight' | null)
+            const [activeTab, setActiveTab] = useState('style');
             const [currentHighlightColor, setCurrentHighlightColor] = useState('highlight-yellow');
             
             // UI
             const [isGenerating, setIsGenerating] = useState(false);
             const [loadingMessage, setLoadingMessage] = useState('');
             const [loadingProgress, setLoadingProgress] = useState(0);
-            const [showSettings, setShowSettings] = useState(false);
 
             const measureContainerRef = useRef(null);
             const viewerRef = useRef(null);
             const contentRef = useRef(null);
+            const touchStartRef = useRef(null);
 
             // Check Mobile
             const isMobile = useMemo(() => {
@@ -345,7 +346,6 @@
                     const measureBox = measureContainerRef.current;
                     if (!measureBox) return;
 
-                    // Dry-run generation logic
                     measureBox.style.fontFamily = FONTS[activeFont].family;
                     const rawParagraphs = textInput.split('\n');
                     let pageCount = 1;
@@ -360,7 +360,6 @@
 
                     measureBox.innerHTML = ''; 
                     
-                    // Title Page Height Consumption
                     if (metadata.title && pageCount === 1) {
                         const titlePlaceholder = document.createElement('div');
                         titlePlaceholder.style.height = "200px";
@@ -402,7 +401,6 @@
                             } else {
                                 const splitIdx = findSplitIndex(effectiveText, availableHeight, item.isContinued);
                                 if (splitIdx > 0) {
-                                    // Part A fits, Part B goes to next page
                                     if (effectiveText.substring(splitIdx).length > 0) {
                                         queue.unshift({ text: effectiveText.substring(splitIdx), isContinued: true, isSceneBreak: item.isSceneBreak });
                                     }
@@ -417,7 +415,7 @@
                     
                     setEstimatedPages(pageCount);
                     setIsEstimating(false);
-                }, 800); // 800ms delay
+                }, 800);
 
                 return () => clearTimeout(timer);
             }, [textInput, activeFont, metadata.title, step]);
@@ -517,8 +515,8 @@
                     setCurrentPageIdx(0);
                     setPageHighlights({});
                     setStep('preview');
-                    setIsHighlightMode(true); 
-                    setShowSettings(true);
+                    // 기본적으로 스타일 탭 열기
+                    setActiveTab('style');
                     setIsGenerating(false);
                     setTimeout(() => window.scrollTo(0, 0), 100);
                 }, 400); 
@@ -544,35 +542,33 @@
                         parent.insertBefore(span.firstChild, span);
                     }
                     parent.removeChild(span);
-                    parent.normalize(); // 텍스트 노드 병합
+                    parent.normalize();
                 });
                 saveCurrentPageState();
             }, [saveCurrentPageState]);
 
-            // [FIX] 이벤트 위임: 페이지 전체 클릭 핸들러
             const handlePageClick = useCallback((e) => {
-                if (!isHighlightMode) return;
+                if (activeTab !== 'highlight') return; // 형광펜 모드일 때만 작동
                 
-                // 클릭된 요소가 형광펜인지 확인
                 const target = e.target;
                 if (target.classList.contains('highlight')) {
-                    e.stopPropagation(); // 드래그 선택 등 다른 이벤트 방지
+                    e.stopPropagation();
                     const groupId = target.dataset.groupId;
                     
                     if (groupId) {
                         removeHighlightGroup(groupId);
                     } else {
-                        // 레거시 호환 (혹시 그룹 ID 없는 경우)
                         const text = target.textContent || '';
                         const textNode = document.createTextNode(text);
                         target.parentNode.replaceChild(textNode, target);
                         saveCurrentPageState();
                     }
                 }
-            }, [isHighlightMode, removeHighlightGroup, saveCurrentPageState]);
+            }, [activeTab, removeHighlightGroup, saveCurrentPageState]);
 
             const handleHighlightSelection = useCallback(() => {
-                if (!isHighlightMode) return;
+                if (activeTab !== 'highlight') return; // 형광펜 모드일 때만 작동
+
                 const selection = window.getSelection();
                 if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
 
@@ -584,7 +580,6 @@
                 const groupId = `hl-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                 const textNodes = [];
                 
-                // [FIX] 단일 텍스트 노드 선택 시 TreeWalker가 스킵하는 문제 해결
                 if (range.commonAncestorContainer.nodeType === Node.TEXT_NODE) {
                     textNodes.push(range.commonAncestorContainer);
                 } else {
@@ -626,7 +621,6 @@
                             const span = document.createElement('span');
                             span.className = `highlight ${currentHighlightColor}`;
                             span.dataset.groupId = groupId;
-                            // [FIX] onclick 핸들러 제거 (handlePageClick으로 위임)
 
                             nodeRange.surroundContents(span);
                             modified = true;
@@ -640,7 +634,57 @@
                     selection.removeAllRanges();
                     saveCurrentPageState();
                 }
-            }, [isHighlightMode, currentHighlightColor, saveCurrentPageState]);
+            }, [activeTab, currentHighlightColor, saveCurrentPageState]);
+
+            // -- Logic: Navigation & Gestures --
+            const goPrev = useCallback(() => {
+                if (currentPageIdx > 0) {
+                    saveCurrentPageState();
+                    setCurrentPageIdx(p => p - 1);
+                }
+            }, [currentPageIdx, saveCurrentPageState]);
+            
+            const goNext = useCallback(() => {
+                if (currentPageIdx < pages.length - 1) {
+                    saveCurrentPageState();
+                    setCurrentPageIdx(p => p + 1);
+                }
+            }, [currentPageIdx, pages.length, saveCurrentPageState]);
+            
+            // Keyboard Navigation
+            useEffect(() => {
+                if (step !== 'preview') return;
+                const handleKeyDown = (e) => {
+                    if (e.key === 'ArrowLeft') goPrev();
+                    if (e.key === 'ArrowRight') goNext();
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [step, goPrev, goNext]);
+
+            // Swipe Navigation (Mobile)
+            const onTouchStart = (e) => {
+                // 형광펜 모드일 때는 스와이프 네비게이션 방지 (오작동 방지)
+                if (activeTab === 'highlight') return;
+                touchStartRef.current = e.targetTouches[0].clientX;
+            };
+
+            const onTouchEnd = (e) => {
+                if (activeTab === 'highlight' || !touchStartRef.current) return;
+                
+                const touchEnd = e.changedTouches[0].clientX;
+                const distance = touchStartRef.current - touchEnd;
+                const minSwipeDistance = 50; // 최소 50px 이상 움직여야 인식
+
+                if (distance > minSwipeDistance) {
+                    goNext(); // Swipe Left -> Next Page
+                } else if (distance < -minSwipeDistance) {
+                    goPrev(); // Swipe Right -> Prev Page
+                }
+                
+                touchStartRef.current = null;
+            };
+
 
             // -- Logic: Download --
             const downloadBlobFallback = (blob, fileName) => {
@@ -759,19 +803,13 @@
                     setCurrentPageIdx(originalPageIdx);
                 }
             };
-
-            // -- Logic: Navigation --
-            const goPrev = () => {
-                if (currentPageIdx > 0) {
-                    saveCurrentPageState();
-                    setCurrentPageIdx(currentPageIdx - 1);
-                }
-            };
             
-            const goNext = () => {
-                if (currentPageIdx < pages.length - 1) {
-                    saveCurrentPageState();
-                    setCurrentPageIdx(currentPageIdx + 1);
+            // -- Logic: Tool Tabs --
+            const toggleTab = (tab) => {
+                if (activeTab === tab) {
+                    setActiveTab(null); // Close if same
+                } else {
+                    setActiveTab(tab); // Switch
                 }
             };
 
@@ -884,112 +922,126 @@
                     {/* STEP 2: 미리보기 & 편집 */}
                     {step === 'preview' && (
                         <div className="pb-20">
-                            {/* 상단 툴바 */}
-                            <div className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b shadow-sm mb-8 transition-all">
-                                <div className="max-w-4xl mx-auto px-4 py-3">
-                                    <div className="flex flex-col md:flex-row justify-between items-center gap-3 md:gap-0">
-                                        
-                                        {/* 좌측: 네비게이션 (초기화, 수정) */}
-                                        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
-                                            <div className="flex items-center gap-2">
-                                                <button onClick={() => {if(confirm('정말 초기화하시겠습니까? 모든 내용이 지워집니다.')) {setStep('input'); setPages([]); setTextInput('');}}} className="text-slate-500 hover:text-red-600 text-sm font-medium px-2 py-1 rounded hover:bg-slate-50 transition-colors">
-                                                    초기화
-                                                </button>
-                                                <button onClick={() => {setStep('input'); setPages([]);}} className="text-slate-500 hover:text-indigo-600 text-sm font-medium px-2 py-1 rounded hover:bg-slate-50 transition-colors">
-                                                    ✎ 수정
-                                                </button>
-                                            </div>
-                                            {/* 모바일에서만 보일 우측 공간 (필요시) */}
-                                        </div>
-
-                                        {/* 중앙: 페이지네이션 (모바일에서는 2번째 줄로 내려갈 수 있음, 하지만 flex-col로 처리됨) */}
-                                        <div className="flex items-center gap-4 bg-slate-100/80 px-4 py-1.5 rounded-full shadow-sm order-first md:order-none w-full md:w-auto justify-between md:justify-center">
-                                            <button onClick={goPrev} disabled={currentPageIdx === 0} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white disabled:opacity-30 text-lg pb-1 text-slate-600 transition-colors">‹</button>
-                                            <span className="text-sm font-medium tabular-nums text-slate-700">{currentPageIdx + 1} / {pages.length}</span>
-                                            <button onClick={goNext} disabled={currentPageIdx === pages.length - 1} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white disabled:opacity-30 text-lg pb-1 text-slate-600 transition-colors">›</button>
-                                        </div>
-
-                                        {/* 우측: 도구 & 액션 */}
-                                        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-                                            <button onClick={() => setShowSettings(!showSettings)} className={`text-sm flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors ${showSettings ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                                                <span>🎨</span>
-                                                <span className="hidden sm:inline">스타일</span>
-                                            </button>
-                                            <button onClick={() => setIsHighlightMode(!isHighlightMode)} className={`text-sm flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors ${isHighlightMode ? 'bg-yellow-100 text-yellow-900 ring-1 ring-yellow-200' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                                                <span>🖍</span>
-                                                <span className="hidden sm:inline">형광펜</span>
-                                            </button>
-                                            <div className="w-px h-4 bg-slate-200 mx-1"></div>
-                                            <button onClick={downloadCurrentPage} className="bg-slate-800 text-white px-4 py-1.5 rounded-full text-xs font-medium hover:bg-slate-700 shadow-sm btn whitespace-nowrap">
-                                                저장
-                                            </button>
-                                            {!isMobile && <button onClick={downloadAllPages} className="bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-full text-xs hover:bg-slate-50 btn whitespace-nowrap">전체</button>}
-                                        </div>
+                            {/* 상단 툴바 (모바일 최적화) */}
+                            <div className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b shadow-sm transition-all">
+                                {/* 1열: 핵심 컨트롤 */}
+                                <div className="max-w-4xl mx-auto px-4 h-12 flex items-center justify-between">
+                                    {/* 좌측: 뒤로가기/초기화 */}
+                                    <div className="flex items-center gap-1">
+                                        <button 
+                                            onClick={() => {if(confirm('정말 초기화하시겠습니까?')) {setStep('input'); setPages([]); setTextInput('');}}} 
+                                            className="w-9 h-9 flex items-center justify-center rounded-full text-slate-500 hover:text-red-600 hover:bg-slate-100"
+                                            title="초기화"
+                                        >
+                                            ↺
+                                        </button>
+                                        <button 
+                                            onClick={() => {setStep('input'); setPages([]);}} 
+                                            className="w-9 h-9 flex items-center justify-center rounded-full text-slate-500 hover:text-indigo-600 hover:bg-slate-100"
+                                            title="본문 수정"
+                                        >
+                                            ✎
+                                        </button>
                                     </div>
 
-                                    {/* 설정 패널 (토글) */}
-                                    {showSettings && (
-                                        <div className="mt-4 py-4 border-t border-slate-100 animate-fadeIn">
-                                            <div className="flex flex-wrap gap-6 items-center justify-center">
-                                                {/* 테마 선택 */}
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Theme</span>
-                                                    <div className="flex gap-2">
-                                                        {Object.entries(THEMES).map(([key, theme]) => (
-                                                            <button 
-                                                                key={key}
-                                                                onClick={() => setActiveTheme(key)}
-                                                                className={`w-8 h-8 rounded-full border transition-all relative ${activeTheme === key ? 'scale-110 ring-2 ring-offset-2 ring-slate-400 border-transparent' : 'border-slate-200 hover:scale-105'}`}
-                                                                style={{ backgroundColor: theme.bg }}
-                                                                title={theme.name}
-                                                            >
-                                                                {activeTheme === key && <span className="absolute inset-0 flex items-center justify-center text-[10px] opacity-50">✓</span>}
-                                                            </button>
-                                                        ))}
-                                                    </div>
+                                    {/* 중앙: 페이지네이션 */}
+                                    <div className="flex items-center gap-3">
+                                        <button onClick={goPrev} disabled={currentPageIdx === 0} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 disabled:opacity-30 text-lg pb-0.5 text-slate-600 transition-colors">‹</button>
+                                        <span className="text-sm font-medium tabular-nums text-slate-700 min-w-[3rem] text-center">{currentPageIdx + 1} / {pages.length}</span>
+                                        <button onClick={goNext} disabled={currentPageIdx === pages.length - 1} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 disabled:opacity-30 text-lg pb-0.5 text-slate-600 transition-colors">›</button>
+                                    </div>
+
+                                    {/* 우측: 저장 */}
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={downloadCurrentPage} className="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-700 shadow-sm btn flex items-center gap-1">
+                                            <span>📥</span>
+                                            <span>저장</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* 2열: 도구 탭 (Mutex) */}
+                                <div className="border-t border-slate-100 flex">
+                                    <button 
+                                        onClick={() => toggleTab('style')}
+                                        className={`flex-1 py-3 text-xs font-medium text-center transition-colors ${activeTab === 'style' ? 'bg-slate-50 text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}
+                                    >
+                                        🎨 스타일 설정
+                                    </button>
+                                    <div className="w-px bg-slate-100"></div>
+                                    <button 
+                                        onClick={() => toggleTab('highlight')}
+                                        className={`flex-1 py-3 text-xs font-medium text-center transition-colors ${activeTab === 'highlight' ? 'bg-yellow-50/50 text-yellow-700 border-b-2 border-yellow-400' : 'text-slate-500 hover:bg-slate-50'}`}
+                                    >
+                                        🖍 형광펜 도구
+                                    </button>
+                                </div>
+
+                                {/* 3열: 설정 패널 (Content) */}
+                                {activeTab === 'style' && (
+                                    <div className="bg-slate-50/50 border-b border-slate-200 py-4 animate-fadeIn">
+                                        <div className="max-w-4xl mx-auto px-4 flex flex-col md:flex-row gap-4 items-center justify-center">
+                                            {/* 테마 */}
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[10px] text-slate-400 font-bold uppercase">Theme</span>
+                                                <div className="flex gap-2">
+                                                    {Object.entries(THEMES).map(([key, theme]) => (
+                                                        <button 
+                                                            key={key}
+                                                            onClick={() => setActiveTheme(key)}
+                                                            className={`w-7 h-7 rounded-full border transition-all relative ${activeTheme === key ? 'scale-110 ring-2 ring-offset-2 ring-slate-300 border-transparent' : 'border-slate-200'}`}
+                                                            style={{ backgroundColor: theme.bg }}
+                                                        />
+                                                    ))}
                                                 </div>
-                                                <div className="w-px h-8 bg-slate-100 hidden md:block"></div>
-                                                {/* 폰트 선택 */}
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Font</span>
-                                                    <div className="flex gap-1 flex-wrap justify-center">
-                                                        {Object.entries(FONTS).map(([key, font]) => (
-                                                            <button
-                                                                key={key}
-                                                                onClick={() => {
-                                                                    if(key !== activeFont && confirm('폰트 변경 시 페이지가 다시 계산되어야 할 수 있습니다. 계속하시겠습니까?')) {
-                                                                        setActiveFont(key);
-                                                                    }
-                                                                }}
-                                                                className={`px-3 py-1.5 rounded text-xs border transition-all ${activeFont === key ? 'bg-slate-800 text-white border-slate-800 font-medium shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50'}`}
-                                                                style={{ fontFamily: font.family }}
-                                                            >
-                                                                {font.name}
-                                                            </button>
-                                                        ))}
-                                                    </div>
+                                            </div>
+                                            <div className="w-px h-6 bg-slate-200 hidden md:block"></div>
+                                            {/* 폰트 */}
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[10px] text-slate-400 font-bold uppercase">Font</span>
+                                                <div className="flex gap-1 flex-wrap justify-center">
+                                                    {Object.entries(FONTS).map(([key, font]) => (
+                                                        <button
+                                                            key={key}
+                                                            onClick={() => {
+                                                                if(key !== activeFont && confirm('폰트 변경 시 페이지가 다시 계산됩니다.')) {
+                                                                    setActiveFont(key);
+                                                                }
+                                                            }}
+                                                            className={`px-2 py-1 rounded text-[11px] border transition-all ${activeFont === key ? 'bg-slate-700 text-white border-slate-700' : 'bg-white border-slate-200 text-slate-500'}`}
+                                                            style={{ fontFamily: font.family }}
+                                                        >
+                                                            {font.name}
+                                                        </button>
+                                                    ))}
                                                 </div>
                                             </div>
                                         </div>
-                                    )}
+                                    </div>
+                                )}
 
-                                    {/* 형광펜 패널 (토글) */}
-                                    {isHighlightMode && (
-                                        <div className="mt-2 py-2 border-t border-dashed border-slate-200 flex justify-center gap-4 animate-fadeIn items-center">
-                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Color</span>
+                                {activeTab === 'highlight' && (
+                                    <div className="bg-yellow-50/30 border-b border-yellow-100 py-3 animate-fadeIn">
+                                        <div className="flex justify-center items-center gap-4">
+                                            <span className="text-[10px] text-yellow-600 font-bold uppercase">Color</span>
                                              {['highlight-yellow', 'highlight-pink', 'highlight-mint', 'highlight-blue'].map(color => (
-                                                <div key={color} onClick={() => setCurrentHighlightColor(color)} className={`color-btn w-6 h-6 ${color} ${currentHighlightColor === color ? 'active ring-2 ring-offset-2 ring-slate-300 scale-110' : ''}`}></div>
+                                                <div key={color} onClick={() => setCurrentHighlightColor(color)} className={`color-btn w-6 h-6 ${color} ${currentHighlightColor === color ? 'active ring-2 ring-offset-1 ring-yellow-400/50' : ''}`}></div>
                                             ))}
-                                            <div className="w-px h-4 bg-slate-200 mx-2"></div>
-                                            <span className="text-[11px] text-slate-400">드래그하여 적용, 클릭하여 삭제</span>
+                                            <div className="w-px h-4 bg-yellow-200 mx-2"></div>
+                                            <span className="text-[10px] text-yellow-700">드래그 = 칠하기 / 클릭 = 지우기</span>
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* 뷰어 영역 */}
-                            <div className="flex flex-col items-center gap-6 select-text">
-                                <div id="bookViewerWrapper" className="relative">
+                            <div className="flex flex-col items-center gap-6 select-text mt-6">
+                                <div 
+                                    id="bookViewerWrapper" 
+                                    className="relative"
+                                    onTouchStart={onTouchStart}
+                                    onTouchEnd={onTouchEnd}
+                                >
                                     <div 
                                         ref={viewerRef}
                                         id="captureTarget" 
@@ -1003,7 +1055,7 @@
                                         {pageHighlights[currentPageIdx] ? (
                                             <div 
                                                 ref={contentRef}
-                                                onClick={handlePageClick} /* 이벤트 위임 */
+                                                onClick={handlePageClick}
                                                 onMouseUp={handleHighlightSelection}
                                                 onTouchEnd={handleHighlightSelection}
                                                 dangerouslySetInnerHTML={{ __html: pageHighlights[currentPageIdx] }}
@@ -1014,7 +1066,7 @@
                                                 <div 
                                                     ref={contentRef} 
                                                     className="page-content" 
-                                                    onClick={handlePageClick} /* 이벤트 위임 */
+                                                    onClick={handlePageClick}
                                                     onMouseUp={handleHighlightSelection} 
                                                     onTouchEnd={handleHighlightSelection}
                                                 >
@@ -1054,8 +1106,6 @@
                                         )}
                                     </div>
                                 </div>
-                                
-                                {/* 하단 페이지 이동 컨트롤 제거됨 (상단으로 이동) */}
                             </div>
                         </div>
                     )}
