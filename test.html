@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -316,13 +317,12 @@
             }, []);
 
             // -- Logic: Pagination Helper --
-            const findSplitIndex = (text, maxHeight, isContinued) => {
+            const findSplitIndex = (text, maxHeight, isContinued, fontFamily) => {
                 const measureBox = measureContainerRef.current;
                 if (!measureBox) return 0;
                 
                 const tempP = document.createElement('p');
-                // [중요] 항상 가장 넓은 폰트(본문 명조)를 기준으로 측정
-                tempP.style.fontFamily = FONTS['noto'].family;
+                tempP.style.fontFamily = fontFamily; // 동적 폰트 사용
                 tempP.style.lineHeight = "1.8";
                 tempP.style.marginBottom = "0";
                 
@@ -368,8 +368,10 @@
                     const measureBox = measureContainerRef.current;
                     if (!measureBox) return;
 
-                    // [중요] 항상 가장 넓은 폰트(본문 명조)를 기준으로 측정
-                    measureBox.style.fontFamily = FONTS['noto'].family;
+                    // 현재 선택된 폰트 기준 측정
+                    const fontFamily = FONTS[activeFont].family;
+                    measureBox.style.fontFamily = fontFamily;
+                    
                     const rawParagraphs = textInput.split('\n');
                     let pageCount = 1;
                     
@@ -396,7 +398,7 @@
 
                         const p = document.createElement('p');
                         p.textContent = effectiveText;
-                        p.style.fontFamily = FONTS['noto'].family; // [중요] 본문 명조 기준
+                        p.style.fontFamily = fontFamily;
                         p.style.lineHeight = "1.8";
                         p.style.marginBottom = "0";
                         
@@ -422,7 +424,7 @@
                             if (availableHeight < 18) {
                                 queue.unshift(item);
                             } else {
-                                const splitIdx = findSplitIndex(effectiveText, availableHeight, item.isContinued);
+                                const splitIdx = findSplitIndex(effectiveText, availableHeight, item.isContinued, fontFamily);
                                 if (splitIdx > 0) {
                                     if (effectiveText.substring(splitIdx).length > 0) {
                                         queue.unshift({ text: effectiveText.substring(splitIdx), isContinued: true, isSceneBreak: item.isSceneBreak });
@@ -441,10 +443,16 @@
                 }, 800);
 
                 return () => clearTimeout(timer);
-            }, [textInput, metadata.title, step]); 
+            }, [textInput, metadata.title, step, activeFont]); 
 
 
-            const startGeneration = async () => {
+            // targetFont가 문자열이면 해당 폰트로 계산, 아니면(이벤트객체 등) activeFont 사용
+            const startGeneration = async (targetFont = null) => {
+                // 이벤트 객체가 아니고 문자열인 경우에만 사용
+                const isEvent = targetFont && targetFont.preventDefault;
+                const fontKey = (targetFont && !isEvent && typeof targetFont === 'string') ? targetFont : activeFont;
+                const fontFamily = FONTS[fontKey].family;
+
                 if (!textInput.trim()) {
                     alert("본문 내용을 입력해주세요.");
                     return;
@@ -458,8 +466,7 @@
                     const measureBox = measureContainerRef.current;
                     if (!measureBox) { setIsGenerating(false); return; }
 
-                    // [중요] 항상 가장 넓은 폰트(본문 명조)를 기준으로 측정
-                    measureBox.style.fontFamily = FONTS['noto'].family;
+                    measureBox.style.fontFamily = fontFamily;
                     const rawParagraphs = textInput.split('\n');
                     let currentParagraphs = [];
                     let pageNum = 1;
@@ -488,7 +495,7 @@
 
                         const p = document.createElement('p');
                         p.textContent = effectiveText;
-                        p.style.fontFamily = FONTS['noto'].family; // [중요] 본문 명조 기준
+                        p.style.fontFamily = fontFamily;
                         p.style.lineHeight = "1.8";
                         p.style.marginBottom = "0";
                         
@@ -516,7 +523,7 @@
                             if (availableHeight < 18) {
                                 queue.unshift(item);
                             } else {
-                                const splitIdx = findSplitIndex(effectiveText, availableHeight, item.isContinued);
+                                const splitIdx = findSplitIndex(effectiveText, availableHeight, item.isContinued, fontFamily);
                                 if (splitIdx > 0) {
                                     currentParagraphs.push({ text: effectiveText.substring(0, splitIdx), isContinued: item.isContinued, isSceneBreak: item.isSceneBreak });
                                     if (effectiveText.substring(splitIdx).length > 0) {
@@ -537,13 +544,28 @@
 
                     setPages(resultPages);
                     setCurrentPageIdx(0);
-                    setPageHighlights({});
+                    setPageHighlights({}); // 형광펜 초기화
                     setStep('preview');
-                    // 기본적으로 스타일 탭 열기
+                    
+                    // 폰트 상태 업데이트
+                    if (fontKey !== activeFont) setActiveFont(fontKey);
+                    
+                    // 탭은 스타일로 유지
                     setActiveTab('style');
                     setIsGenerating(false);
-                    setTimeout(() => window.scrollTo(0, 0), 100);
+                    // 스크롤은 유지하는게 좋을수도 있지만, 페이지가 바뀌므로 상단으로
+                    // setTimeout(() => window.scrollTo(0, 0), 100);
                 }, 400); 
+            };
+
+            // -- Font Change Handler --
+            const handleFontChange = (newFont) => {
+                if (activeFont === newFont) return;
+                
+                if (window.confirm('폰트를 변경하면 페이지 레이아웃이 다시 계산됩니다.\n형광펜 및 수정 내용이 초기화됩니다. 계속하시겠습니까?')) {
+                    setActiveFont(newFont);
+                    startGeneration(newFont);
+                }
             };
 
             // -- Logic: Robust Highlighting --
@@ -962,7 +984,7 @@
                                                     <li><strong>테마 & 폰트:</strong> 4가지 배경 테마와 4종의 폰트(나눔명조, 함렛 등) 지원</li>
                                                     <li><strong>형광펜 기능:</strong> 여러 문단 동시 선택 및 일괄 삭제 기능 추가</li>
                                                     <li><strong>편의성:</strong> 예상 페이지 수 자동 계산, 스와이프/방향키 이동 지원</li>
-                                                
+                             
                                                 </ul>
                                             </div>
                                         </div>
@@ -1081,7 +1103,7 @@
                                                         {Object.keys(FONTS).map(key => (
                                                             <button 
                                                                 key={key}
-                                                                onClick={() => setActiveFont(key)}
+                                                                onClick={() => handleFontChange(key)}
                                                                 className={`px-3 py-1.5 rounded text-xs transition-colors ${activeFont === key ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
                                                             >
                                                                 {FONTS[key].name}
@@ -1123,7 +1145,8 @@
                                     className={`page-container ${THEMES[activeTheme].isDark ? 'page-shadow' : 'page-shadow'} ${THEMES[activeTheme].pattern ? 'bg-pattern-noise' : ''}`}
                                     style={{ 
                                         backgroundColor: THEMES[activeTheme].bg,
-                                        color: THEMES[activeTheme].text
+                                        color: THEMES[activeTheme].text,
+                                        fontFamily: FONTS[activeFont].family
                                     }}
                                 >
                                     {/* Render Content */}
@@ -1134,7 +1157,7 @@
                                             onMouseUp={handleHighlightSelection}
                                             onTouchEnd={handleHighlightSelection}
                                             dangerouslySetInnerHTML={{ __html: pageHighlights[currentPageIdx] }}
-                                            style={{display: 'contents', fontFamily: FONTS[activeFont].family}}
+                                            style={{display: 'contents'}}
                                         />
                                     ) : (
                                         <>
@@ -1144,7 +1167,6 @@
                                                 onClick={handlePageClick}
                                                 onMouseUp={handleHighlightSelection}
                                                 onTouchEnd={handleHighlightSelection}
-                                                style={{fontFamily: FONTS[activeFont].family}}
                                             >
                                                 {currentPageIdx === 0 && metadata.title && (
                                                     <div style={{height: '200px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginBottom: 0}}>
