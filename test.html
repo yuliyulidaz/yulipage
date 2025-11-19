@@ -156,6 +156,24 @@
         .bg-pattern-noise {
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
         }
+
+        /* 플레이스홀더 오버레이 */
+        .placeholder-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            pointer-events: none;
+            color: #94a3b8;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            overflow: hidden;
+        }
+        .placeholder-hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -930,31 +948,24 @@
                                             )
                                         )}
                                     </div>
-                                    <div className="relative w-full h-[400px]">
+                                    <div className="relative">
                                         <textarea 
                                             value={textInput}
                                             onChange={(e) => setTextInput(e.target.value)}
-                                            className="w-full h-full p-5 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all resize-none font-serif leading-loose z-10 relative bg-transparent" 
+                                            className="w-full h-[400px] p-5 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all resize-none font-serif leading-loose relative z-10 bg-transparent" 
                                         ></textarea>
-                                        
-                                        {!textInput && (
-                                            <div className="absolute inset-0 p-6 pointer-events-none z-0 text-slate-400 text-sm leading-relaxed overflow-hidden flex flex-col gap-4">
-                                                <div>
-                                                    <p className="font-medium text-slate-500 mb-1">여기에 소설 본문을 붙여넣으세요.</p>
-                                                    <p className="text-xs opacity-70">엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.<br/>*** 를 입력하면 장면 전환(중앙 정렬)이 적용됩니다.</p>
-                                                </div>
-                                                <div className="w-full h-px bg-slate-200 my-2"></div>
-                                                <div>
-                                                    <strong className="text-indigo-400 text-xs block mb-1">📢 업데이트 안내 (v1.1.0)</strong>
-                                                    <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-400">
-                                                        <li><strong>테마 & 폰트:</strong> 4가지 배경 테마와 엄선된 폰트 4종 지원</li>
-                                                        <li><strong>형광펜:</strong> 여러 문단 동시 선택 및 일괄 삭제</li>
-                                                        <li><strong>편의성:</strong> 예상 페이지 수 계산, 스와이프/단축키 이동</li>
-                                                        <li><strong>PC 전용:</strong> 전체 페이지 일괄 저장 기능 복구</li>
-                                                    </ul>
-                                                </div>
+                                        <div className={`placeholder-overlay p-5 ${textInput ? 'placeholder-hidden' : ''}`}>
+                                            <p className="mb-4 text-slate-400">여기에 소설 본문을 붙여넣으세요.<br/>엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.<br/>*** 를 입력하면 장면 전환(중앙 정렬)이 적용됩니다.</p>
+                                            <div className="mt-6 border-t border-slate-100 pt-4">
+                                                <strong className="block mb-2 text-indigo-400 text-xs">📢 업데이트 안내 (v1.1.0)</strong>
+                                                <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-400">
+                                                    <li><strong>테마 & 폰트:</strong> 4가지 배경 테마와 4종의 폰트(나눔명조, 함렛 등) 지원</li>
+                                                    <li><strong>형광펜 기능:</strong> 여러 문단 동시 선택 및 일괄 삭제 기능 추가</li>
+                                                    <li><strong>편의성:</strong> 예상 페이지 수 자동 계산, 스와이프/방향키 이동 지원</li>
+                                                    <li><strong>모바일 최적화:</strong> 좁은 화면에서도 쾌적한 UI/UX 개선</li>
+                                                </ul>
                                             </div>
-                                        )}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -995,32 +1006,37 @@
                                     {/* Row 1: Main Controls */}
                                     <div className="flex items-center justify-between px-4 h-14">
                                         {/* Left: Actions */}
-                                        <div className="flex items-center gap-1">
-                                            <button onClick={resetApp} className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-600" title="처음으로">
-                                                <span className="text-xl">↺</span>
+                                        <div className="flex items-center gap-3 mr-2">
+                                            <button onClick={resetApp} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 transition-colors" title="처음으로">
+                                                <span className="text-sm">↺</span>
+                                                <span className="hidden xs:inline">초기화</span>
+                                                <span className="inline xs:hidden text-[10px]">초기화</span>
                                             </button>
-                                            <button onClick={backToEdit} className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-600" title="본문 수정">
-                                                <span className="text-xl">✎</span>
+                                            <button onClick={backToEdit} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 transition-colors" title="본문 수정">
+                                                <span className="text-sm">✎</span>
+                                                <span className="hidden xs:inline">수정</span>
+                                                <span className="inline xs:hidden text-[10px]">수정</span>
                                             </button>
                                         </div>
 
                                         {/* Center: Pagination */}
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-2">
                                             <button onClick={goPrev} disabled={currentPageIdx === 0} className="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-slate-50 disabled:opacity-30 text-slate-500">‹</button>
-                                            <span className="font-serif tabular-nums text-sm text-slate-700 w-12 text-center select-none">{currentPageIdx + 1} / {pages.length}</span>
+                                            <span className="font-serif tabular-nums text-sm text-slate-700 w-10 text-center select-none">{currentPageIdx + 1} / {pages.length}</span>
                                             <button onClick={goNext} disabled={currentPageIdx === pages.length - 1} className="w-8 h-8 rounded-full border flex items-center justify-center hover:bg-slate-50 disabled:opacity-30 text-slate-500">›</button>
                                         </div>
 
                                         {/* Right: Save */}
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 ml-2">
                                             {!isMobile && (
-                                                <button onClick={downloadAllPages} className="bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded text-xs hover:bg-slate-50 shadow-sm btn font-medium whitespace-nowrap">
+                                                <button onClick={downloadAllPages} className="bg-white border border-slate-200 text-slate-600 px-2 py-1.5 rounded text-xs hover:bg-slate-50 shadow-sm btn font-medium whitespace-nowrap">
                                                     전체 저장
                                                 </button>
                                             )}
-                                            <button onClick={downloadCurrentPage} className="bg-slate-800 text-white px-4 py-1.5 rounded text-xs hover:bg-slate-700 shadow-md btn font-medium flex items-center gap-1">
+                                            <button onClick={downloadCurrentPage} className="bg-slate-800 text-white px-3 py-1.5 rounded text-xs hover:bg-slate-700 shadow-md btn font-medium flex items-center gap-1 whitespace-nowrap">
                                                 {isIOS ? <span className="text-sm">📤</span> : <span className="text-sm">📥</span>}
-                                                <span className="hidden xs:inline">{isIOS ? '공유' : '저장'}</span>
+                                                <span className="hidden sm:inline">{isIOS ? '공유' : '저장'}</span>
+                                                <span className="inline sm:hidden">{isIOS ? '공유' : '저장'}</span>
                                             </button>
                                         </div>
                                     </div>
