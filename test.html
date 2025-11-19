@@ -984,7 +984,6 @@
                                                     <li><strong>테마 & 폰트:</strong> 4가지 배경 테마와 4종의 폰트(나눔명조, 함렛 등) 지원</li>
                                                     <li><strong>형광펜 기능:</strong> 여러 문단 동시 선택 및 일괄 삭제 기능 추가</li>
                                                     <li><strong>편의성:</strong> 예상 페이지 수 자동 계산, 스와이프/방향키 이동 지원</li>
-                             
                                                 </ul>
                                             </div>
                                         </div>
@@ -1057,8 +1056,8 @@
                                             )}
                                             <button onClick={downloadCurrentPage} className="bg-slate-800 text-white px-3 py-1.5 rounded text-xs hover:bg-slate-700 shadow-md btn font-medium flex items-center gap-1 whitespace-nowrap">
                                                 {isIOS ? <span className="text-sm">📤</span> : <span className="text-sm">📥</span>}
-                                                <span className="hidden sm:inline">{isIOS ? '공유' : '저장'}</span>
-                                                <span className="inline sm:hidden">{isIOS ? '공유' : '저장'}</span>
+                                                <span className="hidden sm:inline">저장</span>
+                                                <span className="inline sm:hidden">저장</span>
                                             </button>
                                         </div>
                                     </div>
@@ -1097,19 +1096,22 @@
                                                         ))}
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center justify-center gap-4">
-                                                    <span className="text-[10px] tracking-widest text-slate-400 font-bold uppercase">Font</span>
-                                                    <div className="flex gap-1 bg-white rounded p-1 border shadow-sm">
-                                                        {Object.keys(FONTS).map(key => (
-                                                            <button 
-                                                                key={key}
-                                                                onClick={() => handleFontChange(key)}
-                                                                className={`px-3 py-1.5 rounded text-xs transition-colors ${activeFont === key ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
-                                                            >
-                                                                {FONTS[key].name}
-                                                            </button>
-                                                        ))}
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <div className="flex items-center justify-center gap-4">
+                                                        <span className="text-[10px] tracking-widest text-slate-400 font-bold uppercase">Font</span>
+                                                        <div className="flex gap-1 bg-white rounded p-1 border shadow-sm">
+                                                            {Object.keys(FONTS).map(key => (
+                                                                <button 
+                                                                    key={key}
+                                                                    onClick={() => handleFontChange(key)}
+                                                                    className={`px-3 py-1.5 rounded text-xs transition-colors ${activeFont === key ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
+                                                                >
+                                                                    {FONTS[key].name}
+                                                                </button>
+                                                            ))}
+                                                        </div>
                                                     </div>
+                                                    <p className="text-[10px] text-rose-500">⚠ 폰트 변경 시 형광펜이 초기화됩니다.</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -1117,6 +1119,7 @@
 
                                     {activeTab === 'highlight' && (
                                         <div className="bg-slate-50 border-b p-4 animate-fadeIn text-center">
+                                            <p className="text-[10px] text-slate-500 mb-2">💡 Tip: 폰트를 먼저 확정한 후 형광펜을 사용하세요.</p>
                                             <div className="inline-flex items-center gap-4 bg-white px-4 py-2 rounded-full shadow-sm border">
                                                 {['highlight-yellow', 'highlight-pink', 'highlight-mint', 'highlight-blue'].map(color => (
                                                     <div 
