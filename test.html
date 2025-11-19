@@ -289,9 +289,13 @@
             const contentRef = useRef(null);
             const touchStartRef = useRef(null);
 
-            // Check Mobile
+            // Check Device Types
             const isMobile = useMemo(() => {
                 return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+            }, []);
+            
+            const isIOS = useMemo(() => {
+                return /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
             }, []);
 
             // -- Logic: Pagination Helper --
@@ -733,7 +737,8 @@
                     const blob = await htmlToImage.toBlob(target, options);
                     if (!blob) throw new Error('Blob failed');
 
-                    if (isMobile && navigator.share && navigator.canShare) {
+                    // [중요] iOS(아이폰/아이패드)에서만 공유 기능 사용, 안드로이드와 PC는 다운로드
+                    if (isIOS && navigator.share && navigator.canShare) {
                         const file = new File([blob], fileName, { type: 'image/png' });
                         if (navigator.canShare({ files: [file] })) {
                             try {
@@ -745,6 +750,7 @@
                             downloadBlobFallback(blob, fileName);
                         }
                     } else {
+                        // Android, PC 등은 즉시 다운로드
                         downloadBlobFallback(blob, fileName);
                     }
                 } catch (error) {
@@ -926,21 +932,24 @@
                             <div className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b shadow-sm transition-all">
                                 {/* 1열: 핵심 컨트롤 */}
                                 <div className="max-w-4xl mx-auto px-4 h-12 flex items-center justify-between">
-                                    {/* 좌측: 뒤로가기/초기화 */}
-                                    <div className="flex items-center gap-1">
+                                    {/* 좌측: 뒤로가기/초기화 (라벨 추가) */}
+                                    <div className="flex items-center gap-2">
                                         <button 
                                             onClick={() => {if(confirm('정말 초기화하시겠습니까?')) {setStep('input'); setPages([]); setTextInput('');}}} 
-                                            className="w-9 h-9 flex items-center justify-center rounded-full text-slate-500 hover:text-red-600 hover:bg-slate-100"
+                                            className="flex items-center gap-1 text-slate-500 hover:text-red-600 hover:bg-slate-100 px-2 py-1.5 rounded transition-colors"
                                             title="초기화"
                                         >
-                                            ↺
+                                            <span className="text-lg leading-none pb-0.5">↺</span>
+                                            <span className="text-[11px] font-medium">초기화</span>
                                         </button>
+                                        <div className="w-px h-3 bg-slate-200"></div>
                                         <button 
                                             onClick={() => {setStep('input'); setPages([]);}} 
-                                            className="w-9 h-9 flex items-center justify-center rounded-full text-slate-500 hover:text-indigo-600 hover:bg-slate-100"
+                                            className="flex items-center gap-1 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 px-2 py-1.5 rounded transition-colors"
                                             title="본문 수정"
                                         >
-                                            ✎
+                                            <span className="text-lg leading-none pb-0.5">✎</span>
+                                            <span className="text-[11px] font-medium">수정</span>
                                         </button>
                                     </div>
 
