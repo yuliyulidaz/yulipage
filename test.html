@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -213,8 +212,13 @@
             return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         }
         
+        function isIPad() {
+            return /iPad/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
+        
         function isMobile() {
-            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            // iPad(MacIntel + Touch)도 모바일로 인식하도록 조건 추가
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         }
 
         // 폰트 로딩 확인 및 딜레이
@@ -749,6 +753,18 @@
                         }
                     };
                     if (fontEmbedCSS) options.fontEmbedCSS = fontEmbedCSS;
+
+                    // IPAD ONLY: Double Shot Strategy for reliable font loading
+                    if (isIPad()) {
+                        try {
+                            // 1. Warm-up shot (Silent)
+                            await htmlToImage.toBlob(target, options);
+                        } catch (e) {
+                            console.debug('Warm-up shot failed', e);
+                        }
+                        // Short delay before real shot
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    }
 
                     const blob = await htmlToImage.toBlob(target, options);
                     if (!blob) throw new Error('Blob creation failed');
