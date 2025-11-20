@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -76,11 +77,11 @@
             transition: background-color 0.3s, color 0.3s;
         }
         
-        /* 테마별 스타일 */
-        .theme-white .page-container { background: #ffffff; color: #1a1a1a; }
-        .theme-cream .page-container { background: #fdfbf7; color: #2c241b; }
-        .theme-kraft .page-container { background: #e6dac3; color: #3e2723; background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E"); }
-        .theme-dark .page-container { background: #1a1a1a; color: #e5e5e5; }
+        /* 테마별 스타일 - 선택자 공백 제거 (중요) */
+        .theme-white.page-container { background: #ffffff; color: #1a1a1a; }
+        .theme-cream.page-container { background: #fdfbf7; color: #2c241b; }
+        .theme-kraft.page-container { background: #e6dac3; color: #3e2723; background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E"); }
+        .theme-dark.page-container { background: #1a1a1a; color: #e5e5e5; }
 
         .page-content {
             height: 460px; 
@@ -218,7 +219,6 @@
 
         // 폰트 로딩 확인 및 딜레이
         async function ensureFontsLoaded() {
-            // console.log('[폰트] 로드 상태 확인 중...');
             try {
                 await document.fonts.ready;
             } catch (e) {
@@ -226,7 +226,7 @@
             }
         }
 
-        // 폰트 캐시 (메모리에 저장하여 중복 요청 방지)
+        // 폰트 캐시
         const fontCache = new Map();
         
         // 폰트 정보 매핑
@@ -237,11 +237,10 @@
             'gowun': { name: '고운 바탕', family: "'Gowun Batang', serif", url: 'https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap' }
         };
 
-        // 구글 폰트를 Base64로 변환하여 CSS 생성 (현재 선택된 폰트만 처리)
+        // 구글 폰트 Base64 변환
         async function prepareFontEmbedCSS(activeFontKey) {
             if (fontCache.has(activeFontKey)) return fontCache.get(activeFontKey);
             
-            // console.log(`[폰트] ${activeFontKey} 캐싱 시작...`);
             try {
                 const fontInfo = FONT_MAP[activeFontKey];
                 if (!fontInfo) return null;
@@ -284,7 +283,6 @@
             }
         }
 
-        // 디바운스 훅
         function useDebounce(value, delay) {
             const [debouncedValue, setDebouncedValue] = useState(value);
             useEffect(() => {
@@ -314,8 +312,8 @@
             });
             
             // Settings
-            const [activeTheme, setActiveTheme] = useState('white'); // white, cream, kraft, dark
-            const [activeFont, setActiveFont] = useState('noto'); // noto, nanum, hahmlet, gowun
+            const [activeTheme, setActiveTheme] = useState('white'); 
+            const [activeFont, setActiveFont] = useState('noto'); 
             
             // UI State
             const [activeTab, setActiveTab] = useState(null); // null, 'style', 'highlight'
@@ -330,7 +328,6 @@
             const [loadingMessage, setLoadingMessage] = useState('');
             const [loadingProgress, setLoadingProgress] = useState(0);
             
-            // Estimated Pages
             const debouncedText = useDebounce(textInput, 500);
             const [estimatedPages, setEstimatedPages] = useState(0);
 
@@ -338,13 +335,11 @@
             const viewerRef = useRef(null);
             const contentRef = useRef(null);
 
-            // -- Logic: Pagination Calculation (Common) --
-            // targetFont: 계산에 사용할 폰트 (없으면 현재 activeFont 사용)
+            // -- Logic: Pagination --
             const calculatePages = (text, fontKey) => {
                 const measureBox = measureContainerRef.current;
                 if (!measureBox) return [];
 
-                // 1. 폰트 설정 적용 (유동적)
                 measureBox.style.fontFamily = FONT_MAP[fontKey].family;
                 
                 const rawParagraphs = text.split('\n');
@@ -366,7 +361,6 @@
 
                 measureBox.innerHTML = ''; 
                 
-                // 1페이지 제목 영역 확보
                 if (metadata.title && pageNum === 1) {
                     const titlePlaceholder = document.createElement('div');
                     titlePlaceholder.style.height = "200px";
@@ -375,12 +369,10 @@
                     measureBox.appendChild(titlePlaceholder);
                 }
 
-                // Split Helper
                 const findSplitIndex = (text, maxHeight, isContinued) => {
                     const tempP = document.createElement('p');
                     tempP.style.lineHeight = "1.8";
                     tempP.style.marginBottom = "0";
-                    // 중요: 측정할 때도 폰트가 같아야 함
                     tempP.style.fontFamily = FONT_MAP[fontKey].family;
                     
                     if (isContinued) tempP.classList.add('continued');
@@ -492,16 +484,14 @@
             // -- Effect: Estimate Pages --
             useEffect(() => {
                 if (step === 'input' && debouncedText) {
-                    // 현재 선택된 폰트(activeFont)를 기준으로 계산
                     const p = calculatePages(debouncedText, activeFont);
                     setEstimatedPages(p.length);
                 } else {
                     setEstimatedPages(0);
                 }
-            }, [debouncedText, step, activeFont, metadata.title]); // activeFont 변경 시 재계산
+            }, [debouncedText, step, activeFont, metadata.title]);
 
             // -- Logic: Generate --
-            // targetFont: 재계산 시 특정 폰트 지정
             const startGeneration = async (targetFont = null) => {
                 const fontToUse = targetFont || activeFont;
                 const txt = textInput;
@@ -518,22 +508,21 @@
                 setIsGenerating(true);
                 
                 setTimeout(() => {
-                    // 유동적 폰트 기준 계산
                     const resultPages = calculatePages(txt, fontToUse);
-
                     setPages(resultPages);
                     
-                    // 폰트 변경에 의한 재계산일 경우 페이지 인덱스 유지 (가능하면)
                     if (targetFont) {
-                        // 페이지 수가 줄어들 수도 있으므로 범위 체크
+                        // 폰트 변경 시: 현재 페이지 유지 및 스타일 탭 유지
                         setCurrentPageIdx(prev => Math.min(prev, resultPages.length - 1));
+                        setActiveTab('style');
                     } else {
+                        // 첫 생성 시: 1페이지로, 스타일 탭 기본 열림
                         setCurrentPageIdx(0);
-                        setPageHighlights({}); // 새로 생성시에만 초기화
+                        setPageHighlights({});
+                        setActiveTab('style'); 
                     }
                     
                     setStep('preview');
-                    setActiveTab(null); 
                     setIsGenerating(false);
                     
                     if (!targetFont) {
@@ -542,19 +531,17 @@
                 }, 400);
             };
 
-            // -- Logic: Font Change Handler --
             const handleFontChange = (newFont) => {
                 if (activeFont === newFont) return;
                 
                 if (window.confirm("폰트를 변경하면 페이지 레이아웃이 다시 계산됩니다.\n형광펜 및 수정 내용이 초기화됩니다. 계속하시겠습니까?")) {
                     setActiveFont(newFont);
-                    setPageHighlights({}); // 형광펜 초기화
-                    // 새 폰트로 즉시 재생성
+                    setPageHighlights({});
                     startGeneration(newFont);
                 }
             };
 
-            // -- Logic: Highlights (Group ID Logic) --
+            // -- Logic: Highlights --
             const saveCurrentPageState = () => {
                 if (contentRef.current && viewerRef.current) {
                      setPageHighlights(prev => ({
@@ -565,10 +552,6 @@
             };
 
             const handleHighlightSelection = () => {
-                // 탭이 열려있지 않아도 형광펜 모드는 아님. 
-                // But request says: "형광펜 도구 탭"이 열려있어야 한다고 가정? 
-                // Or toggle highlight mode? 
-                // 편의상 '형광펜 도구' 탭이 열려있을 때만 작동하도록 설정.
                 if (activeTab !== 'highlight') return;
 
                 const selection = window.getSelection();
@@ -578,11 +561,9 @@
                 const container = contentRef.current;
                 if (!container || !container.contains(range.commonAncestorContainer)) return;
 
-                // Generate unique ID for this highlight action
                 const highlightId = 'hl-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
 
                 try {
-                    // Use TreeWalker to find text nodes
                     const treeWalker = document.createTreeWalker(
                         range.commonAncestorContainer,
                         NodeFilter.SHOW_TEXT,
@@ -595,7 +576,6 @@
                     );
 
                     const nodesToHighlight = [];
-                    // [FIX] Handle single text node case explicitly
                     if (range.commonAncestorContainer.nodeType === Node.TEXT_NODE) {
                          if (range.intersectsNode(range.commonAncestorContainer)) {
                              nodesToHighlight.push(range.commonAncestorContainer);
@@ -612,7 +592,6 @@
                         const nodeRange = document.createRange();
                         nodeRange.selectNodeContents(node);
 
-                        // Trim to selection intersection
                         if (node === range.startContainer) nodeRange.setStart(node, range.startOffset);
                         if (node === range.endContainer) nodeRange.setEnd(node, range.endOffset);
 
@@ -620,7 +599,7 @@
                         if (text.trim().length > 0) {
                             const span = document.createElement('span');
                             span.className = `highlight ${currentHighlightColor}`;
-                            span.setAttribute('data-group-id', highlightId); // Group ID
+                            span.setAttribute('data-group-id', highlightId);
                             nodeRange.surroundContents(span);
                         }
                     });
@@ -632,7 +611,6 @@
                 }
             };
 
-            // Global Click Handler for Highlights (Event Delegation)
             const handleContentClick = (e) => {
                 if (activeTab !== 'highlight') return;
                 
@@ -640,7 +618,6 @@
                 if (target.classList.contains('highlight')) {
                     const groupId = target.getAttribute('data-group-id');
                     if (groupId) {
-                        // Remove all spans with same group ID
                         const allSpans = contentRef.current.querySelectorAll(`span[data-group-id="${groupId}"]`);
                         allSpans.forEach(span => {
                             const text = span.textContent;
@@ -659,7 +636,6 @@
                 window.scrollTo(0, 0);
             };
 
-            // Keyboard Navigation
             useEffect(() => {
                 const handleKeyDown = (e) => {
                     if (step !== 'preview') return;
@@ -673,7 +649,6 @@
                 return () => window.removeEventListener('keydown', handleKeyDown);
             }, [step, currentPageIdx, pages.length]);
 
-            // Swipe Gesture
             const touchStartRef = useRef(null);
             const touchEndRef = useRef(null);
             const minSwipeDistance = 50;
@@ -686,7 +661,6 @@
                 touchEndRef.current = e.targetTouches[0].clientX;
             };
             const onTouchEnd = () => {
-                // 형광펜 모드일 때는 스와이프 비활성화 (드래그와 충돌 방지)
                 if (activeTab === 'highlight') return;
                 
                 if (!touchStartRef.current || !touchEndRef.current) return;
@@ -745,39 +719,30 @@
                 setLoadingMessage('폰트 로딩 중...');
                 
                 try {
-                    // 1. 폰트 로딩 대기 (시간 대폭 증가)
                     await ensureFontsLoaded();
 
-                    // [iOS Fix] 아이패드 메모리 이슈로 인한 폰트 누락 방지용 워밍업
                     if (isIOS()) {
                         setLoadingMessage('렌더링 준비 중...');
-                        // 아이패드는 폰트 처리에 시간이 오래 걸리므로 충분히 대기
                         await new Promise(resolve => setTimeout(resolve, 800)); 
                     }
                     
-                    // 2. CSS 준비
                     const fontEmbedCSS = await prepareFontEmbedCSS(activeFont);
 
-                    // [iOS Fix] CSS 삽입 후 파싱 시간 확보 (가장 중요)
-                    // 고해상도(scale 3)에서는 폰트 파싱이 오래 걸림
                     setLoadingMessage('이미지 생성 중...');
                     await new Promise(resolve => setTimeout(resolve, isIOS() ? 1000 : 500));
 
-                    // [iOS Fix] 강제 리플로우 (Reflow) - 레이아웃 확정
                     if (target) { const _ = target.offsetHeight; }
                     
                     const options = {
                         quality: 1.0,
-                        pixelRatio: 3, // 고해상도 (1260x1800)
+                        pixelRatio: 3,
                         cacheBust: false,
-                        backgroundColor: null, // 투명하게 해서 테마 배경색 따르게
+                        backgroundColor: null,
                         preferredFontFormat: 'woff2',
                         skipFonts: true, 
                         width: 420,
                         height: 600,
                         style: {
-                            // page-container에 폰트가 있으므로 여기서 지정 안 해도 됨.
-                            // 하지만 안전장치로
                             fontFamily: FONT_MAP[activeFont].family,
                             margin: '0',
                             transform: 'none'
@@ -788,7 +753,6 @@
                     const blob = await htmlToImage.toBlob(target, options);
                     if (!blob) throw new Error('Blob creation failed');
 
-                    // [iOS Only] 공유 기능 사용
                     if (isIOS() && navigator.share && navigator.canShare) {
                         const file = new File([blob], fileName, { type: 'image/png' });
                         if (navigator.canShare({ files: [file] })) {
@@ -803,7 +767,6 @@
                             downloadBlobFallback(blob, fileName);
                         }
                     } else {
-                        // 안드로이드 & PC -> 다운로드
                         downloadBlobFallback(blob, fileName);
                     }
 
@@ -833,11 +796,9 @@
                         setLoadingMessage(`저장 중... (${i + 1}/${pages.length})`);
                         setLoadingProgress(Math.floor(((i + 1) / pages.length) * 100));
                         
-                        // Render wait
                         await new Promise(resolve => setTimeout(resolve, 500));
 
                         const target = document.getElementById('captureTarget');
-                        // 강제 리플로우
                         if (target) { const _ = target.offsetHeight; }
 
                         if (target) {
@@ -975,13 +936,25 @@
                                 <span>{isGenerating ? '생성 중...' : 'A6 레이아웃 생성하기'}</span>
                             </button>
                             
-                             {/* Footer Info */}
-                             <div className="mt-8 text-center border-t border-slate-100 pt-6">
-                                <div className="text-[10px] text-slate-400 leading-relaxed">
-                                    <p className="mb-2">📖 소설 내지 생성기 v1.1.0 · 개인정보를 수집하지 않습니다.</p>
-                                    <p>텍스트 저작권 준수 · 상업적 이용 불가 · 법적 책임은 사용자에게 있습니다.</p>
+                             {/* Footer Info (Restored) */}
+                             <footer className="max-w-4xl mx-auto px-6 py-10 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
+                                <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.1.0</p>
+                                <p className="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br/>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
+                                
+                                <div className="bg-slate-50 rounded-xl p-6 text-left inline-block w-full max-w-2xl border border-slate-100">
+                                    <p className="font-bold mb-3 text-slate-700 flex items-center gap-2">
+                                        <span className="text-base">⚠️</span> 이용 시 주의사항
+                                    </p>
+                                    <ul className="list-disc pl-4 space-y-2 mb-5 text-slate-600">
+                                        <li><strong className="text-slate-700">텍스트 인용:</strong> 책이나 기타 저작물의 텍스트를 발췌할 경우, 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요.</li>
+                                        <li><strong className="text-slate-700">상업적 이용:</strong> 생성된 이미지는 상업적으로 사용할 수 없습니다.</li>
+                                    </ul>
+                                    <p className="text-slate-400 text-[11px] pt-4 border-t border-slate-200">
+                                        본 도구의 제작자는 사용자가 생성한 콘텐츠에 대해 어떠한 책임도 지지 않습니다.<br/>
+                                        이미지 및 텍스트 사용으로 인해 발생하는 모든 법적 문제는 사용자 본인의 책임입니다.
+                                    </p>
                                 </div>
-                            </div>
+                            </footer>
                         </div>
                     )}
 
@@ -1107,7 +1080,7 @@
                                     ref={viewerRef}
                                     id="captureTarget" 
                                     className={`page-container theme-${activeTheme}`}
-                                    style={{ fontFamily: FONT_MAP[activeFont].family }} // [FIX] 컨테이너에 폰트 적용 (innerHTML 저장 방지)
+                                    style={{ fontFamily: FONT_MAP[activeFont].family }} 
                                 >
                                     {/* Rendering Logic */}
                                     {pageHighlights[currentPageIdx] ? (
