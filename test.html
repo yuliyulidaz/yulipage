@@ -45,7 +45,9 @@
             background: rgba(255, 235, 59, 0.4);
             padding: 0;
             margin: 0;
-            line-height: normal;
+            /* line-height: normal; -> inherit로 변경하여 자간 뭉개짐 방지 */
+            line-height: inherit;
+            letter-spacing: inherit;
             vertical-align: baseline;
             border: none;
             outline: none;
@@ -58,6 +60,27 @@
         .highlight-pink { background: rgba(255, 182, 193, 0.4); }
         .highlight-mint { background: rgba(178, 255, 222, 0.4); }
         .highlight-blue { background: rgba(173, 216, 230, 0.4); }
+
+        /* 글자 색 스타일 */
+        .colored-text {
+            display: inline;
+            cursor: pointer;
+            /* 자간 뭉개짐 방지 */
+            line-height: inherit;
+            letter-spacing: inherit;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+        }
+        .text-crimson { color: #be123c; } 
+        .text-navy { color: #1e3a8a; }    
+        .text-forest { color: #15803d; }  
+        .text-gray { color: #9ca3af; }    
+        
+        /* 글자 색 선택 버튼 (배경색) */
+        .bg-text-crimson { background-color: #be123c; }
+        .bg-text-navy { background-color: #1e3a8a; }
+        .bg-text-forest { background-color: #15803d; }
+        .bg-text-gray { background-color: #9ca3af; }
 
         /* 화면용 스타일 - A6 비율 (105:148) */
         .page-container {
@@ -320,13 +343,15 @@
             const [activeFont, setActiveFont] = useState('noto'); 
             
             // UI State
-            const [activeTab, setActiveTab] = useState(null); // null, 'style', 'highlight'
+            const [activeTab, setActiveTab] = useState(null); // null, 'style', 'tool'
+            const [toolMode, setToolMode] = useState('highlight'); // 'highlight' | 'text'
             
             const [pages, setPages] = useState([]);
             const [currentPageIdx, setCurrentPageIdx] = useState(0);
             const [pageHighlights, setPageHighlights] = useState({});
             
             const [currentHighlightColor, setCurrentHighlightColor] = useState('highlight-yellow');
+            const [currentTextColor, setCurrentTextColor] = useState('text-crimson');
             
             const [isGenerating, setIsGenerating] = useState(false);
             const [loadingMessage, setLoadingMessage] = useState('');
@@ -556,7 +581,7 @@
             };
 
             const handleHighlightSelection = () => {
-                if (activeTab !== 'highlight') return;
+                if (activeTab !== 'tool') return;
 
                 const selection = window.getSelection();
                 if (!selection || selection.rangeCount === 0 || selection.toString().trim() === '') return;
@@ -602,7 +627,11 @@
                         const text = nodeRange.toString();
                         if (text.trim().length > 0) {
                             const span = document.createElement('span');
-                            span.className = `highlight ${currentHighlightColor}`;
+                            if (toolMode === 'highlight') {
+                                span.className = `highlight ${currentHighlightColor}`;
+                            } else {
+                                span.className = `colored-text ${currentTextColor}`;
+                            }
                             span.setAttribute('data-group-id', highlightId);
                             nodeRange.surroundContents(span);
                         }
@@ -616,10 +645,19 @@
             };
 
             const handleContentClick = (e) => {
-                if (activeTab !== 'highlight') return;
+                if (activeTab !== 'tool') return;
                 
                 const target = e.target;
-                if (target.classList.contains('highlight')) {
+                let shouldRemove = false;
+                
+                // 엄격한 모드 체크: 현재 도구 모드에 맞는 요소만 삭제 허용
+                if (toolMode === 'highlight' && target.classList.contains('highlight')) {
+                    shouldRemove = true;
+                } else if (toolMode === 'text' && target.classList.contains('colored-text')) {
+                    shouldRemove = true;
+                }
+
+                if (shouldRemove) {
                     const groupId = target.getAttribute('data-group-id');
                     if (groupId) {
                         const allSpans = contentRef.current.querySelectorAll(`span[data-group-id="${groupId}"]`);
@@ -665,7 +703,7 @@
                 touchEndRef.current = e.targetTouches[0].clientX;
             };
             const onTouchEnd = () => {
-                if (activeTab === 'highlight') return;
+                if (activeTab === 'tool') return;
                 
                 if (!touchStartRef.current || !touchEndRef.current) return;
                 const distance = touchStartRef.current - touchEndRef.current;
@@ -875,7 +913,7 @@
                             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 border-b pb-4 gap-4">
                                 <div className="flex items-center gap-3">
                                     <h1 className="text-2xl font-serif font-medium text-slate-800">소설 내지 생성기</h1>
-                                    <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-bold">v1.1.0</span>
+                                    <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-bold">v1.1.1</span>
                                 </div>
                                 <a href="https://yuliyulidaz.github.io/yulilog/" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 transition-colors py-1 px-2 rounded hover:bg-indigo-50 w-fit">
                                     <span className="text-lg">🔗</span>
@@ -933,10 +971,11 @@
                                                 <strong className="block mb-2 text-indigo-400 text-xs">📢 2025.11.20 업데이트 안내 (v1.1.0)</strong>
                                                 <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-400">
                                                     <li><strong>테마 & 폰트:</strong> 4가지 배경 테마와 4종의 폰트(나눔명조, 함렛 등) 지원</li>
+                                                    <li><strong>도구 확장:</strong> 형광펜 외에 '글자 색(잉크)' 변경 기능 추가</li>
                                                     <li><strong>형광펜 기능:</strong> 여러 문단 동시 선택 및 일괄 삭제 기능 추가</li>
                                                     <li><strong>예상 페이지:</strong> 본문을 붙여 넣으면 오른쪽 상단에 예상 페이지 수 자동 계산</li>
                                                     <li><strong>페이지 넘김:</strong> 모바일에서 스와이프/ PC에서 방향키 이동 지원</li>
-                                                    <li><strong>해상도 개선:</strong> 기존 대비 향상된 고해상도 내지 생성 지원 (1260x1800)</li>
+                                                    <li><strong>해상도 개선:</strong> 인쇄도 가능한 300DPI급 고화질 저장 지원 (1260x1800)</li>
                                                     <li><strong>안정성:</strong> 아이패드 등 iOS 환경에서 폰트 적용이 안 되던 현상 개선</li>
                                                 </ul>
                                             </div>
@@ -956,7 +995,7 @@
                             
                              {/* Footer Info (Restored) */}
                              <footer className="max-w-4xl mx-auto px-6 py-10 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
-                                <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.1.0</p>
+                                <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.1.1</p>
                                 <p className="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br/>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
                                 
                                 <div className="bg-slate-50 rounded-xl p-6 text-left inline-block w-full max-w-2xl border border-slate-100">
@@ -1022,10 +1061,10 @@
                                         <span>🎨 스타일 설정</span>
                                     </button>
                                     <button 
-                                        onClick={() => setActiveTab(activeTab === 'highlight' ? null : 'highlight')}
-                                        className={`flex-1 py-3 text-xs font-medium flex items-center justify-center gap-2 transition-all ${activeTab === 'highlight' ? 'text-pink-600 border-b-2 border-pink-600 bg-pink-50/30' : 'text-slate-500 hover:bg-slate-50'}`}
+                                        onClick={() => setActiveTab(activeTab === 'tool' ? null : 'tool')}
+                                        className={`flex-1 py-3 text-xs font-medium flex items-center justify-center gap-2 transition-all ${activeTab === 'tool' ? 'text-pink-600 border-b-2 border-pink-600 bg-pink-50/30' : 'text-slate-500 hover:bg-slate-50'}`}
                                     >
-                                        <span>🖍 형광펜 도구</span>
+                                        <span>🛠 도구</span>
                                     </button>
                                 </div>
 
@@ -1071,19 +1110,43 @@
                                                 </div>
                                             )}
 
-                                            {/* Highlight Panel */}
-                                            {activeTab === 'highlight' && (
+                                            {/* Tools Panel (Highlight & Text Color) */}
+                                            {activeTab === 'tool' && (
                                                 <div className="flex flex-col items-center gap-3 animate-slide-down">
-                                                    <p className="text-[10px] text-slate-500">💡 Tip: 폰트를 먼저 확정한 후 형광펜을 사용하세요.</p>
-                                                    <div className="flex gap-4">
-                                                        {['highlight-yellow', 'highlight-pink', 'highlight-mint', 'highlight-blue'].map(color => (
-                                                            <button 
-                                                                key={color} 
-                                                                onClick={() => setCurrentHighlightColor(color)}
-                                                                className={`circle-btn ${color} ${currentHighlightColor === color ? 'border-slate-800 scale-110 shadow-sm' : ''}`}
-                                                            ></button>
-                                                        ))}
+                                                    <div className="flex bg-slate-200 rounded-lg p-1 mb-1">
+                                                       <button onClick={() => setToolMode('highlight')} className={`px-3 py-1 text-xs rounded-md transition-all ${toolMode === 'highlight' ? 'bg-white shadow-sm text-slate-800 font-medium' : 'text-slate-500'}`}>🖍 형광펜</button>
+                                                       <button onClick={() => setToolMode('text')} className={`px-3 py-1 text-xs rounded-md transition-all ${toolMode === 'text' ? 'bg-white shadow-sm text-slate-800 font-medium' : 'text-slate-500'}`}>✒️ 글자색</button>
                                                     </div>
+
+                                                    <p className="text-[10px] text-slate-500">💡 Tip: 폰트를 먼저 확정한 후 도구를 사용하세요.</p>
+                                                    
+                                                    {toolMode === 'highlight' ? (
+                                                        <div className="flex gap-4">
+                                                            {['highlight-yellow', 'highlight-pink', 'highlight-mint', 'highlight-blue'].map(color => (
+                                                                <button 
+                                                                    key={color} 
+                                                                    onClick={() => setCurrentHighlightColor(color)}
+                                                                    className={`circle-btn ${color} ${currentHighlightColor === color ? 'border-slate-800 scale-110 shadow-sm' : ''}`}
+                                                                ></button>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex gap-4">
+                                                            {[
+                                                                { id: 'text-crimson', bg: 'bg-text-crimson' },
+                                                                { id: 'text-navy', bg: 'bg-text-navy' },
+                                                                { id: 'text-forest', bg: 'bg-text-forest' },
+                                                                { id: 'text-gray', bg: 'bg-text-gray' }
+                                                            ].map(item => (
+                                                                <button 
+                                                                    key={item.id} 
+                                                                    onClick={() => setCurrentTextColor(item.id)}
+                                                                    className={`circle-btn ${item.bg} ${currentTextColor === item.id ? 'border-slate-800 scale-110 shadow-sm' : ''}`}
+                                                                ></button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    
                                                     <p className="text-[10px] text-slate-400">드래그하여 적용, 터치하여 삭제</p>
                                                 </div>
                                             )}
@@ -1162,5 +1225,3 @@
     </script>
 </body>
 </html>
-
-
