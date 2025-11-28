@@ -1574,7 +1574,7 @@
                                 <button 
                                     onClick={() => { if(currentPageIdx > 0) goToPage(currentPageIdx - 1) }} 
                                     disabled={currentPageIdx === 0}
-                                    className="pointer-events-auto w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm shadow-lg border border-slate-200/50 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:translate-y-4"
+                                    className="pointer-events-auto w-[45px] h-[45px] rounded-full bg-white/60 backdrop-blur-sm shadow-lg border border-slate-200/50 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:translate-y-4"
                                     aria-label="이전 페이지"
                                 >
                                     <span className="text-2xl leading-none pb-1 pr-0.5">‹</span>
@@ -1583,7 +1583,7 @@
                                 <button 
                                     onClick={() => { if(currentPageIdx < pages.length - 1) goToPage(currentPageIdx + 1) }} 
                                     disabled={currentPageIdx === pages.length - 1}
-                                    className="pointer-events-auto w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm shadow-lg border border-slate-200/50 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:translate-y-4"
+                                    className="pointer-events-auto w-[45px] h-[45px] rounded-full bg-white/60 backdrop-blur-sm shadow-lg border border-slate-200/50 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:translate-y-4"
                                     aria-label="다음 페이지"
                                 >
                                     <span className="text-2xl leading-none pb-1 pl-0.5">›</span>
