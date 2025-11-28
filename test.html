@@ -16,6 +16,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet">
     <!-- Hahmlet (함렛) -->
     <link href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@100;200;300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Nanum Pen Script (손글씨 / 서명용 - 유지) -->
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap" rel="stylesheet">
     
     <!-- 2. Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -226,10 +228,9 @@
         }
 
         /* -----------------------------------------------
-           MOCKUP VIEWER STYLES (Realistic Shadow)
+           MOCKUP VIEWER STYLES (Ultra Realistic)
            ----------------------------------------------- */
         .mockup-bg {
-            /* Warm Beige Background for Floor */
             background-color: #f2efe9;
             display: flex;
             justify-content: center;
@@ -250,11 +251,8 @@
             justify-content: center;
             align-items: center;
             transform-origin: center center;
-            /* Scale down slightly to fit screen */
             transform: scale(0.9);
-            
-            /* [중요] 캡처 시 그림자가 잘리지 않도록 여백 확보 */
-            padding: 60px; 
+            padding: 60px; /* Shadow margin */
         }
         
         @media (max-width: 1000px) {
@@ -264,7 +262,6 @@
         }
         @media (max-width: 600px) {
              .book-container {
-                /* Force side-by-side spread even on mobile, just scale it down */
                 transform: scale(0.36);
                 flex-direction: row; 
             }
@@ -273,111 +270,135 @@
             }
         }
 
-        /* 책의 그림자 래퍼: 오직 '책' 부분에만 그림자가 생기도록 함 */
+        /* 
+           NEW SHADOW & LIGHTING for "Curve" Effect
+        */
         .book-shadow-wrapper {
              display: flex;
              position: relative;
-             /* 
-                1. Contact Shadow: 바닥에 닿는 면 (좁고 진함)
-                2. Ambient Shadow: 부드럽게 퍼지는 주변 그림자
-                3. Lift Shadow: 양쪽 끝이 살짝 들린 느낌
-             */
+             /* 바닥에 깔리는 부드러운 엠비언트 섀도우 */
              box-shadow: 
-                0 4px 6px -1px rgba(0,0,0,0.1), 
-                0 20px 40px -6px rgba(0,0,0,0.2), 
-                0 2px 20px rgba(0,0,0,0.05); 
+                0 30px 60px -12px rgba(50, 50, 93, 0.25), 
+                0 18px 36px -18px rgba(0, 0, 0, 0.3);
         }
 
-        /* 책등(Spine) 그림자: 깊은 골짜기 표현 */
+        /* Spine Shadow (가운데 골짜기) - Much Softer Now */
         .book-spine-shadow {
             position: absolute;
             left: 50%;
             top: 0;
             bottom: 0;
-            width: 80px; /* 넓게 잡아 부드럽게 처리 */
-            margin-left: -40px;
+            width: 40px; 
+            margin-left: -20px;
             pointer-events: none;
-            /* 중앙은 어둡고 양쪽으로 갈수록 투명해지는 그라데이션 */
             background: linear-gradient(to right, 
                 rgba(0,0,0,0) 0%, 
-                rgba(0,0,0,0.02) 20%, 
-                rgba(0,0,0,0.1) 40%, 
-                rgba(0,0,0,0.15) 50%, /* 중앙이 가장 진함 */
-                rgba(0,0,0,0.1) 60%, 
-                rgba(0,0,0,0.02) 80%, 
+                rgba(0,0,0,0.02) 30%, 
+                rgba(0,0,0,0.12) 50%, /* Reduced from 0.25 to 0.12 for softness */
+                rgba(0,0,0,0.02) 70%, 
                 rgba(0,0,0,0) 100%);
-            mix-blend-mode: multiply; /* 자연스럽게 합성 */
+            mix-blend-mode: multiply; 
             z-index: 20;
         }
 
-        /* 페이지 곡면 효과 (Overlay) */
-        /* 왼쪽 페이지: 책등 쪽으로 갈수록 어두워짐 (골짜기) */
+        /* Page Curves */
         .curve-left {
             position: absolute;
             inset: 0;
-            background: linear-gradient(to right, 
-                rgba(255,255,255,0) 80%, 
-                rgba(0,0,0,0.06) 100%);
+            background: linear-gradient(to left, 
+                rgba(0,0,0,0.08) 0%,    /* Gutter Shadow Reduced */
+                rgba(0,0,0,0.02) 3%,    
+                rgba(255,255,255,0.4) 6%, /* Specular Highlight (The Peak) */
+                rgba(255,255,255,0.1) 12%,
+                rgba(0,0,0,0) 25%, 
+                rgba(0,0,0,0.02) 100%   
+            );
             pointer-events: none;
             z-index: 10;
+            mix-blend-mode: overlay; 
+        }
+        .curve-left-shadow {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to left, 
+                rgba(0,0,0,0.08) 0%, /* Reduced */
+                rgba(0,0,0,0) 10%
+            );
+            pointer-events: none;
+            z-index: 11;
+            mix-blend-mode: multiply;
         }
 
-        /* 오른쪽 페이지: 책등 쪽은 밝고(하이라이트), 바깥쪽은 평평 */
         .curve-right {
             position: absolute;
             inset: 0;
             background: linear-gradient(to right, 
-                rgba(255,255,255,0.2) 0%, /* Spine쪽 하이라이트 (빛 반사) */
-                rgba(255,255,255,0) 15%,
-                rgba(0,0,0,0) 100%);
+                rgba(0,0,0,0.08) 0%, /* Gutter Shadow Reduced */
+                rgba(0,0,0,0.02) 3%, 
+                rgba(255,255,255,0.4) 6%, 
+                rgba(255,255,255,0.1) 12%, 
+                rgba(0,0,0,0) 25%, 
+                rgba(0,0,0,0.02) 100%
+            );
             pointer-events: none;
             z-index: 10;
+            mix-blend-mode: overlay;
+        }
+        .curve-right-shadow {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to right, 
+                rgba(0,0,0,0.08) 0%, /* Reduced */
+                rgba(0,0,0,0) 10%
+            );
+            pointer-events: none;
+            z-index: 11;
+            mix-blend-mode: multiply;
         }
 
-        /* 종이 두께감 (Paper Stack Effect) */
         .paper-stack-left {
             position: absolute;
-            left: 2px;
-            top: 4px;
-            bottom: 4px;
-            width: 4px;
-            border-left: 1px solid rgba(0,0,0,0.1);
-            background: linear-gradient(to right, #f5f5f5, #fff);
+            left: 1px;
+            top: 2px;
+            bottom: 2px;
+            width: 5px;
+            background: #eee;
+            border-left: 1px solid #ddd;
             z-index: -1;
-            transform: translateX(-100%);
+            transform: translateX(-100%) perspective(100px) rotateY(-5deg);
         }
         .paper-stack-right {
             position: absolute;
-            right: 2px;
-            top: 4px;
-            bottom: 4px;
-            width: 4px;
-            border-right: 1px solid rgba(0,0,0,0.1);
-            background: linear-gradient(to left, #f5f5f5, #fff);
+            right: 1px;
+            top: 2px;
+            bottom: 2px;
+            width: 5px;
+            background: #eee;
+            border-right: 1px solid #ddd;
             z-index: -1;
-            transform: translateX(100%);
+            transform: translateX(100%) perspective(100px) rotateY(5deg);
         }
 
         .mockup-page {
             width: 420px;
             height: 600px;
             position: relative;
-            background-color: white; /* 종이색은 항상 흰색 베이스 */
+            background-color: white; 
             overflow: hidden;
         }
 
         .mockup-endpaper {
             width: 100%;
             height: 100%;
-            background-color: #2c3e50; /* Deep Navy */
-            /* 종이 질감 패턴 */
+            background-color: #2c3e50; 
             background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
             align-items: center;
             padding-bottom: 50px;
-            box-shadow: inset -5px 0 10px rgba(0,0,0,0.2); /* 안쪽 그림자 */
+            box-shadow: inset -10px 0 20px rgba(0,0,0,0.15); 
+            position: relative;
         }
     </style>
 
@@ -401,7 +422,6 @@
         }
         
         function isMobile() {
-            // iPad(MacIntel + Touch)도 모바일로 인식하도록 조건 추가
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         }
 
@@ -417,58 +437,69 @@
         // 폰트 캐시
         const fontCache = new Map();
         
-        // 폰트 정보 매핑
+        // 폰트 정보 매핑 (나눔손글씨 펜 유지 - 다른 곳에 쓸 수도 있으므로)
         const FONT_MAP = {
             'noto': { name: '본문 명조', family: "'Noto Serif KR', serif", url: 'https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=swap' },
             'nanum': { name: '나눔 명조', family: "'Nanum Myeongjo', serif", url: 'https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap' },
             'hahmlet': { name: '함렛', family: "'Hahmlet', serif", url: 'https://fonts.googleapis.com/css2?family=Hahmlet:wght@100;200;300;400;500;600&display=swap' },
-            'gowun': { name: '고운 바탕', family: "'Gowun Batang', serif", url: 'https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap' }
+            'gowun': { name: '고운 바탕', family: "'Gowun Batang', serif", url: 'https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap' },
+            'hand': { name: '나눔손글씨', family: "'Nanum Pen Script', cursive", url: 'https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap' }
         };
 
         // 구글 폰트 Base64 변환
         async function prepareFontEmbedCSS(activeFontKey) {
-            if (fontCache.has(activeFontKey)) return fontCache.get(activeFontKey);
-            
-            try {
-                const fontInfo = FONT_MAP[activeFontKey];
-                if (!fontInfo) return null;
+            const fontsToLoad = [activeFontKey];
+            if (!fontsToLoad.includes('hand')) fontsToLoad.push('hand');
 
-                const cssRes = await fetch(fontInfo.url);
-                let cssText = await cssRes.text();
+            let cssTextCombined = '';
 
-                const urlRegex = /url\(([^)]+)\)/g;
-                let match;
-                const replacements = [];
-
-                while ((match = urlRegex.exec(cssText)) !== null) {
-                    const fullUrl = match[1].replace(/['"]/g, ''); 
-                    replacements.push({ original: match[0], url: fullUrl });
+            for (const key of fontsToLoad) {
+                if (fontCache.has(key)) {
+                    cssTextCombined += fontCache.get(key);
+                    continue;
                 }
+                
+                try {
+                    const fontInfo = FONT_MAP[key];
+                    if (!fontInfo) continue;
 
-                await Promise.all(replacements.map(async (item) => {
-                    try {
-                        const fontRes = await fetch(item.url);
-                        const fontBlob = await fontRes.blob();
-                        return new Promise((resolve, reject) => {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                                cssText = cssText.replace(item.url, reader.result);
-                                resolve();
-                            };
-                            reader.onerror = reject;
-                            reader.readAsDataURL(fontBlob);
-                        });
-                    } catch (e) {
-                        console.warn('개별 폰트 로드 실패:', item.url, e);
+                    const cssRes = await fetch(fontInfo.url);
+                    let cssText = await cssRes.text();
+
+                    const urlRegex = /url\(([^)]+)\)/g;
+                    let match;
+                    const replacements = [];
+
+                    while ((match = urlRegex.exec(cssText)) !== null) {
+                        const fullUrl = match[1].replace(/['"]/g, ''); 
+                        replacements.push({ original: match[0], url: fullUrl });
                     }
-                }));
 
-                fontCache.set(activeFontKey, cssText);
-                return cssText;
-            } catch (e) {
-                console.error('[폰트] 임베드 생성 실패:', e);
-                return null;
+                    await Promise.all(replacements.map(async (item) => {
+                        try {
+                            const fontRes = await fetch(item.url);
+                            const fontBlob = await fontRes.blob();
+                            return new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                    cssText = cssText.replace(item.url, reader.result);
+                                    resolve();
+                                };
+                                reader.onerror = reject;
+                                reader.readAsDataURL(fontBlob);
+                            });
+                        } catch (e) {
+                            console.warn('개별 폰트 로드 실패:', item.url, e);
+                        }
+                    }));
+
+                    fontCache.set(key, cssText);
+                    cssTextCombined += cssText;
+                } catch (e) {
+                    console.error('[폰트] 임베드 생성 실패:', e);
+                }
             }
+            return cssTextCombined;
         }
 
         function useDebounce(value, delay) {
@@ -491,21 +522,23 @@
 
         function App() {
             // -- State --
-            const [step, setStep] = useState('input'); // 'input' | 'preview' | 'mockup'
+            const [step, setStep] = useState('input');
             const [textInput, setTextInput] = useState('');
             const [metadata, setMetadata] = useState({
                 title: '',
                 author: '',
                 producer: ''
             });
+            // Changed from signature to infoText for Modern Info style
+            const [infoText, setInfoText] = useState(''); 
             
             // Settings
             const [activeTheme, setActiveTheme] = useState('white'); 
             const [activeFont, setActiveFont] = useState('noto'); 
             
             // UI State
-            const [activeTab, setActiveTab] = useState(null); // null, 'style', 'tool'
-            const [toolMode, setToolMode] = useState('highlight'); // 'highlight' | 'text'
+            const [activeTab, setActiveTab] = useState(null);
+            const [toolMode, setToolMode] = useState('highlight');
             
             const [pages, setPages] = useState([]);
             const [currentPageIdx, setCurrentPageIdx] = useState(0);
@@ -706,11 +739,9 @@
                     setPages(resultPages);
                     
                     if (targetFont) {
-                        // 폰트 변경 시: 현재 페이지 유지 및 스타일 탭 유지
                         setCurrentPageIdx(prev => Math.min(prev, resultPages.length - 1));
                         setActiveTab('style');
                     } else {
-                        // 첫 생성 시: 1페이지로, 스타일 탭 기본 열림
                         setCurrentPageIdx(0);
                         setPageHighlights({});
                         setActiveTab('style'); 
@@ -815,7 +846,6 @@
                 const target = e.target;
                 let shouldRemove = false;
                 
-                // 엄격한 모드 체크: 현재 도구 모드에 맞는 요소만 삭제 허용
                 if (toolMode === 'highlight' && target.classList.contains('highlight')) {
                     shouldRemove = true;
                 } else if (toolMode === 'text' && target.classList.contains('colored-text')) {
@@ -917,6 +947,7 @@
                     setPageHighlights({});
                     setTextInput('');
                     setMetadata({ ...metadata, title: '', author: '', producer: '' });
+                    setInfoText(''); // Reset modern info text
                     setActiveTab(null);
                     window.scrollTo(0, 0);
                 }
@@ -926,16 +957,9 @@
             const openMockup = () => {
                 saveCurrentPageState();
                 
-                // Spread Calculation
-                // Rule:
-                // Spread 0: Left (Cover/Endpaper), Right (Page 1 / Index 0)
-                // Spread 1: Left (Page 2), Right (Page 3)
-                // ...
                 const spreads = [];
-                // Cover spread
                 spreads.push({ type: 'cover', leftPageIdx: null, rightPageIdx: 0 });
                 
-                // Content spreads
                 for (let i = 1; i < pages.length; i += 2) {
                     spreads.push({
                         type: 'spread',
@@ -946,15 +970,10 @@
                 
                 setMockupSpreads(spreads);
                 
-                // Find appropriate initial spread based on current page
                 let initialSpread = 0;
                 if (currentPageIdx === 0) {
                     initialSpread = 0;
                 } else {
-                    // For page index i (where i >= 1), spread index is ceil(i / 2) ?
-                    // i=1 -> spread 1 (left)
-                    // i=2 -> spread 1 (right)
-                    // i=3 -> spread 2 (left)
                     initialSpread = Math.ceil(currentPageIdx / 2);
                 }
                 setCurrentMockupIdx(initialSpread);
@@ -966,49 +985,48 @@
                 const target = document.getElementById('mockupTarget');
                 if (!target) return;
 
-                // 1. 초기 메시지 설정 (UI 반응성을 위해)
                 setLoadingMessage('목업 제작 준비 중...');
-                // 짧은 딜레이로 브라우저 페인트 허용
                 await new Promise(resolve => setTimeout(resolve, 50));
                 
                 try {
                     await ensureFontsLoaded();
+                    // 서명 폰트 포함 로드
                     const fontEmbedCSS = await prepareFontEmbedCSS(activeFont);
 
-                    // 2. 렌더링 안정화 대기
                     setLoadingMessage('고화질 렌더링 적용 중...');
                     await new Promise(resolve => setTimeout(resolve, 800));
 
-                    // 3. 실제 캡처 시작
                     setLoadingMessage('이미지 변환 중...');
                     await new Promise(resolve => setTimeout(resolve, 10));
 
                     const options = {
                         quality: 1.0,
-                        pixelRatio: 2, // High resolution for mockup
+                        pixelRatio: 2, 
                         cacheBust: false,
-                        // Fill background with the beige color (covers the padding area)
                         backgroundColor: '#f2efe9',
-                        // Capture the full scroll width/height including the new padding
                         width: target.scrollWidth,
                         height: target.scrollHeight,
                         style: {
-                            transform: 'none', // Reset transform for capture
+                            transform: 'none', 
                             margin: '0'
+                        },
+                        // Filter out modern info container if text is empty
+                        filter: (node) => {
+                            if (node.id === 'modern-info-container' && (!infoText || infoText.trim() === '')) {
+                                return false;
+                            }
+                            return true;
                         }
                     };
                     if (fontEmbedCSS) options.fontEmbedCSS = fontEmbedCSS;
                     
-                    // Capture
                     const blob = await htmlToImage.toBlob(target, options);
 
-                    // 4. 저장 단계
                     setLoadingMessage('파일 저장 중...');
 
                     if (blob) {
                         const fileName = `${metadata.title || 'novel'}_mockup_${currentMockupIdx + 1}.png`;
                         
-                        // iOS Share Handling
                         if (isIOS() && navigator.share && navigator.canShare) {
                              const file = new File([blob], fileName, { type: 'image/png' });
                              if (navigator.canShare({ files: [file] })) {
@@ -1021,7 +1039,6 @@
                                  downloadBlobFallback(blob, fileName);
                              }
                         } else {
-                            // Android/PC Direct Download
                             downloadBlobFallback(blob, fileName);
                         }
                     }
@@ -1038,7 +1055,7 @@
 
                 if (!window.confirm(`총 ${mockupSpreads.length}장의 목업 이미지를 저장합니다.\n시간이 다소 걸릴 수 있습니다.`)) return;
 
-                const originalIdx = currentMockupIdx; // 원래 위치 저장
+                const originalIdx = currentMockupIdx;
 
                 try {
                     await ensureFontsLoaded();
@@ -1049,7 +1066,6 @@
                         setLoadingMessage(`목업 제작 중... (${i + 1}/${mockupSpreads.length})`);
                         setLoadingProgress(Math.floor(((i + 1) / mockupSpreads.length) * 100));
                         
-                        // 렌더링 안정화 대기 (목업은 복잡하므로 충분히 대기)
                         await new Promise(resolve => setTimeout(resolve, 800));
 
                         const target = document.getElementById('mockupTarget');
@@ -1064,6 +1080,13 @@
                                 style: {
                                     transform: 'none',
                                     margin: '0'
+                                },
+                                // Filter out modern info container if text is empty
+                                filter: (node) => {
+                                    if (node.id === 'modern-info-container' && (!infoText || infoText.trim() === '')) {
+                                        return false;
+                                    }
+                                    return true;
                                 }
                             };
                             if (fontEmbedCSS) options.fontEmbedCSS = fontEmbedCSS;
@@ -1073,7 +1096,6 @@
                                  const fileName = `${metadata.title || 'novel'}_mockup_${String(i+1).padStart(3, '0')}.png`;
                                  downloadBlobFallback(blob, fileName);
                             }
-                            // 다운로드 간격
                             await new Promise(resolve => setTimeout(resolve, 200));
                         }
                     }
@@ -1084,7 +1106,7 @@
                 } finally {
                     setLoadingMessage('');
                     setLoadingProgress(0);
-                    setCurrentMockupIdx(originalIdx); // 원래 위치로 복귀
+                    setCurrentMockupIdx(originalIdx); 
                 }
             };
 
@@ -1139,15 +1161,12 @@
                     };
                     if (fontEmbedCSS) options.fontEmbedCSS = fontEmbedCSS;
 
-                    // IPAD ONLY: Double Shot Strategy for reliable font loading
                     if (isIPad()) {
                         try {
-                            // 1. Warm-up shot (Silent)
                             await htmlToImage.toBlob(target, options);
                         } catch (e) {
                             console.debug('Warm-up shot failed', e);
                         }
-                        // Short delay before real shot
                         await new Promise(resolve => setTimeout(resolve, 200));
                     }
 
@@ -1445,7 +1464,7 @@
                                                         <div className="flex items-center gap-4">
                                                             <span className="text-[10px] tracking-widest text-slate-400 font-bold">FONT</span>
                                                             <div className="flex gap-1 bg-white p-1 rounded-lg border border-slate-200">
-                                                                {Object.keys(FONT_MAP).map(key => (
+                                                                {Object.keys(FONT_MAP).filter(k => k !== 'hand').map(key => (
                                                                     <button
                                                                         key={key}
                                                                         onClick={() => handleFontChange(key)}
@@ -1569,12 +1588,12 @@
                                 </div>
                             </div>
                             
-                            {/* Floating Navigation Buttons (Split Type) */}
+                            {/* Floating Navigation Buttons (Split Type) - Kept custom settings */}
                             <div className="fixed bottom-8 left-0 right-0 px-6 z-40 flex justify-between pointer-events-none">
                                 <button 
                                     onClick={() => { if(currentPageIdx > 0) goToPage(currentPageIdx - 1) }} 
                                     disabled={currentPageIdx === 0}
-                                    className="pointer-events-auto w-[40px] h-[40px] rounded-full bg-white/10 backdrop-blur-sm shadow-lg border border-slate-200/10 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:translate-y-4"
+                                    className="pointer-events-auto w-[45px] h-[45px] rounded-full bg-white/60 backdrop-blur-sm shadow-lg border border-slate-200/10 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:translate-y-4"
                                     aria-label="이전 페이지"
                                 >
                                     <span className="text-2xl leading-none pb-1 pr-0.5">‹</span>
@@ -1583,7 +1602,7 @@
                                 <button 
                                     onClick={() => { if(currentPageIdx < pages.length - 1) goToPage(currentPageIdx + 1) }} 
                                     disabled={currentPageIdx === pages.length - 1}
-                                    className="pointer-events-auto w-[40px] h-[40px] rounded-full bg-white/10 backdrop-blur-sm shadow-lg border border-slate-200/10 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:translate-y-4"
+                                    className="pointer-events-auto w-[45px] h-[45px] rounded-full bg-white/60 backdrop-blur-sm shadow-lg border border-slate-200/10 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:translate-y-4"
                                     aria-label="다음 페이지"
                                 >
                                     <span className="text-2xl leading-none pb-1 pl-0.5">›</span>
@@ -1652,9 +1671,49 @@
                                         <div className="paper-stack-left"></div>
                                         {/* Curvature Overlay */}
                                         <div className="curve-left"></div>
+                                        <div className="curve-left-shadow"></div>
                                         
                                         {mockupSpreads[currentMockupIdx].type === 'cover' ? (
-                                            <div className="mockup-endpaper"></div>
+                                            <div className="mockup-endpaper">
+                                                {/* Modern Info Feature */}
+                                                <div 
+                                                    id="modern-info-container" 
+                                                    className="absolute bottom-10 left-10 z-30 flex flex-col gap-3 group"
+                                                >
+                                                    {/* Line */}
+                                                    <div className={`w-12 h-[1px] bg-white/40 transition-opacity duration-300 ${infoText ? 'opacity-100' : 'opacity-30'}`}></div>
+                                                    
+                                                    {/* Input Area Wrapper */}
+                                                    <div className="relative">
+                                                        {/* The Real Input (Invisible bg) with Line Limit Logic */}
+                                                        <textarea
+                                                            value={infoText}
+                                                            onChange={(e) => {
+                                                                const lines = e.target.value.split('\n');
+                                                                if (lines.length <= 6) {
+                                                                    setInfoText(e.target.value);
+                                                                } else {
+                                                                    setInfoText(lines.slice(0, 6).join('\n'));
+                                                                }
+                                                            }}
+                                                            className="relative z-10 bg-transparent text-[9px] font-sans text-white/70 tracking-widest leading-relaxed resize-none focus:outline-none w-48 h-32 overflow-hidden"
+                                                            spellCheck={false}
+                                                        />
+                                                        
+                                                        {/* Breathing Guide (Visible only when empty) */}
+                                                        {!infoText && (
+                                                            <div className="absolute inset-0 pointer-events-none flex flex-col gap-2">
+                                                                <div className="w-full h-full border border-dashed border-white/20 rounded bg-white/5 animate-pulse flex items-center justify-center">
+                                                                    <div className="text-white/40 text-[9px] font-sans tracking-widest flex flex-col items-center gap-1">
+                                                                        <span className="text-lg">✎</span>
+                                                                        <span>INFO / MEMO</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         ) : (
                                             <div className={`page-container theme-${activeTheme} h-full w-full`} style={{ fontFamily: FONT_MAP[activeFont].family, transform: 'none', margin: 0, boxShadow: 'none' }}>
                                                 {/* Left Page Content Logic */}
@@ -1686,6 +1745,7 @@
                                         <div className="paper-stack-right"></div>
                                         {/* Curvature Overlay */}
                                         <div className="curve-right"></div>
+                                        <div className="curve-right-shadow"></div>
                                         
                                         {mockupSpreads[currentMockupIdx].rightPageIdx !== null ? (
                                             <div className={`page-container theme-${activeTheme} h-full w-full`} style={{ fontFamily: FONT_MAP[activeFont].family, transform: 'none', margin: 0, boxShadow: 'none' }}>
@@ -1734,6 +1794,3 @@
     </script>
 </body>
 </html>
-
-
-
