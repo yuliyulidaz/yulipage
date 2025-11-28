@@ -280,14 +280,24 @@
              display: flex;
              position: relative;
              /* 
-                1. Contact Shadow: 바닥에 닿는 면 (좁고 진함)
-                2. Ambient Shadow: 부드럽게 퍼지는 주변 그림자
-                3. Lift Shadow: 양쪽 끝이 살짝 들린 느낌
+                [IOS FIX] REMOVE box-shadow causing banding on WebKit
+                Use .book-physical-shadow instead
              */
-             box-shadow: 
-                0 4px 6px -1px rgba(0,0,0,0.1), 
-                0 20px 40px -6px rgba(0,0,0,0.2), 
-                0 2px 20px rgba(0,0,0,0.05); 
+             box-shadow: none; 
+        }
+        
+        /* [IOS FIX] Physical Shadow Element using Gradient */
+        .book-physical-shadow {
+            position: absolute;
+            top: 20px;
+            left: 10px;
+            right: 10px;
+            bottom: -15px;
+            z-index: -1;
+            /* Soft radial gradient to simulate ambient occlusion */
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0) 70%);
+            /* Ensure it renders on canvas */
+            transform: scale(0.95);
         }
 
         /* 책등(Spine) 그림자: 깊은 골짜기 표현 - [LIGHTER VERSION] */
@@ -998,6 +1008,24 @@
                     await ensureFontsLoaded();
                     const fontEmbedCSS = await prepareFontEmbedCSS(activeFont);
 
+                    // [IPAD/IOS FIX] Warm-up Capture for Fonts & Rendering
+                    if (isIOS() || isIPad()) {
+                        setLoadingMessage('리소스 로딩 중...');
+                        try {
+                            // 1x1 pixel capture to force font rasterization on canvas
+                            await htmlToImage.toBlob(target, {
+                                width: 1,
+                                height: 1,
+                                pixelRatio: 1,
+                                skipFonts: true // just force layout
+                            });
+                        } catch(e) {
+                            console.debug('Warmup partial fail', e);
+                        }
+                        // Wait for fonts to fully settle in memory
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+
                     // 2. 렌더링 안정화 대기
                     setLoadingMessage('고화질 렌더링 적용 중...');
                     await new Promise(resolve => setTimeout(resolve, 800));
@@ -1679,6 +1707,9 @@
                             <div className="book-container" id="mockupTarget">
                                 {/* 그림자 래퍼 추가: 책 부분에만 그림자 적용 */}
                                 <div className="book-shadow-wrapper">
+                                    {/* Physical Shadow (Gradient) for iOS Banding Fix */}
+                                    <div className="book-physical-shadow"></div>
+
                                     {/* Spine Shadow */}
                                     <div className="book-spine-shadow"></div>
                                     
@@ -1695,7 +1726,7 @@
                                                     id="mockup-info-area" 
                                                     className={`transition-all duration-300 ${
                                                         isEditingInfo
-                                                          ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-[2.9] z-[10000] w-32 p-4 rounded bg-[#2c3e50] shadow-2xl origin-center'
+                                                          ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-[2.8] z-[10000] w-32 p-4 rounded bg-[#2c3e50] shadow-2xl origin-center'
                                                           : 'absolute bottom-12 left-12 w-32 text-left z-20 origin-bottom-left'
                                                     }`}
                                                 >
