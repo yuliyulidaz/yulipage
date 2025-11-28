@@ -1315,10 +1315,12 @@
                                             <p className="mb-4">여기에 소설 본문을 붙여넣으세요.<br/>엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.<br/>*** 를 입력하면 장면 전환(중앙 정렬)이 적용됩니다.</p>
                                             
                                             <div className="mt-6 border-t border-slate-100 pt-4">
-                                                <strong className="block mb-2 text-indigo-400 text-xs">📢 2025.11.30 업데이트 안내 (v1.2.0)</strong>
+                                                <strong className="block mb-2 text-indigo-400 text-xs">📢 2024.11.20 업데이트 안내 (v1.2.0)</strong>
                                                 <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-400">
                                                     <li><strong>목업(Mockup) 모드:</strong> 내지를 실제 책 느낌의 3D 이미지로 미리보고 저장할 수 있습니다.</li>
                                                     <li><strong>글자색 도구:</strong> 형광펜 외에 본문 글자 색상(잉크) 변경 기능이 추가되었습니다.</li>
+                                                    <li><strong>PC/모바일 최적화:</strong> 모바일 펼침면 보기 및 PC 목업 일괄 저장 기능을 지원합니다.</li>
+                                                    <li><strong>기본 기능:</strong> 4가지 테마/폰트, 형광펜, 페이지 넘김 기능 등 기존 기능 유지.</li>
                                                 </ul>
                                             </div>
                                         </div>
@@ -1359,7 +1361,7 @@
 
                     {/* STEP 2: PREVIEW */}
                     {step === 'preview' && (
-                        <div className="pb-20 bg-gray-100 min-h-screen">
+                        <div className="pb-32 bg-gray-100 min-h-screen">
                             {/* Toolbar Container */}
                             <div className="sticky top-0 z-50 bg-white shadow-sm">
                                 {/* Row 1: Core Controls */}
@@ -1382,19 +1384,17 @@
                                     </div>
 
                                     <div className="flex items-center gap-2">
-                                       {/* Mockup Button Added */}
-                                        <button onClick={openMockup} className="bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg text-xs font-bold hover:bg-indigo-200 flex items-center gap-1.5 transition-colors">
-                                            <span>📚</span>
-                                            <span>목업</span>
-                                        </button>
-                                        
                                         {!isMobile() && (
                                             <button onClick={downloadAllPages} className="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors">
                                                 전체 저장
                                             </button>
                                         )}
                                         
-
+                                        {/* Mockup Button Added */}
+                                        <button onClick={openMockup} className="bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg text-xs font-bold hover:bg-indigo-200 flex items-center gap-1.5 transition-colors">
+                                            <span>📚</span>
+                                            <span>목업</span>
+                                        </button>
 
                                         <button onClick={downloadCurrentPage} className="bg-slate-800 text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-slate-700 shadow-sm flex items-center gap-1.5">
                                             <span className="text-sm">{isIOS() ? '📥' : '📥'}</span>
@@ -1568,9 +1568,30 @@
                                     )}
                                 </div>
                             </div>
+                            
+                            {/* Floating Navigation Buttons (Split Type) */}
+                            <div className="fixed bottom-8 left-0 right-0 px-6 z-40 flex justify-between pointer-events-none">
+                                <button 
+                                    onClick={() => { if(currentPageIdx > 0) goToPage(currentPageIdx - 1) }} 
+                                    disabled={currentPageIdx === 0}
+                                    className="pointer-events-auto w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm shadow-lg border border-slate-200/50 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:translate-y-4"
+                                    aria-label="이전 페이지"
+                                >
+                                    <span className="text-2xl leading-none pb-1 pr-0.5">‹</span>
+                                </button>
+
+                                <button 
+                                    onClick={() => { if(currentPageIdx < pages.length - 1) goToPage(currentPageIdx + 1) }} 
+                                    disabled={currentPageIdx === pages.length - 1}
+                                    className="pointer-events-auto w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm shadow-lg border border-slate-200/50 flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:translate-y-4"
+                                    aria-label="다음 페이지"
+                                >
+                                    <span className="text-2xl leading-none pb-1 pl-0.5">›</span>
+                                </button>
+                            </div>
                         </div>
                     )}
-                    
+
                     {/* STEP 3: MOCKUP VIEWER */}
                     {step === 'mockup' && (
                         <div className="mockup-bg">
@@ -1578,7 +1599,7 @@
                             <div className="fixed top-0 left-0 right-0 p-4 flex justify-between items-center z-50 pointer-events-none">
                                 <button 
                                     onClick={() => setStep('preview')}
-                                    className="pointer-events-auto bg-white/80 backdrop-blur-md text-slate-700 px-4 py-2 rounded-full text-xs font-bold shadow-sm hover:bg-white flex items-center gap-2 transition-all"
+                                    className="pointer-events-auto bg-white/80 backdrop-blur-md text-slate-700 px-4 py-2 rounded-full text-xs font-bold shadow-sm hover:bg-white flex items-center gap-2"
                                 >
                                     <span>✕ 닫기</span>
                                 </button>
@@ -1587,34 +1608,34 @@
                                      <button 
                                         onClick={() => setCurrentMockupIdx(prev => Math.max(0, prev - 1))}
                                         disabled={currentMockupIdx === 0}
-                                        className="bg-white/80 backdrop-blur-md w-10 h-10 rounded-full flex items-center justify-center text-slate-700 shadow-sm hover:bg-white disabled:opacity-30 transition-all"
+                                        className="bg-white/80 backdrop-blur-md w-10 h-10 rounded-full flex items-center justify-center text-slate-700 shadow-sm hover:bg-white disabled:opacity-30"
                                     >
                                         ‹
                                     </button>
                                     <button 
                                         onClick={() => setCurrentMockupIdx(prev => Math.min(mockupSpreads.length - 1, prev + 1))}
                                         disabled={currentMockupIdx === mockupSpreads.length - 1}
-                                        className="bg-white/80 backdrop-blur-md w-10 h-10 rounded-full flex items-center justify-center text-slate-700 shadow-sm hover:bg-white disabled:opacity-30 transition-all"
+                                        className="bg-white/80 backdrop-blur-md w-10 h-10 rounded-full flex items-center justify-center text-slate-700 shadow-sm hover:bg-white disabled:opacity-30"
                                     >
                                         ›
                                     </button>
                                 </div>
-                                
+
+                                {/* PC: Batch Download, Mobile: Single Download */}
                                 <div className="flex gap-2 pointer-events-auto">
-                                    {/* PC Only Batch Download */}
                                     {!isMobile() && (
                                         <button 
                                             onClick={downloadAllMockups}
-                                            className="bg-slate-100 text-slate-600 px-5 py-2 rounded-full text-xs font-bold shadow-sm hover:bg-white flex items-center gap-2 transition-all"
+                                            className="bg-white/80 backdrop-blur-md text-slate-700 px-4 py-2 rounded-full text-xs font-bold shadow-sm hover:bg-white flex items-center gap-2"
                                         >
                                             <span>전체 저장</span>
                                         </button>
                                     )}
                                     <button 
                                         onClick={downloadMockup}
-                                        className="bg-slate-800 text-white px-5 py-2 rounded-full text-xs font-bold shadow-lg hover:bg-slate-700 flex items-center gap-2 transition-all"
+                                        className="bg-slate-800 text-white px-5 py-2 rounded-full text-xs font-bold shadow-lg hover:bg-slate-700 flex items-center gap-2"
                                     >
-                                        <span>{isIOS() ? '저장' : '저장'}</span>
+                                        <span>저장</span>
                                     </button>
                                 </div>
                             </div>
@@ -1713,5 +1734,3 @@
     </script>
 </body>
 </html>
-
-
