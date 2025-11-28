@@ -1406,17 +1406,19 @@
                                     </div>
 
                                     <div className="flex items-center gap-2">
+                                           {/* Mockup Button Added */}
+                                        <button onClick={openMockup} className="bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg text-xs font-bold hover:bg-indigo-200 flex items-center gap-1.5 transition-colors">
+                                            <span>📚</span>
+                                            <span>목업</span>
+                                        </button>
+                                        
                                         {!isMobile() && (
                                             <button onClick={downloadAllPages} className="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors">
                                                 전체 저장
                                             </button>
                                         )}
                                         
-                                        {/* Mockup Button Added */}
-                                        <button onClick={openMockup} className="bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg text-xs font-bold hover:bg-indigo-200 flex items-center gap-1.5 transition-colors">
-                                            <span>📚</span>
-                                            <span>목업</span>
-                                        </button>
+                                     
 
                                         <button onClick={downloadCurrentPage} className="bg-slate-800 text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-slate-700 shadow-sm flex items-center gap-1.5">
                                             <span className="text-sm">{isIOS() ? '📥' : '📥'}</span>
@@ -1775,3 +1777,4 @@
     </script>
 </body>
 </html>
+
