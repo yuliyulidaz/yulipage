@@ -1237,24 +1237,28 @@
                                         contentRef={contentRef}
                                     />
                                     <PageFooter pageIdx={currentPageIdx} metadata={metadata} />
-
-                                    {/* Floating Navigation Buttons (Bottom Corners) */}
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); if(currentPageIdx > 0) goToPage(currentPageIdx - 1); }} 
-                                        className={`no-capture absolute bottom-4 left-4 text-current opacity-20 hover:opacity-100 p-4 transition-all z-50 ${currentPageIdx === 0 ? 'opacity-0 pointer-events-none' : ''}`}
-                                        title="이전 페이지"
-                                    >
-                                        <span className="text-2xl font-bold">‹</span>
-                                    </button>
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); if(currentPageIdx < pages.length - 1) goToPage(currentPageIdx + 1); }} 
-                                        className={`no-capture absolute bottom-4 right-4 text-current opacity-20 hover:opacity-100 p-4 transition-all z-50 ${currentPageIdx === pages.length - 1 ? 'opacity-0 pointer-events-none' : ''}`}
-                                        title="다음 페이지"
-                                    >
-                                        <span className="text-2xl font-bold">›</span>
-                                    </button>
                                 </div>
                             </div>
+
+                            {/* Floating Navigation Buttons (Bottom Corners) - Moved OUTSIDE wrapper */}
+                            {currentPageIdx > 0 && (
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx - 1); }} 
+                                    className="fixed bottom-6 left-6 w-12 h-12 flex items-center justify-center bg-gray-800/30 hover:bg-gray-800/60 backdrop-blur-sm rounded-full text-white transition-all z-50 shadow-lg no-capture"
+                                    title="이전 페이지"
+                                >
+                                    <span className="text-2xl font-bold pb-1">‹</span>
+                                </button>
+                            )}
+                            {currentPageIdx < pages.length - 1 && (
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx + 1); }} 
+                                    className="fixed bottom-6 right-6 w-12 h-12 flex items-center justify-center bg-gray-800/30 hover:bg-gray-800/60 backdrop-blur-sm rounded-full text-white transition-all z-50 shadow-lg no-capture"
+                                    title="다음 페이지"
+                                >
+                                    <span className="text-2xl font-bold pb-1">›</span>
+                                </button>
+                            )}
                         </div>
                     )}
 
