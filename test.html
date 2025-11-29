@@ -417,11 +417,11 @@
                 return (
                     <div 
                         ref={contentRef}
+                        className="page-content"
                         onMouseUp={onMouseUp}
                         onTouchEnd={onTouchEnd}
                         onClick={onClick}
                         dangerouslySetInnerHTML={{ __html: pageHighlights[pageIdx] }}
-                        style={{display: 'contents'}}
                     />
                 );
             }
@@ -1111,21 +1111,17 @@
 
                             <div id="bookViewerWrapper" className="flex justify-center overflow-visible px-4 py-8 select-text cursor-text" onClick={() => {}}>
                                 <div ref={viewerRef} id="captureTarget" className={`page-container theme-${activeTheme}`} style={{ fontFamily: FONT_MAP[activeFont].family }}>
-                                    {pageHighlights[currentPageIdx] ? (
-                                        <div ref={contentRef} onMouseUp={handleHighlightSelection} onTouchEnd={handleHighlightSelection} onClick={handleContentClick} dangerouslySetInnerHTML={{ __html: pageHighlights[currentPageIdx] }} style={{display: 'contents'}} />
-                                    ) : (
-                                        <PageContent 
-                                            pageIdx={currentPageIdx} 
-                                            pages={pages} 
-                                            pageHighlights={pageHighlights} 
-                                            metadata={metadata} 
-                                            activeFont={activeFont} 
-                                            onMouseUp={handleHighlightSelection} 
-                                            onTouchEnd={handleHighlightSelection} 
-                                            onClick={handleContentClick}
-                                            contentRef={contentRef}
-                                        />
-                                    )}
+                                    <PageContent 
+                                        pageIdx={currentPageIdx} 
+                                        pages={pages} 
+                                        pageHighlights={pageHighlights} 
+                                        metadata={metadata} 
+                                        activeFont={activeFont} 
+                                        onMouseUp={handleHighlightSelection} 
+                                        onTouchEnd={handleHighlightSelection} 
+                                        onClick={handleContentClick}
+                                        contentRef={contentRef}
+                                    />
                                     <PageFooter pageIdx={currentPageIdx} metadata={metadata} />
                                 </div>
                             </div>
