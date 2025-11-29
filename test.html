@@ -211,7 +211,7 @@
         }
 
         /* ----------------------------------------------------------------- */
-        /* MOCKUP STYLES (Added) */
+        /* MOCKUP STYLES (Updated) */
         /* ----------------------------------------------------------------- */
         .mockup-container {
             background-color: #F2F0E9; /* Warm Beige */
@@ -229,8 +229,8 @@
             position: relative;
             width: 840px; 
             height: 600px;
-            /* Simple shadow (No stack effect) */
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            /* Outer shadow REMOVED to fix iOS overflow/clipping issues */
+            /* box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); */
             display: flex;
             transition: transform 0.3s ease;
         }
@@ -247,15 +247,27 @@
             isolation: isolate; /* Create new stacking context for mix-blend-mode */
         }
 
-        /* Gutter Shadows */
+        /* Gutter Shadows - Non-linear Gradient with increased width (80px) */
         .effect-gutter-left {
-            position: absolute; top: 0; bottom: 0; right: 0; width: 60px;
-            background: linear-gradient(to right, transparent, rgba(0,0,0,0.15));
+            position: absolute; top: 0; bottom: 0; right: 0; width: 80px;
+            background: linear-gradient(to right, 
+                transparent 0%, 
+                rgba(0,0,0,0.01) 30%, 
+                rgba(0,0,0,0.05) 60%, 
+                rgba(0,0,0,0.15) 85%, 
+                rgba(0,0,0,0.3) 100%
+            );
             pointer-events: none; z-index: 20; mix-blend-mode: multiply;
         }
         .effect-gutter-right {
-            position: absolute; top: 0; bottom: 0; left: 0; width: 60px;
-            background: linear-gradient(to left, transparent, rgba(0,0,0,0.15));
+            position: absolute; top: 0; bottom: 0; left: 0; width: 80px;
+            background: linear-gradient(to left, 
+                transparent 0%, 
+                rgba(0,0,0,0.01) 30%, 
+                rgba(0,0,0,0.05) 60%, 
+                rgba(0,0,0,0.15) 85%, 
+                rgba(0,0,0,0.3) 100%
+            );
             pointer-events: none; z-index: 20; mix-blend-mode: multiply;
         }
 
@@ -1178,4 +1190,4 @@
         root.render(<App />);
     </script>
 </body>
-</html>--- END OF FILE index.html ---
+</html>
