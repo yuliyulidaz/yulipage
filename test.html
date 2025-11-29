@@ -241,6 +241,10 @@
             position: relative;
             z-index: 10;
             overflow: hidden;
+            /* iOS Safari Rendering Fixes */
+            transform: translateZ(0); /* Force hardware acceleration context */
+            -webkit-mask-image: -webkit-radial-gradient(white, black); /* Force strict clipping */
+            isolation: isolate; /* Create new stacking context for mix-blend-mode */
         }
 
         /* Gutter Shadows */
@@ -1174,4 +1178,4 @@
         root.render(<App />);
     </script>
 </body>
-</html>
+</html>--- END OF FILE index.html ---
