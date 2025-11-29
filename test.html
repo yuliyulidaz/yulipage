@@ -412,7 +412,11 @@
             const options = {
                 quality: 1.0, pixelRatio: 3, cacheBust: false,
                 width: width, height: height,
-                style: { transform: 'none', margin: '0' }
+                style: { transform: 'none', margin: '0' },
+                filter: (node) => {
+                    // Filter out elements with 'no-capture' class
+                    return !node.classList || !node.classList.contains('no-capture');
+                }
             };
 
             if (fontEmbedCSS) {
@@ -850,7 +854,13 @@
             const onTouchStart = (e) => { touchEndRef.current = null; touchStartRef.current = e.targetTouches[0].clientX; };
             const onTouchMove = (e) => { touchEndRef.current = e.targetTouches[0].clientX; };
             const onTouchEnd = () => {
-                if (activeTab === 'tool') return;
+                // Modified Touch Logic
+                if (activeTab === 'tool') {
+                    // Try to highlight/color text, but do NOT swipe
+                    handleHighlightSelection();
+                    return; 
+                }
+
                 if (!touchStartRef.current || !touchEndRef.current) return;
                 const distance = touchStartRef.current - touchEndRef.current;
                 const isLeftSwipe = distance > minSwipeDistance;
@@ -1230,6 +1240,22 @@
                                         contentRef={contentRef}
                                     />
                                     <PageFooter pageIdx={currentPageIdx} metadata={metadata} />
+
+                                    {/* Floating Navigation Buttons (Bottom Corners) */}
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); if(currentPageIdx > 0) goToPage(currentPageIdx - 1); }} 
+                                        className={`no-capture absolute bottom-4 left-4 text-slate-300 hover:text-slate-500 p-2 transition-colors ${currentPageIdx === 0 ? 'opacity-0 pointer-events-none' : ''}`}
+                                        title="이전 페이지"
+                                    >
+                                        <span className="text-xl">‹</span>
+                                    </button>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); if(currentPageIdx < pages.length - 1) goToPage(currentPageIdx + 1); }} 
+                                        className={`no-capture absolute bottom-4 right-4 text-slate-300 hover:text-slate-500 p-2 transition-colors ${currentPageIdx === pages.length - 1 ? 'opacity-0 pointer-events-none' : ''}`}
+                                        title="다음 페이지"
+                                    >
+                                        <span className="text-xl">›</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
