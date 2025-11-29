@@ -1240,7 +1240,7 @@
                             {currentPageIdx > 0 && (
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx - 1); }} 
-                                    className="fixed bottom-6 left-6 w-10 h-10 flex items-center justify-center bg-gray-800/30 hover:bg-gray-800/60 backdrop-blur-sm rounded-full text-white transition-all z-50 shadow-lg no-capture"
+                                    className="fixed bottom-6 left-6 w-8 h-8 flex items-center justify-center bg-gray-800/30 hover:bg-gray-800/60 backdrop-blur-sm rounded-full text-white transition-all z-50 shadow-lg no-capture"
                                     title="이전 페이지"
                                 >
                                     <span className="text-2xl font-bold pb-1">‹</span>
@@ -1249,7 +1249,7 @@
                             {currentPageIdx < pages.length - 1 && (
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx + 1); }} 
-                                    className="fixed bottom-6 right-6 w-10 h-10 flex items-center justify-center bg-gray-800/30 hover:bg-gray-800/60 backdrop-blur-sm rounded-full text-white transition-all z-50 shadow-lg no-capture"
+                                    className="fixed bottom-6 right-6 w-8 h-8 flex items-center justify-center bg-gray-800/30 hover:bg-gray-800/60 backdrop-blur-sm rounded-full text-white transition-all z-50 shadow-lg no-capture"
                                     title="다음 페이지"
                                 >
                                     <span className="text-2xl font-bold pb-1">›</span>
@@ -1299,4 +1299,5 @@
     </script>
 </body>
 </html>
+
 
