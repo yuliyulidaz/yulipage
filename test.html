@@ -709,8 +709,8 @@
             };
 
             const saveCurrentPageState = () => {
-                if (contentRef.current && viewerRef.current) {
-                     setPageHighlights(prev => ({ ...prev, [currentPageIdx]: viewerRef.current.innerHTML }));
+                if (contentRef.current) {
+                     setPageHighlights(prev => ({ ...prev, [currentPageIdx]: contentRef.current.innerHTML }));
                 }
             };
 
