@@ -368,7 +368,7 @@
         }
 
         // Generic Capture Function
-        async function captureNode(node, fileName, width, height) {
+        async function captureNode(node, fileName, width, height, fontEmbedCSS = null) {
             await ensureFontsLoaded();
             // Wait for font load
             if(isIOS()) await new Promise(r => setTimeout(r, 800));
@@ -378,6 +378,10 @@
                 width: width, height: height,
                 style: { transform: 'none', margin: '0' }
             };
+
+            if (fontEmbedCSS) {
+                options.fontEmbedCSS = fontEmbedCSS;
+            }
 
             // iPad Double Shot
             if (isIPad()) {
@@ -823,7 +827,8 @@
                 const fileName = `${title}_${currentPageIdx + 1}p.png`;
                 setLoadingMessage('저장 중...');
                 try {
-                    await captureNode(target, fileName, 420, 600);
+                    const fontCss = await prepareFontEmbedCSS(activeFont);
+                    await captureNode(target, fileName, 420, 600, fontCss);
                 } catch (error) {
                     console.error('[다운로드] 실패:', error);
                     alert('이미지 생성에 실패했습니다. 다시 시도해주세요.');
@@ -840,7 +845,7 @@
                 window.scrollTo(0, 0);
                 try {
                     await ensureFontsLoaded();
-                    await prepareFontEmbedCSS(activeFont);
+                    const fontCss = await prepareFontEmbedCSS(activeFont);
                     for (let i = 0; i < pages.length; i++) {
                         setCurrentPageIdx(i);
                         setLoadingMessage(`저장 중... (${i + 1}/${pages.length})`);
@@ -849,7 +854,7 @@
                         const target = document.getElementById('captureTarget');
                         if (target) {
                             const fileName = `${metadata.title || 'novel'}_${String(i+1).padStart(3, '0')}p.png`;
-                            await captureNode(target, fileName, 420, 600);
+                            await captureNode(target, fileName, 420, 600, fontCss);
                         }
                     }
                     alert("완료되었습니다.");
@@ -890,7 +895,8 @@
                 if(!target) return;
                 const fileName = `${metadata.title || 'novel'}_mockup_${mockupSpreadIdx + 1}.png`;
                 setLoadingMessage('목업 저장 중...');
-                captureNode(target, fileName, 1040, 800).catch(e => { console.error(e); alert('실패'); }).finally(() => setLoadingMessage(''));
+                const fontCss = await prepareFontEmbedCSS(activeFont);
+                captureNode(target, fileName, 1040, 800, fontCss).catch(e => { console.error(e); alert('실패'); }).finally(() => setLoadingMessage(''));
             };
 
             const downloadAllMockups = async () => {
@@ -898,6 +904,7 @@
                 if (!window.confirm(`총 ${spreads.length}장의 목업 이미지를 저장합니다.`)) return;
                 const originalSpreadIdx = mockupSpreadIdx;
                 try {
+                    const fontCss = await prepareFontEmbedCSS(activeFont);
                     for(let i=0; i<spreads.length; i++){
                         setMockupSpreadIdx(i);
                         setLoadingMessage(`목업 저장 중... (${i+1}/${spreads.length})`);
@@ -905,7 +912,7 @@
                         const target = document.getElementById('mockupCaptureHidden');
                         if(target){
                             const fileName = `${metadata.title || 'novel'}_mockup_${String(i+1).padStart(2,'0')}.png`;
-                            await captureNode(target, fileName, 1040, 800);
+                            await captureNode(target, fileName, 1040, 800, fontCss);
                         }
                     }
                     alert("완료되었습니다.");
