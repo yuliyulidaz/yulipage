@@ -409,13 +409,14 @@
         // 2. Extracted Components (For Mockup & Preview)
         // ----------------------------------------------------------------------
         
-        const PageContent = ({ pageIdx, pages, pageHighlights, metadata, activeFont, onMouseUp, onTouchEnd, onClick }) => {
+        const PageContent = ({ pageIdx, pages, pageHighlights, metadata, activeFont, onMouseUp, onTouchEnd, onClick, contentRef }) => {
             const page = pages[pageIdx];
             if (!page) return null;
 
             if (pageHighlights && pageHighlights[pageIdx]) {
                 return (
                     <div 
+                        ref={contentRef}
                         onMouseUp={onMouseUp}
                         onTouchEnd={onTouchEnd}
                         onClick={onClick}
@@ -426,7 +427,7 @@
             }
 
             return (
-                <div className="page-content" onMouseUp={onMouseUp} onTouchEnd={onTouchEnd} onClick={onClick}>
+                <div ref={contentRef} className="page-content" onMouseUp={onMouseUp} onTouchEnd={onTouchEnd} onClick={onClick}>
                     {pageIdx === 0 && metadata.title && (
                         <div style={{height: '200px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginBottom: 0}}>
                             <h1 className="text-base tracking-[0.1em] font-normal text-center px-4" style={{lineHeight: 1.8, maxHeight: '70px', overflow: 'hidden', opacity: 0.8}}>
@@ -445,12 +446,6 @@
         };
 
         const PageFooter = ({ pageIdx, isRight, metadata }) => {
-            // 목업에서는 isRight가 명확하지만, 단일 프리뷰에서는 항상 홀수 페이지처럼 취급될 수도 있음.
-            // 여기서는 페이지 번호 로직을 유지.
-            // pageIdx는 0부터 시작. 1페이지(idx 0)는 홀수(오른쪽).
-            // (idx + 1) % 2 !== 0 => 홀수 => justify-end (오른쪽)
-            // (idx + 1) % 2 === 0 => 짝수 => justify-start (왼쪽)
-            
             // Mockup spreads pass direct isRight boolean. Preview mode calculates based on index.
             const isOdd = (pageIdx + 1) % 2 !== 0;
             const alignRight = isRight !== undefined ? isRight : isOdd;
@@ -1119,7 +1114,17 @@
                                     {pageHighlights[currentPageIdx] ? (
                                         <div ref={contentRef} onMouseUp={handleHighlightSelection} onTouchEnd={handleHighlightSelection} onClick={handleContentClick} dangerouslySetInnerHTML={{ __html: pageHighlights[currentPageIdx] }} style={{display: 'contents'}} />
                                     ) : (
-                                        <PageContent pageIdx={currentPageIdx} pages={pages} pageHighlights={pageHighlights} metadata={metadata} activeFont={activeFont} onMouseUp={handleHighlightSelection} onTouchEnd={handleHighlightSelection} onClick={handleContentClick} />
+                                        <PageContent 
+                                            pageIdx={currentPageIdx} 
+                                            pages={pages} 
+                                            pageHighlights={pageHighlights} 
+                                            metadata={metadata} 
+                                            activeFont={activeFont} 
+                                            onMouseUp={handleHighlightSelection} 
+                                            onTouchEnd={handleHighlightSelection} 
+                                            onClick={handleContentClick}
+                                            contentRef={contentRef}
+                                        />
                                     )}
                                     <PageFooter pageIdx={currentPageIdx} metadata={metadata} />
                                 </div>
