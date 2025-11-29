@@ -485,17 +485,26 @@
 
         const Flyleaf = ({ isFront, isHidden, text, setText, onEdit }) => {
             const hasContent = text && text.trim().length > 0;
+            const mobile = isMobile();
             
             if (isHidden && !hasContent) {
                 return <div className={`flyleaf ${isFront ? 'front' : 'back'}`}></div>;
             }
 
-            // In Capture mode (isHidden), just render text. 
-            // In Mockup view (!isHidden), render textarea as readOnly to handle clicks via wrapper/parent.
+            const handleChange = (e) => {
+                const val = e.target.value;
+                const lines = val.split('\n');
+                if (lines.length > 6) {
+                    setText(lines.slice(0, 6).join('\n'));
+                } else {
+                    setText(val);
+                }
+            };
+
             return (
                 <div 
                     className={`flyleaf ${isFront ? 'front' : 'back'}`} 
-                    onClick={!isHidden ? onEdit : undefined}
+                    onClick={!isHidden && mobile ? onEdit : undefined}
                 >
                     <div className="w-1/2 relative z-10 flex flex-col" style={{ maxWidth: '50%' }}>
                         <div className={`w-[30px] h-px bg-white/50 mb-4 ${!isFront ? 'ml-auto' : ''}`}></div>
@@ -507,11 +516,12 @@
                         {(!isHidden || hasContent) && (
                             <textarea
                                 value={text}
-                                readOnly={!isHidden} // Make readOnly in normal view to force modal usage
-                                className={`w-full bg-transparent border-none text-white/70 text-[10px] p-0 focus:outline-none placeholder:text-transparent resize-none overflow-hidden ${isFront ? 'text-left' : 'text-right'} ${!isHidden ? 'cursor-pointer' : ''}`}
+                                onChange={!isHidden && !mobile ? handleChange : undefined}
+                                readOnly={isHidden || mobile} 
+                                className={`w-full bg-transparent border-none text-white/70 text-[10px] p-0 focus:outline-none placeholder:text-transparent resize-none overflow-hidden ${isFront ? 'text-left' : 'text-right'} ${mobile && !isHidden ? 'cursor-pointer' : ''}`}
                                 rows={6}
                                 spellCheck={false}
-                                disabled={isHidden} // Disabled only in capture mode
+                                disabled={isHidden} 
                                 style={{ lineHeight: '1.6', maxHeight: '96px', pointerEvents: isHidden ? 'none' : 'auto' }}
                             />
                         )}
@@ -988,7 +998,7 @@
                     {/* Flyleaf Focus Modal */}
                     {focusedFlyleaf && (
                         <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setFocusedFlyleaf(null)}>
-                            <div className="w-full max-w-md bg-[#1a2233] p-8 rounded-lg shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                            <div className="bg-[#1a2233] p-8 rounded-lg shadow-2xl relative flex flex-col" onClick={e => e.stopPropagation()}>
                                 <div className="text-white/50 text-xs mb-4 text-center">
                                     {focusedFlyleaf === 'front' ? '앞표지' : '뒤표지'} 속지 문구 입력 (최대 6줄)
                                 </div>
@@ -997,11 +1007,11 @@
                                     <textarea
                                         value={focusedFlyleaf === 'front' ? frontFlyleafText : backFlyleafText}
                                         onChange={handleFlyleafModalChange}
-                                        className={`w-full bg-transparent border-none text-white/90 text-sm p-0 focus:outline-none placeholder:text-white/20 resize-none ${focusedFlyleaf === 'front' ? 'text-left' : 'text-right'}`}
+                                        className={`bg-transparent border-none text-white/90 focus:outline-none placeholder:text-white/20 resize-none ${focusedFlyleaf === 'front' ? 'text-left' : 'text-right'}`}
                                         rows={6}
                                         placeholder="문구를 입력하세요..."
                                         autoFocus
-                                        style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 300, lineHeight: 1.6 }}
+                                        style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 300, lineHeight: 1.6, fontSize: '16px', width: '240px' }}
                                     />
                                 </div>
                                 <button onClick={() => setFocusedFlyleaf(null)} className="mt-8 w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded text-sm transition-colors">
