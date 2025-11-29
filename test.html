@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -453,7 +452,7 @@
         // 2. Extracted Components (For Mockup & Preview)
         // ----------------------------------------------------------------------
         
-        const PageContent = ({ pageIdx, pages, pageHighlights, metadata, activeFont, onMouseUp, onTouchEnd, onClick, contentRef }) => {
+        const PageContent = ({ pageIdx, pages, pageHighlights, metadata, activeFont, onMouseUp, onClick, contentRef }) => {
             const page = pages[pageIdx];
             if (!page) return null;
 
@@ -463,7 +462,6 @@
                         ref={contentRef}
                         className="page-content"
                         onMouseUp={onMouseUp}
-                        onTouchEnd={onTouchEnd}
                         onClick={onClick}
                         dangerouslySetInnerHTML={{ __html: pageHighlights[pageIdx] }}
                     />
@@ -471,7 +469,7 @@
             }
 
             return (
-                <div ref={contentRef} className="page-content" onMouseUp={onMouseUp} onTouchEnd={onTouchEnd} onClick={onClick}>
+                <div ref={contentRef} className="page-content" onMouseUp={onMouseUp} onClick={onClick}>
                     {pageIdx === 0 && metadata.title && (
                         <div style={{height: '200px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginBottom: 0}}>
                             <h1 className="text-base tracking-[0.1em] font-normal text-center px-4" style={{lineHeight: 1.8, maxHeight: '70px', overflow: 'hidden', opacity: 0.8}}>
@@ -1235,7 +1233,6 @@
                                         metadata={metadata} 
                                         activeFont={activeFont} 
                                         onMouseUp={handleHighlightSelection} 
-                                        onTouchEnd={onTouchEnd} 
                                         onClick={handleContentClick}
                                         contentRef={contentRef}
                                     />
@@ -1244,17 +1241,17 @@
                                     {/* Floating Navigation Buttons (Bottom Corners) */}
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); if(currentPageIdx > 0) goToPage(currentPageIdx - 1); }} 
-                                        className={`no-capture absolute bottom-4 left-4 text-slate-300 hover:text-slate-500 p-2 transition-colors ${currentPageIdx === 0 ? 'opacity-0 pointer-events-none' : ''}`}
+                                        className={`no-capture absolute bottom-4 left-4 text-current opacity-20 hover:opacity-100 p-4 transition-all z-50 ${currentPageIdx === 0 ? 'opacity-0 pointer-events-none' : ''}`}
                                         title="이전 페이지"
                                     >
-                                        <span className="text-xl">‹</span>
+                                        <span className="text-2xl font-bold">‹</span>
                                     </button>
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); if(currentPageIdx < pages.length - 1) goToPage(currentPageIdx + 1); }} 
-                                        className={`no-capture absolute bottom-4 right-4 text-slate-300 hover:text-slate-500 p-2 transition-colors ${currentPageIdx === pages.length - 1 ? 'opacity-0 pointer-events-none' : ''}`}
+                                        className={`no-capture absolute bottom-4 right-4 text-current opacity-20 hover:opacity-100 p-4 transition-all z-50 ${currentPageIdx === pages.length - 1 ? 'opacity-0 pointer-events-none' : ''}`}
                                         title="다음 페이지"
                                     >
-                                        <span className="text-xl">›</span>
+                                        <span className="text-2xl font-bold">›</span>
                                     </button>
                                 </div>
                             </div>
