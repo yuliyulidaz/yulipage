@@ -223,6 +223,8 @@
             padding-top: 80px;
             padding-bottom: 80px;
             overflow-x: hidden;
+            /* Allow scroll when zoomed */
+            overflow-y: auto; 
         }
 
         .mockup-book-wrapper {
@@ -230,7 +232,6 @@
             width: 840px; 
             height: 600px;
             /* Outer shadow REMOVED to fix iOS overflow/clipping issues */
-            /* box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); */
             display: flex;
             transition: transform 0.3s ease;
         }
@@ -247,15 +248,15 @@
             isolation: isolate; /* Create new stacking context for mix-blend-mode */
         }
 
-        /* Gutter Shadows - Non-linear Gradient with increased width (80px) */
+        /* Gutter Shadows - Lighter Non-linear Gradient (Max 0.15 opacity) */
         .effect-gutter-left {
             position: absolute; top: 0; bottom: 0; right: 0; width: 80px;
             background: linear-gradient(to right, 
                 transparent 0%, 
                 rgba(0,0,0,0.01) 30%, 
-                rgba(0,0,0,0.05) 60%, 
-                rgba(0,0,0,0.15) 85%, 
-                rgba(0,0,0,0.3) 100%
+                rgba(0,0,0,0.03) 60%, 
+                rgba(0,0,0,0.08) 85%, 
+                rgba(0,0,0,0.15) 100%
             );
             pointer-events: none; z-index: 20; mix-blend-mode: multiply;
         }
@@ -264,9 +265,9 @@
             background: linear-gradient(to left, 
                 transparent 0%, 
                 rgba(0,0,0,0.01) 30%, 
-                rgba(0,0,0,0.05) 60%, 
-                rgba(0,0,0,0.15) 85%, 
-                rgba(0,0,0,0.3) 100%
+                rgba(0,0,0,0.03) 60%, 
+                rgba(0,0,0,0.08) 85%, 
+                rgba(0,0,0,0.15) 100%
             );
             pointer-events: none; z-index: 20; mix-blend-mode: multiply;
         }
@@ -607,6 +608,7 @@
             const [mockupSpreadIdx, setMockupSpreadIdx] = useState(0);
             const [frontFlyleafText, setFrontFlyleafText] = useState('');
             const [backFlyleafText, setBackFlyleafText] = useState('');
+            const [isMockupZoomed, setIsMockupZoomed] = useState(false);
 
             const measureContainerRef = useRef(null);
             const viewerRef = useRef(null);
@@ -819,7 +821,7 @@
                 if (step === 'preview') {
                     if (isLeftSwipe && currentPageIdx < pages.length - 1) goToPage(currentPageIdx + 1);
                     if (isRightSwipe && currentPageIdx > 0) goToPage(currentPageIdx - 1);
-                } else if (step === 'mockup') {
+                } else if (step === 'mockup' && !isMockupZoomed) {
                     if (isLeftSwipe && mockupSpreadIdx < spreads.length - 1) setMockupSpreadIdx(prev => prev + 1);
                     if (isRightSwipe && mockupSpreadIdx > 0) setMockupSpreadIdx(prev => prev - 1);
                 }
@@ -898,6 +900,7 @@
                 saveCurrentPageState();
                 setMockupSpreadIdx(0);
                 setStep('mockup');
+                setIsMockupZoomed(false);
                 window.scrollTo(0,0);
             };
 
@@ -912,7 +915,8 @@
                 const fileName = `${metadata.title || 'novel'}_mockup_${mockupSpreadIdx + 1}.png`;
                 setLoadingMessage('목업 저장 중...');
                 const fontCss = await prepareFontEmbedCSS(activeFont);
-                captureNode(target, fileName, 1040, 800, fontCss).catch(e => { console.error(e); alert('실패'); }).finally(() => setLoadingMessage(''));
+                // Capture only the book (840x600)
+                captureNode(target, fileName, 840, 600, fontCss).catch(e => { console.error(e); alert('실패'); }).finally(() => setLoadingMessage(''));
             };
 
             const downloadAllMockups = async () => {
@@ -928,7 +932,7 @@
                         const target = document.getElementById('mockupCaptureHidden');
                         if(target){
                             const fileName = `${metadata.title || 'novel'}_mockup_${String(i+1).padStart(2,'0')}.png`;
-                            await captureNode(target, fileName, 1040, 800, fontCss);
+                            await captureNode(target, fileName, 840, 600, fontCss);
                         }
                     }
                     alert("완료되었습니다.");
@@ -942,10 +946,10 @@
                     {/* Measurement Container (Hidden) */}
                     <div ref={measureContainerRef} className="hidden-measure"></div>
 
-                    {/* Hidden Mockup Capture Target */}
+                    {/* Hidden Mockup Capture Target (Exact Book Size) */}
                     {step === 'mockup' && (
                         <div style={{ position: 'fixed', top: '-10000px', left: '-10000px' }}>
-                            <div id="mockupCaptureHidden" style={{ width: '1040px', height: '800px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F2F0E9' }}>
+                            <div id="mockupCaptureHidden" style={{ width: '840px', height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' }}>
                                 <MockupBookRenderer 
                                     spreadIdx={mockupSpreadIdx} spreads={spreads} isCaptureMode={true} activeTheme={activeTheme} activeFont={activeFont}
                                     frontFlyleafText={frontFlyleafText} setFrontFlyleafText={setFrontFlyleafText}
@@ -1153,16 +1157,19 @@
 
                     {/* STEP 3: MOCKUP */}
                     {step === 'mockup' && (
-                        <div className="mockup-container">
+                        <div className={`mockup-container ${isMockupZoomed ? 'overflow-auto' : 'overflow-hidden'}`}>
                              <div className="fixed top-0 left-0 right-0 z-50 bg-slate-900/90 backdrop-blur-md text-white border-b border-slate-700">
                                 <div className="flex items-center justify-between px-4 py-3 max-w-3xl mx-auto w-full">
                                     <button onClick={backToPreview} className="text-slate-300 hover:text-white flex items-center gap-1 text-xs font-medium">
                                         <span className="text-lg">←</span> 나가기
                                     </button>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2">
                                         <button onClick={() => { if(mockupSpreadIdx > 0) setMockupSpreadIdx(mockupSpreadIdx - 1) }} disabled={mockupSpreadIdx === 0} className="text-slate-400 hover:text-white disabled:opacity-20 px-2 text-xl">‹</button>
                                         <span className="font-serif tabular-nums text-sm text-slate-300">Spread {mockupSpreadIdx + 1} / {spreads.length}</span>
                                         <button onClick={() => { if(mockupSpreadIdx < spreads.length - 1) setMockupSpreadIdx(mockupSpreadIdx + 1) }} disabled={mockupSpreadIdx === spreads.length - 1} className="text-slate-400 hover:text-white disabled:opacity-20 px-2 text-xl">›</button>
+                                        <button onClick={() => setIsMockupZoomed(!isMockupZoomed)} className={`ml-2 text-xs px-2 py-1 rounded border ${isMockupZoomed ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-slate-600 text-slate-300 hover:bg-slate-800'}`}>
+                                            {isMockupZoomed ? '🔍 축소' : '🔍 확대'}
+                                        </button>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {!isMobile() && <button onClick={downloadAllMockups} className="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-2 rounded-lg text-slate-200">전체 목업 저장</button>}
@@ -1172,7 +1179,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div className="mockup-scaler mt-10">
+                            <div className="mockup-scaler mt-10" style={{ transform: isMockupZoomed ? 'none' : undefined, marginBottom: isMockupZoomed ? '0' : undefined }}>
                                 <MockupBookRenderer 
                                     spreadIdx={mockupSpreadIdx} spreads={spreads} activeTheme={activeTheme} activeFont={activeFont}
                                     frontFlyleafText={frontFlyleafText} setFrontFlyleafText={setFrontFlyleafText}
