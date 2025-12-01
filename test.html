@@ -22,11 +22,12 @@
     <!-- 2. Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 3. Libraries (React, ReactDOM, Babel, html-to-image) -->
+    <!-- 3. Libraries (React, ReactDOM, Babel, html-to-image, jspdf) -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
         /* 폰트 강제 적용 */
@@ -217,7 +218,7 @@
         }
 
         /* ----------------------------------------------------------------- */
-        /* MOCKUP STYLES (Updated) */
+        /* MOCKUP STYLES */
         /* ----------------------------------------------------------------- */
         .mockup-container {
             background-color: #F2F0E9; /* Warm Beige */
@@ -422,8 +423,8 @@
                 options.fontEmbedCSS = fontEmbedCSS;
             }
 
-            // iPad Double Shot
-            if (isIPad()) {
+            // Warm-up Shot for Mobile
+            if (isMobile()) {
                 try { await htmlToImage.toBlob(node, options); } catch(e){}
                 await new Promise(r => setTimeout(r, 200));
             }
@@ -889,6 +890,9 @@
                 const title = metadata.title || 'novel';
                 const fileName = `${title}_${currentPageIdx + 1}p.png`;
                 setLoadingMessage('저장 중...');
+                // Warm-up for mobile single page download
+                if(isMobile()) await new Promise(r => setTimeout(r, 300));
+
                 try {
                     const fontCss = await prepareFontEmbedCSS(activeFont);
                     await captureNode(target, fileName, 420, 600, fontCss);
@@ -923,6 +927,43 @@
                     alert("완료되었습니다.");
                 } catch (e) { console.error(e); alert("오류가 발생했습니다."); } finally { setLoadingMessage(''); setLoadingProgress(0); setCurrentPageIdx(originalPageIdx); }
             };
+            
+            const downloadPDF = async () => {
+                if (!window.confirm(`총 ${pages.length}페이지를 PDF로 변환합니다.\n시간이 다소 소요될 수 있습니다.`)) return;
+                saveCurrentPageState();
+                const originalPageIdx = currentPageIdx;
+                try {
+                    setLoadingMessage('PDF 생성 준비 중...');
+                    await ensureFontsLoaded();
+                    const fontCss = await prepareFontEmbedCSS(activeFont);
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: [105, 148] });
+
+                    for (let i = 0; i < pages.length; i++) {
+                        setCurrentPageIdx(i);
+                        setLoadingMessage(`페이지 렌더링 중... (${i + 1}/${pages.length})`);
+                        setLoadingProgress(Math.floor(((i + 1) / pages.length) * 100));
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        const target = document.getElementById('captureTarget');
+                        if (target) {
+                           const options = {
+                                quality: 1.0, pixelRatio: 2, cacheBust: false,
+                                width: 420, height: 600,
+                                style: { transform: 'none', margin: '0' },
+                                fontEmbedCSS: fontCss,
+                                filter: (node) => !node.classList || !node.classList.contains('no-capture')
+                            };
+                            const dataUrl = await htmlToImage.toPng(target, options);
+                            if (i > 0) doc.addPage();
+                            doc.addImage(dataUrl, 'PNG', 0, 0, 105, 148);
+                        }
+                    }
+                    doc.save(`${metadata.title || 'novel'}.pdf`);
+                    alert("PDF 저장이 완료되었습니다.");
+                } catch (e) { console.error(e); alert("PDF 생성 중 오류가 발생했습니다."); }
+                finally { setLoadingMessage(''); setLoadingProgress(0); setCurrentPageIdx(originalPageIdx); window.scrollTo(0,0); }
+            };
+
 
             // MOCKUP LOGIC
             const getSpreads = useCallback(() => {
@@ -1062,7 +1103,7 @@
                             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 border-b pb-4 gap-4">
                                 <div className="flex items-center gap-3">
                                     <h1 className="text-2xl font-serif font-medium text-slate-800">소설 내지 생성기</h1>
-                                    <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-bold">v1.2.0</span>
+                                    <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-bold">v1.2.1</span>
                                 </div>
                                 <a href="https://yuliyulidaz.github.io/yulilog/" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 transition-colors py-1 px-2 rounded hover:bg-indigo-50 w-fit">
                                     <span className="text-lg">🔗</span><span className="text-xs font-medium">발췌 문구 생성기 바로가기</span>
@@ -1092,11 +1133,10 @@
                                         <div className="custom-placeholder">
                                             <p className="mb-4">여기에 소설 본문을 붙여넣으세요.<br/>엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.<br/>*** 를 입력하면 장면 전환(중앙 정렬)이 적용됩니다.</p>
                                             <div className="mt-6 border-t border-slate-100 pt-4">
-                                                <strong className="block mb-2 text-indigo-400 text-xs">📢 2025.11.29 업데이트 안내 (v1.2.0)</strong>
+                                                <strong className="block mb-2 text-indigo-400 text-xs">📢 2025.11.29 업데이트 안내 (v1.2.1)</strong>
                                                 <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-400">
-                                                    <li><strong>도구 확장:</strong> '글자 색' 변경 기능 추가</li>
-                                                    <li><strong>페이지 넘김:</strong> 하단에 플로팅 방향키 지원</li>
-                                                    <li><strong>목업:</strong> 책 펼침면 이미지 생성 기능 추가</li>
+                                                    <li><strong>PDF 저장:</strong> 전체 페이지를 PDF로 저장하는 기능 추가</li>
+                                                    <li><strong>UI 개선:</strong> 툴바 버튼 재배치 및 최적화</li>
                                                 </ul>
                                             </div>
                                         </div>
@@ -1108,7 +1148,7 @@
                                 <span>{isGenerating ? '생성 중...' : 'A6 레이아웃 생성하기'}</span>
                             </button>
                              <footer className="max-w-4xl mx-auto px-6 py-10 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
-                                <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.2.0</p>
+                                <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.2.1</p>
                                 <p className="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br/>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
                                 <div className="bg-slate-50 rounded-xl p-6 text-left inline-block w-full max-w-2xl border border-slate-100">
                                     <p className="font-bold mb-3 text-slate-700 flex items-center gap-2"><span className="text-base">⚠️</span> 이용 시 주의사항</p>
@@ -1126,6 +1166,7 @@
                         <div className="pb-20 bg-gray-100 min-h-screen">
                             <div className="sticky top-0 z-50 bg-white shadow-sm">
                                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 max-w-2xl mx-auto w-full">
+                                    {/* Left Group: Reset, Edit, Mockup */}
                                     <div className="flex items-center gap-2">
                                         <button onClick={resetApp} className="flex flex-col items-center justify-center w-10 text-slate-500 hover:text-red-600 transition-colors">
                                             <span className="text-xl leading-none">↺</span><span className="text-[9px] mt-0.5">초기화</span>
@@ -1133,20 +1174,26 @@
                                         <button onClick={backToEdit} className="flex flex-col items-center justify-center w-10 text-slate-500 hover:text-indigo-600 transition-colors">
                                             <span className="text-xl leading-none">✎</span><span className="text-[9px] mt-0.5">수정</span>
                                         </button>
+                                        <button onClick={goToMockup} className="flex flex-col items-center justify-center w-10 text-slate-500 hover:text-indigo-600 transition-colors">
+                                            <span className="text-xl leading-none">📖</span><span className="text-[9px] mt-0.5">목업</span>
+                                        </button>
                                     </div>
+                                    
+                                    {/* Center Group: Pagination */}
                                     <div className="flex items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
                                         <button onClick={() => { if(currentPageIdx > 0) goToPage(currentPageIdx - 1) }} disabled={currentPageIdx === 0} className="text-slate-400 hover:text-slate-800 disabled:opacity-20 px-1">‹</button>
                                         <span className="font-serif tabular-nums text-sm w-12 text-center text-slate-700">{currentPageIdx + 1} / {pages.length}</span>
                                         <button onClick={() => { if(currentPageIdx < pages.length - 1) goToPage(currentPageIdx + 1) }} disabled={currentPageIdx === pages.length - 1} className="text-slate-400 hover:text-slate-800 disabled:opacity-20 px-1">›</button>
                                     </div>
+                                    
+                                    {/* Right Group: PDF, Save All, Save */}
                                     <div className="flex items-center gap-2">
-                                        <button onClick={goToMockup} className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded text-xs font-medium hover:bg-indigo-100">
-                                            목업
+                                        <button onClick={downloadPDF} className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded text-xs font-medium hover:bg-slate-200 transition-colors">
+                                            PDF
                                         </button>
-                                        <div className="w-px h-6 bg-slate-200 mx-1"></div>
                                         {!isMobile() && (
                                             <button onClick={downloadAllPages} className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded text-xs font-medium hover:bg-slate-200 transition-colors">
-                                                전체 저장
+                                                전체 이미지
                                             </button>
                                         )}
                                         <button onClick={downloadCurrentPage} className="bg-slate-800 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-slate-700 shadow-sm">
@@ -1239,7 +1286,7 @@
                             {currentPageIdx > 0 && (
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx - 1); }} 
-                                    className="fixed bottom-6 left-6 w-8 h-8 flex items-center justify-center bg-gray-800/30 hover:bg-gray-800/60 backdrop-blur-sm rounded-full text-white transition-all z-50 shadow-lg no-capture"
+                                    className="fixed bottom-6 left-6 w-12 h-12 flex items-center justify-center bg-gray-800/30 hover:bg-gray-800/60 backdrop-blur-sm rounded-full text-white transition-all z-50 shadow-lg no-capture"
                                     title="이전 페이지"
                                 >
                                     <span className="text-2xl font-bold pb-1">‹</span>
@@ -1248,7 +1295,7 @@
                             {currentPageIdx < pages.length - 1 && (
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx + 1); }} 
-                                    className="fixed bottom-6 right-6 w-8 h-8 flex items-center justify-center bg-gray-800/30 hover:bg-gray-800/60 backdrop-blur-sm rounded-full text-white transition-all z-50 shadow-lg no-capture"
+                                    className="fixed bottom-6 right-6 w-12 h-12 flex items-center justify-center bg-gray-800/30 hover:bg-gray-800/60 backdrop-blur-sm rounded-full text-white transition-all z-50 shadow-lg no-capture"
                                     title="다음 페이지"
                                 >
                                     <span className="text-2xl font-bold pb-1">›</span>
@@ -1288,7 +1335,7 @@
                                 />
                             </div>
                             <p className="mt-8 text-slate-400 text-[10px] text-center opacity-80 font-light select-none">
-                                '저장'이 정상적으로 되지 않을 시, 다시 '저장' 버튼을 눌러주세요.
+                                만약 저장이 정상적으로 되지 않을 시, 다시 '저장' 버튼을 눌러주세요.🥲 죄송해요오....
                             </p>
                         </div>
                     )}
@@ -1301,4 +1348,3 @@
     </script>
 </body>
 </html>
-
