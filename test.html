@@ -1,1382 +1,1350 @@
 <!DOCTYPE html>
-<html lang="ko" class="h-full antialiased">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>발췌 문구 생성기</title>
+    <title>소설 내지 생성기 (A6 문고판)</title>
     
-    <!-- 폰트 로드 (최적화: 요청된 굵기 200, 300 반영) -->
+    <!-- 1. Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300&family=Noto+Sans+KR:wght@200&family=Nanum+Myeongjo&family=Nanum+Gothic&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/earlyaccess/kopubbatang.css">
+    <!-- Noto Serif KR (본문 명조) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=swap" rel="stylesheet">
+    <!-- Gowun Batang (고운 바탕) -->
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Nanum Myeongjo (나눔 명조) -->
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet">
+    <!-- Hahmlet (함렛) -->
+    <link href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@100;200;300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Noto Sans KR (속지용 고딕) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100;300;400&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS -->
+    <!-- 2. Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Pretendard Variable', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'sans-serif'],
-                        serif: ['Noto Serif KR', 'serif'],
-                    },
-                    colors: {
-                        brand: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                        },
-                        dark: {
-                            bg: '#0f0f11',
-                            panel: '#18181b',
-                            border: '#27272a'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-
-    <!-- Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-
-    <!-- Pickr (Color Picker) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/classic.min.css"/>
-    <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
+    
+    <!-- 3. Libraries (React, ReactDOM, Babel, html-to-image, jspdf) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
-        /* Custom Styles for inputs that Tailwind doesn't cover easily */
-        input[type="range"] {
-            -webkit-appearance: none;
-            background: transparent;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 16px;
-            width: 16px;
-            border-radius: 50%;
-            background: #3b82f6;
-            margin-top: -6px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-            cursor: pointer;
-        }
-        input[type="range"]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 4px;
-            cursor: pointer;
-            background: #e2e8f0;
-            border-radius: 2px;
-        }
-        .dark input[type="range"]::-webkit-slider-runnable-track {
-            background: #3f3f46;
+        /* 폰트 강제 적용 */
+        * {
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* Hide scrollbar for Chrome, Safari and Opera */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        /* Hide scrollbar for IE, Edge and Firefox */
-        .no-scrollbar {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
-        }
-        
-        /* Custom Scrollbar for sidebar (Dark mode compatible) */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #3f3f46;
-        }
-        .dark .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-        .dark .glass-panel {
-            background: rgba(24, 24, 27, 0.7);
-        }
-        
-        .pattern-grid {
-            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
-        .dark .pattern-grid {
-            background-image: radial-gradient(#3f3f46 1px, transparent 1px);
+        body {
+            font-family: 'Noto Serif KR', serif;
+            background: #f0f2f5;
+            color: #1a1a1a;
+            overscroll-behavior: none; /* 스크롤 튕김 방지 */
         }
 
-        /* Pickr Customization to Fill Container */
-        .pickr {
-            width: 100%;
-            height: 100%;
+        /* 하이라이트 스타일 - 그룹 ID 속성 활용 */
+        .highlight {
+            display: inline;
+            background: rgba(255, 235, 59, 0.4);
+            padding: 0;
+            margin: 0;
+            line-height: inherit;
+            letter-spacing: inherit;
+            vertical-align: baseline;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+        }
+        
+        .highlight-yellow { background: rgba(255, 235, 59, 0.4); }
+        .highlight-pink { background: rgba(255, 182, 193, 0.4); }
+        .highlight-mint { background: rgba(178, 255, 222, 0.4); }
+        .highlight-blue { background: rgba(173, 216, 230, 0.4); }
+
+        /* 글자 색 스타일 */
+        .colored-text {
+            display: inline;
+            cursor: pointer;
+            line-height: inherit;
+            letter-spacing: inherit;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+        }
+        .text-crimson { color: #be123c; } 
+        .text-navy { color: #1e3a8a; }    
+        .text-forest { color: #15803d; }
+        .text-purple { color: #6b21a8; }
+        .text-brown { color: #78350f; }
+        .text-teal { color: #0f766e; }
+        .text-gray { color: #9ca3af; }    
+        
+        /* 글자 색 선택 버튼 (배경색) */
+        .bg-text-crimson { background-color: #be123c; }
+        .bg-text-navy { background-color: #1e3a8a; }
+        .bg-text-forest { background-color: #15803d; }
+        .bg-text-purple { background-color: #6b21a8; }
+        .bg-text-brown { background-color: #78350f; }
+        .bg-text-teal { background-color: #0f766e; }
+        .bg-text-gray { background-color: #9ca3af; }
+
+        /* 화면용 스타일 - A6 비율 (105:148) */
+        .page-container {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            background: white;
+            margin: 0 auto;
+            width: 420px;  
+            min-width: 420px; 
+            flex-shrink: 0;
+            height: 600px; 
+            padding: 60px 60px 50px 60px; 
+            position: relative;
             display: flex;
+            flex-direction: column;
+            transform-origin: top center;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        /* 테마별 스타일 */
+        .theme-white.page-container { background: #ffffff; color: #1a1a1a; }
+        .theme-cream.page-container { background: #fdfbf7; color: #2c241b; }
+        .theme-kraft.page-container { 
+            background: #e6dac3; 
+            color: #3e2723; 
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+        .theme-dark.page-container { background: #1a1a1a; color: #e5e5e5; }
+
+        .page-content {
+            height: 460px; 
+            overflow: hidden;
+            font-size: 12px;
+            line-height: 1.8 !important;
+            text-align: justify;
+            letter-spacing: -0.02em;
+            word-break: break-all;
+            overflow-wrap: anywhere;
+            font-weight: 300;
+            cursor: text;
+        }
+
+        .page-content p {
+            margin-bottom: 0;
+            padding: 0;
+            text-indent: 1em;
+            line-height: 1.8 !important;
+        }
+
+        .page-content p.continued {
+            text-indent: 0 !important;
+        }
+        
+        .page-footer-area {
+            height: 30px;
+            margin-top: auto;
+            display: flex;
+            align-items: flex-end;
+            padding-bottom: 0px;
+        }
+
+        /* 입력 화면 */
+        .input-area {
+            max-width: 900px;
+            margin: 40px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .hidden-measure {
+            position: absolute;
+            visibility: hidden;
+            top: -9999px;
+            left: -9999px;
+            width: 300px;
+            font-size: 12px;
+            line-height: 1.8 !important;
+            text-align: justify;
+            letter-spacing: -0.02em;
+            word-break: break-all;
+            overflow-wrap: anywhere;
+            font-weight: 300;
+        }
+        
+        .hidden-measure p {
+            margin-bottom: 0;
+            line-height: 1.8 !important;
+        }
+
+        .circle-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .circle-btn:hover { transform: scale(1.1); }
+        .circle-btn.active { border-color: #333; transform: scale(1.1); }
+        
+        .theme-btn-white { background: #ffffff; border: 1px solid #ddd; }
+        .theme-btn-cream { background: #fdfbf7; border: 1px solid #e6e0d4; }
+        .theme-btn-kraft { background: #e6dac3; border: 1px solid #cbbba0; }
+        .theme-btn-dark { background: #1a1a1a; border: 1px solid #444; }
+
+        .btn { transition: all 0.2s; }
+        .btn:active { transform: scale(0.98); }
+        
+        .custom-placeholder {
+            position: absolute;
+            top: 24px; left: 24px; right: 24px; bottom: 24px;
+            pointer-events: none;
+            color: #94a3b8;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        
+        @media (max-width: 450px) {
+            #bookViewerWrapper {
+                transform: scale(0.85);
+                transform-origin: top center;
+                height: 520px; 
+            }
+        }
+
+        /* ----------------------------------------------------------------- */
+        /* MOCKUP STYLES */
+        /* ----------------------------------------------------------------- */
+        .mockup-container {
+            background-color: #F2F0E9; /* Warm Beige */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
+            padding-top: 80px;
+            padding-bottom: 80px;
+            overflow-x: hidden;
+            overflow-y: auto; 
         }
-        .pickr .pcr-button {
-            width: 100% !important;
-            height: 100% !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
+
+        .mockup-book-wrapper {
+            position: relative;
+            width: 840px; 
+            height: 600px;
+            /* Outer shadow REMOVED to fix iOS overflow/clipping issues */
+            display: flex;
+            transition: transform 0.3s ease;
         }
-        .pickr .pcr-button::before {
-            border-radius: 0 !important;
+
+        .mockup-page {
+            width: 420px;
+            height: 600px;
+            position: relative;
+            z-index: 10;
+            overflow: hidden;
+            /* iOS Safari Rendering Fixes */
+            transform: translateZ(0); /* Force hardware acceleration context */
+            -webkit-mask-image: -webkit-radial-gradient(white, black); /* Force strict clipping */
+            isolation: isolate; /* Create new stacking context for mix-blend-mode */
         }
-        .pcr-app {
-            z-index: 9999 !important;
-            font-family: 'Pretendard', sans-serif !important;
+
+        /* Gutter Shadows - Lighter Non-linear Gradient (Max 0.15 opacity) */
+        .effect-gutter-left {
+            position: absolute; top: 0; bottom: 0; right: 0; width: 80px;
+            background: linear-gradient(to right, 
+                transparent 0%, 
+                rgba(0,0,0,0.01) 30%, 
+                rgba(0,0,0,0.03) 60%, 
+                rgba(0,0,0,0.08) 85%, 
+                rgba(0,0,0,0.15) 100%
+            );
+            pointer-events: none; z-index: 20; mix-blend-mode: multiply;
+        }
+        .effect-gutter-right {
+            position: absolute; top: 0; bottom: 0; left: 0; width: 80px;
+            background: linear-gradient(to left, 
+                transparent 0%, 
+                rgba(0,0,0,0.01) 30%, 
+                rgba(0,0,0,0.03) 60%, 
+                rgba(0,0,0,0.08) 85%, 
+                rgba(0,0,0,0.15) 100%
+            );
+            pointer-events: none; z-index: 20; mix-blend-mode: multiply;
+        }
+
+        /* Flyleaf Styles (Colophon) */
+        .flyleaf {
+            width: 100%; height: 100%;
+            background-color: #1a2233; /* Deep Navy */
+            padding: 60px;
+            display: flex; flex-direction: column;
+            justify-content: flex-end;
+            position: relative;
+            cursor: pointer; /* Change cursor to pointer for clickable effect */
+        }
+        .flyleaf.front { align-items: flex-start; text-align: left; }
+        .flyleaf.back { align-items: flex-end; text-align: right; }
+
+        .flyleaf textarea {
+            font-family: 'Noto Sans KR', sans-serif;
+            font-weight: 300;
+        }
+
+        /* Animation for blinking hint */
+        @keyframes blink {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        .flyleaf-hint {
+            position: absolute; top: 24px; 
+            color: rgba(255,255,255,0.6); font-size: 11px;
+            pointer-events: none; white-space: nowrap;
+            /* New Hint Styles */
+            border: 1px dashed rgba(255,255,255,0.3);
+            background-color: rgba(255,255,255,0.05);
+            padding: 6px 10px;
+            border-radius: 6px;
+            animation: blink 2s infinite ease-in-out;
+        }
+        .flyleaf.front .flyleaf-hint { left: 0; }
+        .flyleaf.back .flyleaf-hint { right: 0; }
+
+        .mockup-scaler { transform-origin: top center; }
+        @media (max-width: 900px) {
+            .mockup-scaler { transform: scale(0.45); margin-bottom: -300px; }
+            .mockup-container { padding-top: 40px; }
         }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0"
-  }
-}
-</script>
+
 </head>
-<body class="h-full bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-hidden flex flex-col items-center justify-center">
+<body>
+    <div id="root"></div>
 
-    <!-- App Container (Centered on large screens) -->
-    <div class="w-full h-full max-w-[1200px] mx-auto bg-white dark:bg-dark-panel shadow-2xl flex flex-col border-x border-slate-200 dark:border-zinc-800">
+    <script type="text/babel" data-presets="react,typescript">
+        const { useState, useRef, useEffect, useCallback } = React;
+
+        // ----------------------------------------------------------------------
+        // 1. Utils & Helpers
+        // ----------------------------------------------------------------------
+
+        function isIOS() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
         
-        <!-- Header -->
-        <header class="h-14 border-b border-slate-200 dark:border-dark-border flex items-center justify-between px-4 lg:px-6 bg-white dark:bg-dark-panel z-40 flex-shrink-0">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-brand-500/30">
-                    <i class="ph ph-quotes"></i>
+        function isIPad() {
+            return /iPad/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
+        
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
+
+        async function ensureFontsLoaded() {
+            try { await document.fonts.ready; } catch (e) { console.warn('폰트 API 확인 실패', e); }
+        }
+
+        const fontCache = new Map();
+        
+        const FONT_MAP = {
+            'noto': { name: '본문 명조', family: "'Noto Serif KR', serif", url: 'https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=swap' },
+            'nanum': { name: '나눔 명조', family: "'Nanum Myeongjo', serif", url: 'https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap' },
+            'hahmlet': { name: '함렛', family: "'Hahmlet', serif", url: 'https://fonts.googleapis.com/css2?family=Hahmlet:wght@100;200;300;400;500;600&display=swap' },
+            'gowun': { name: '고운 바탕', family: "'Gowun Batang', serif", url: 'https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap' }
+        };
+
+        async function prepareFontEmbedCSS(activeFontKey) {
+            if (fontCache.has(activeFontKey)) return fontCache.get(activeFontKey);
+            try {
+                const fontInfo = FONT_MAP[activeFontKey];
+                if (!fontInfo) return null;
+                const cssRes = await fetch(fontInfo.url);
+                let cssText = await cssRes.text();
+                const urlRegex = /url\(([^)]+)\)/g;
+                let match;
+                const replacements = [];
+                while ((match = urlRegex.exec(cssText)) !== null) {
+                    const fullUrl = match[1].replace(/['"]/g, ''); 
+                    replacements.push({ original: match[0], url: fullUrl });
+                }
+                await Promise.all(replacements.map(async (item) => {
+                    try {
+                        const fontRes = await fetch(item.url);
+                        const fontBlob = await fontRes.blob();
+                        return new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                                cssText = cssText.replace(item.url, reader.result);
+                                resolve();
+                            };
+                            reader.onerror = reject;
+                            reader.readAsDataURL(fontBlob);
+                        });
+                    } catch (e) {}
+                }));
+                fontCache.set(activeFontKey, cssText);
+                return cssText;
+            } catch (e) { return null; }
+        }
+
+        function useDebounce(value, delay) {
+            const [debouncedValue, setDebouncedValue] = useState(value);
+            useEffect(() => {
+                const handler = setTimeout(() => { setDebouncedValue(value); }, delay);
+                return () => clearTimeout(handler);
+            }, [value, delay]);
+            return debouncedValue;
+        }
+
+        // Generic Capture Function
+        async function captureNode(node, fileName, width, height, fontEmbedCSS = null) {
+            await ensureFontsLoaded();
+            // Wait for font load
+            if(isIOS()) await new Promise(r => setTimeout(r, 800));
+
+            const options = {
+                quality: 1.0, pixelRatio: 3, cacheBust: false,
+                width: width, height: height,
+                style: { transform: 'none', margin: '0' },
+                filter: (node) => {
+                    // Filter out elements with 'no-capture' class
+                    return !node.classList || !node.classList.contains('no-capture');
+                }
+            };
+
+            if (fontEmbedCSS) {
+                options.fontEmbedCSS = fontEmbedCSS;
+            }
+
+            // Warm-up Shot for Mobile
+            if (isMobile()) {
+                try { await htmlToImage.toBlob(node, options); } catch(e){}
+                await new Promise(r => setTimeout(r, 200));
+            }
+
+            const blob = await htmlToImage.toBlob(node, options);
+            if (!blob) throw new Error('Blob creation failed');
+
+            if (isIOS() && navigator.share && navigator.canShare) {
+                const file = new File([blob], fileName, { type: 'image/png' });
+                if (navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: fileName });
+                    return;
+                }
+            }
+            
+            // Fallback / PC / Android
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // ----------------------------------------------------------------------
+        // 2. Extracted Components (For Mockup & Preview)
+        // ----------------------------------------------------------------------
+        
+        const PageContent = ({ pageIdx, pages, pageHighlights, metadata, activeFont, onMouseUp, onClick, contentRef }) => {
+            const page = pages[pageIdx];
+            if (!page) return null;
+
+            if (pageHighlights && pageHighlights[pageIdx]) {
+                return (
+                    <div 
+                        ref={contentRef}
+                        className="page-content"
+                        onMouseUp={onMouseUp}
+                        onClick={onClick}
+                        dangerouslySetInnerHTML={{ __html: pageHighlights[pageIdx] }}
+                    />
+                );
+            }
+
+            return (
+                <div ref={contentRef} className="page-content" onMouseUp={onMouseUp} onClick={onClick}>
+                    {pageIdx === 0 && metadata.title && (
+                        <div style={{height: '200px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginBottom: 0}}>
+                            <h1 className="text-base tracking-[0.1em] font-normal text-center px-4" style={{lineHeight: 1.8, maxHeight: '70px', overflow: 'hidden', opacity: 0.8}}>
+                                {metadata.title}
+                            </h1>
+                            <div className="w-8 h-[1px] bg-current opacity-30 mx-auto mt-14"></div>
+                        </div>
+                    )}
+                    {page.paragraphs.map((p, i) => (
+                        <p key={i} className={p.isContinued ? 'continued' : ''} style={{ lineHeight: 1.8, textAlign: p.isSceneBreak ? 'center' : undefined, textIndent: p.isSceneBreak ? '0' : undefined }}>
+                            {p.text}
+                        </p>
+                    ))}
                 </div>
-                <!-- Title hidden on mobile to make room for buttons -->
-                <h1 class="font-bold text-lg tracking-tight hidden md:block">발췌 문구 생성기</h1>
-            </div>
-            
-            <div class="flex items-center gap-2">
-                <!-- Mobile & Desktop Actions -->
-                
-                <button onclick="toggleDarkMode()" class="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all dark-mode-toggle mr-1">
-                    <i class="ph ph-moon text-xl"></i>
-                </button>
+            );
+        };
 
-                <!-- Copy Button (Mobile Visible with Text) -->
-                <button onclick="copyImage()" class="copy-btn md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg border border-slate-200 dark:border-zinc-700 active:scale-95 transition-transform">
-                    <i class="ph ph-copy text-base"></i>
-                    <span>복사</span>
-                </button>
+        const PageFooter = ({ pageIdx, isRight, metadata }) => {
+            // Mockup spreads pass direct isRight boolean. Preview mode calculates based on index.
+            const isOdd = (pageIdx + 1) % 2 !== 0;
+            const alignRight = isRight !== undefined ? isRight : isOdd;
 
-                <!-- Save Button (Mobile Visible with Text) -->
-                <button onclick="downloadImage()" class="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white text-xs font-bold rounded-lg shadow-sm active:scale-95 transition-transform">
-                    <i class="ph ph-download-simple text-base"></i>
-                    <span>저장</span>
-                </button>
-            </div>
-        </header>
-
-        <!-- Main Workspace -->
-        <main class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-            
-            <!-- Workspace (Preview) - Mobile: Top (Order 1), Desktop: Right (Order 2) -->
-            <section class="order-1 md:order-2 w-full md:flex-1 h-[40vh] md:h-auto bg-slate-100 dark:bg-[#09090b] relative flex flex-col items-center justify-center p-4 md:p-8 lg:p-12 pattern-grid overflow-hidden flex-shrink-0 z-0 border-b md:border-b-0 border-slate-200 dark:border-zinc-800">
-                
-                <div class="relative w-full h-full flex items-center justify-center">
-                     <!-- Canvas Wrapper -->
-                    <div class="relative shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] transition-all duration-300 transform" id="canvasContainer">
-                        <canvas id="canvas" width="1080" height="1080" class="max-w-full max-h-[35vh] md:max-h-[85vh] object-contain bg-white rounded-sm"></canvas>
+            return (
+                <div className={`page-footer-area text-[9px] opacity-50 ${alignRight ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`flex items-center gap-2 ${alignRight ? 'flex-row' : 'flex-row-reverse'}`}>
+                        {(metadata.producer || metadata.author) && (
+                            <span>{[metadata.producer, metadata.author].filter(Boolean).join(' · ')}</span>
+                        )}
+                        <span className="font-normal opacity-70">{pageIdx + 1}</span>
                     </div>
                 </div>
-
-                <!-- Floating Action Bar - Desktop Only -->
-                <div class="hidden md:flex absolute bottom-6 left-1/2 -translate-x-1/2 items-center gap-2 p-1.5 bg-white/90 dark:bg-zinc-800/90 backdrop-blur shadow-xl border border-slate-200 dark:border-zinc-700 rounded-2xl z-20">
-                    <button onclick="downloadImage()" class="flex items-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-medium transition-transform active:scale-95 shadow-lg shadow-brand-500/20">
-                        <i class="ph ph-download-simple text-lg"></i>
-                        <span>저장</span>
-                    </button>
-                    <div id="desktop-action-divider" class="w-px h-6 bg-slate-200 dark:bg-zinc-600 mx-1"></div>
-                    <button onclick="copyImage()" class="copy-btn p-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-zinc-700 rounded-xl transition-colors" title="복사">
-                        <i class="ph ph-copy text-xl"></i>
-                    </button>
-                </div>
-                
-            </section>
-
-            <!-- Left Sidebar (Controls) - Mobile: Bottom (Order 2), Desktop: Left (Order 1) -->
-            <aside class="order-2 md:order-1 w-full md:w-[400px] lg:w-[420px] bg-white dark:bg-dark-panel border-t md:border-t-0 md:border-r border-slate-200 dark:border-dark-border flex flex-col flex-1 md:flex-none md:h-full z-30 md:shadow-none relative overflow-hidden" id="sidebar">
-                
-                <div class="h-full overflow-y-auto custom-scrollbar p-5 space-y-8 pb-10 md:pb-5">
-
-                    <!-- Section: Content -->
-                    <section class="space-y-4">
-                        <div class="flex items-center justify-between">
-                            <h2 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">내용 입력</h2>
-                            <button onclick="clearQuoteTextOnly()" class="text-xs text-red-500 hover:text-red-600 font-medium flex items-center gap-1">
-                                <i class="ph ph-eraser"></i> 문구만 지우기
-                            </button>
-                        </div>
-                        
-                        <div class="relative group">
-                            <textarea id="quote" placeholder="여기에 문구를 입력하세요..." class="w-full h-32 p-4 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-slate-700 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all text-sm leading-relaxed placeholder:text-slate-400"></textarea>
-                            <div class="absolute bottom-3 right-3 text-slate-400 pointer-events-none">
-                                <i class="ph ph-pencil-simple"></i>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="space-y-1.5">
-                                <label class="text-xs font-medium text-slate-500">제작자</label>
-                                <input type="text" id="author" placeholder="제작자 (선택)" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-xs font-medium text-slate-500">캐릭터/제목</label>
-                                <input type="text" id="title" placeholder="캐릭터/제목 (선택)" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all">
-                            </div>
-                        </div>
-                    </section>
-
-                    <hr class="border-slate-100 dark:border-slate-800">
-
-                    <!-- Section: Canvas Settings -->
-                    <section class="space-y-4">
-                        <h2 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">캔버스 비율</h2>
-                        
-                        <!-- Ratio Selection: Icons -->
-                        <div class="grid grid-cols-3 gap-3">
-                            <button onclick="setRatio('1:1')" id="btn-ratio-1-1" class="ratio-btn flex flex-col items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all bg-brand-50 dark:bg-slate-800 border-brand-500 dark:border-slate-500 ring-1 ring-brand-500 dark:ring-slate-500">
-                                <div class="w-6 h-6 border-2 border-current rounded-sm"></div>
-                                <span class="text-[10px] font-medium">1:1</span>
-                            </button>
-                            <button onclick="setRatio('4:5')" id="btn-ratio-4-5" class="ratio-btn flex flex-col items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
-                                <div class="w-5 h-6 border-2 border-current rounded-sm"></div>
-                                <span class="text-[10px] font-medium">4:5</span>
-                            </button>
-                            <button onclick="setRatio('16:9')" id="btn-ratio-16-9" class="ratio-btn flex flex-col items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
-                                <div class="w-8 h-5 border-2 border-current rounded-sm mt-1 mb-0.5"></div>
-                                <span class="text-[10px] font-medium">16:9</span>
-                            </button>
-                        </div>
-                    </section>
-
-                    <hr class="border-slate-100 dark:border-slate-800">
-
-                    <!-- Section: Typography -->
-                    <section class="space-y-4">
-                        <h2 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">텍스트 스타일</h2>
-                        
-                        <!-- Font Family Selection -->
-                        <div class="space-y-2">
-                            <!-- Serif Group -->
-                            <div class="grid grid-cols-3 gap-2">
-                                <button onclick="setFont('Noto Serif KR')" class="font-btn p-2 text-xs border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active-font" data-font="Noto Serif KR" style="font-family: 'Noto Serif KR', serif;">Noto Serif</button>
-                                <button onclick="setFont('KoPub Batang')" class="font-btn p-2 text-xs border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" data-font="KoPub Batang" style="font-family: 'KoPub Batang', serif;">KoPub 바탕</button>
-                                <button onclick="setFont('Nanum Myeongjo')" class="font-btn p-2 text-xs border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" data-font="Nanum Myeongjo" style="font-family: 'Nanum Myeongjo', serif;">나눔명조</button>
-                            </div>
-                            <!-- Sans-Serif Group -->
-                            <div class="grid grid-cols-3 gap-2">
-                                <button onclick="setFont('Pretendard')" class="font-btn p-2 text-xs border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" data-font="Pretendard" style="font-family: 'Pretendard', sans-serif;">Pretendard</button>
-                                <button onclick="setFont('Noto Sans KR')" class="font-btn p-2 text-xs border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" data-font="Noto Sans KR" style="font-family: 'Noto Sans KR', sans-serif;">Noto Sans</button>
-                                <button onclick="setFont('Nanum Gothic')" class="font-btn p-2 text-xs border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" data-font="Nanum Gothic" style="font-family: 'Nanum Gothic', sans-serif;">나눔고딕</button>
-                            </div>
-                        </div>
-
-                        <!-- Alignment & Break -->
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="bg-slate-50 dark:bg-black/20 p-1 rounded-lg flex border border-slate-200 dark:border-slate-700">
-                                <!-- Radio Group for Align -->
-                                <label class="flex-1 cursor-pointer">
-                                    <input type="radio" name="align" value="left" checked class="peer hidden" id="align-left">
-                                    <div class="w-full h-8 flex items-center justify-center rounded text-slate-400 peer-checked:bg-white dark:peer-checked:bg-slate-700 peer-checked:text-brand-600 peer-checked:shadow-sm transition-all">
-                                        <i class="ph ph-text-align-left text-lg"></i>
-                                    </div>
-                                </label>
-                                <label class="flex-1 cursor-pointer">
-                                    <input type="radio" name="align" value="center" class="peer hidden" id="align-center">
-                                    <div class="w-full h-8 flex items-center justify-center rounded text-slate-400 peer-checked:bg-white dark:peer-checked:bg-slate-700 peer-checked:text-brand-600 peer-checked:shadow-sm transition-all">
-                                        <i class="ph ph-text-align-center text-lg"></i>
-                                    </div>
-                                </label>
-                                <label class="flex-1 cursor-pointer">
-                                    <input type="radio" name="align" value="right" class="peer hidden" id="align-right">
-                                    <div class="w-full h-8 flex items-center justify-center rounded text-slate-400 peer-checked:bg-white dark:peer-checked:bg-slate-700 peer-checked:text-brand-600 peer-checked:shadow-sm transition-all">
-                                        <i class="ph ph-text-align-right text-lg"></i>
-                                    </div>
-                                </label>
-                                <label class="flex-1 cursor-pointer">
-                                    <input type="radio" name="align" value="justify" class="peer hidden" id="align-justify">
-                                    <div class="w-full h-8 flex items-center justify-center rounded text-slate-400 peer-checked:bg-white dark:peer-checked:bg-slate-700 peer-checked:text-brand-600 peer-checked:shadow-sm transition-all">
-                                        <i class="ph ph-text-align-justify text-lg"></i>
-                                    </div>
-                                </label>
-                            </div>
-
-                            <div class="bg-slate-50 dark:bg-black/20 p-1 rounded-lg flex border border-slate-200 dark:border-slate-700">
-                                 <label class="flex-1 cursor-pointer">
-                                    <input type="radio" name="linebreak" value="char" checked class="peer hidden" id="linebreak-char">
-                                    <div class="w-full h-8 flex items-center justify-center rounded text-xs font-medium text-slate-400 peer-checked:bg-white dark:peer-checked:bg-slate-700 peer-checked:text-brand-600 peer-checked:shadow-sm transition-all">
-                                        글자
-                                    </div>
-                                </label>
-                                <label class="flex-1 cursor-pointer">
-                                    <input type="radio" name="linebreak" value="word" class="peer hidden" id="linebreak-word">
-                                    <div class="w-full h-8 flex items-center justify-center rounded text-xs font-medium text-slate-400 peer-checked:bg-white dark:peer-checked:bg-slate-700 peer-checked:text-brand-600 peer-checked:shadow-sm transition-all">
-                                        단어
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Sliders -->
-                        <div class="space-y-5 pt-2">
-                            <div class="relative">
-                                <div class="flex justify-between text-xs mb-2">
-                                    <span class="text-slate-500">글자 크기</span>
-                                    <span class="font-mono text-brand-600"><span id="fontSizeValue">42</span>px</span>
-                                </div>
-                                <input type="range" id="fontSize" min="30" max="80" value="42" class="w-full">
-                            </div>
-                            <div class="relative">
-                                <div class="flex justify-between text-xs mb-2">
-                                    <span class="text-slate-500">줄 간격</span>
-                                    <span class="font-mono text-brand-600"><span id="lineHeightValue">1.5</span>x</span>
-                                </div>
-                                <input type="range" id="lineHeight" min="1.2" max="2.0" step="0.1" value="1.5" class="w-full">
-                            </div>
-                            <div class="relative">
-                                <div class="flex justify-between text-xs mb-2">
-                                    <span class="text-slate-500">여백</span>
-                                    <span class="font-mono text-brand-600"><span id="paddingValue">100</span>px</span>
-                                </div>
-                                <input type="range" id="padding" min="50" max="200" step="10" value="100" class="w-full">
-                            </div>
-                        </div>
-                    </section>
-
-                    <hr class="border-slate-100 dark:border-slate-800">
-
-                    <!-- Section: Style & Color -->
-                    <section class="space-y-4">
-                        <h2 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">배경 및 스타일</h2>
-                        
-                        <div class="space-y-4">
-                            <!-- 1. Text Color -->
-                            <div class="space-y-2">
-                                <label class="text-xs font-medium text-slate-500">글자 색상</label>
-                                <div class="relative w-full h-10 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-                                    <div id="textColorPicker"></div>
-                                </div>
-                            </div>
-
-                            <!-- 2. Background Mode Toggle (Default to Gradient) -->
-                            <div class="bg-slate-50 dark:bg-black/20 p-1 rounded-lg flex border border-slate-200 dark:border-slate-700">
-                                <label class="flex-1 cursor-pointer">
-                                    <input type="radio" name="bgMode" value="solid" class="peer hidden">
-                                    <div class="w-full h-8 flex items-center justify-center rounded text-xs font-medium text-slate-400 peer-checked:bg-white dark:peer-checked:bg-slate-700 peer-checked:text-brand-600 peer-checked:shadow-sm transition-all">
-                                        단색
-                                    </div>
-                                </label>
-                                <label class="flex-1 cursor-pointer">
-                                    <input type="radio" name="bgMode" value="gradient" checked class="peer hidden">
-                                    <div class="w-full h-8 flex items-center justify-center rounded text-xs font-medium text-slate-400 peer-checked:bg-white dark:peer-checked:bg-slate-700 peer-checked:text-brand-600 peer-checked:shadow-sm transition-all">
-                                        그라데이션
-                                    </div>
-                                </label>
-                            </div>
-
-                            <!-- 3. Solid Color Settings (Hidden by default) -->
-                            <div id="solidColorPanel" class="space-y-2 hidden">
-                                <label class="text-xs font-medium text-slate-500">배경 색상</label>
-                                <div class="relative w-full h-10 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-                                    <div id="bgColorMainPicker"></div>
-                                </div>
-                            </div>
-
-                            <!-- 4. Gradient Settings (Visible by default) -->
-                            <div id="gradientColorPanel" class="space-y-3">
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div class="space-y-2">
-                                        <label class="text-xs font-medium text-slate-500">시작 색상</label>
-                                        <div class="relative w-full h-10 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-                                            <div id="gradStartColorPicker"></div>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <label class="text-xs font-medium text-slate-500">끝 색상</label>
-                                        <div class="relative w-full h-10 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-                                            <div id="gradEndColorPicker"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="space-y-2">
-                                    <label class="text-xs font-medium text-slate-500">방향</label>
-                                    <!-- Direction Grid Icons -->
-                                    <div class="grid grid-cols-4 gap-2">
-                                        <!-- Top Row -->
-                                        <button onclick="setDirection('to bottom')" class="dir-btn h-9 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center text-slate-500" data-dir="to bottom" title="상 → 하"><i class="ph ph-arrow-down"></i></button>
-                                        <button onclick="setDirection('to top')" class="dir-btn h-9 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center text-slate-500" data-dir="to top" title="하 → 상"><i class="ph ph-arrow-up"></i></button>
-                                        <button onclick="setDirection('to right')" class="dir-btn h-9 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center text-slate-500" data-dir="to right" title="좌 → 우"><i class="ph ph-arrow-right"></i></button>
-                                        <button onclick="setDirection('to left')" class="dir-btn h-9 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center text-slate-500" data-dir="to left" title="우 → 좌"><i class="ph ph-arrow-left"></i></button>
-                                        
-                                        <!-- Bottom Row -->
-                                        <button onclick="setDirection('to bottom right')" class="dir-btn h-9 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center text-slate-500 active-dir bg-brand-50 dark:bg-slate-800 border-brand-500 dark:border-slate-500 text-brand-600 dark:text-brand-400" data-dir="to bottom right" title="좌상 → 우하"><i class="ph ph-arrow-down-right"></i></button>
-                                        <button onclick="setDirection('to top right')" class="dir-btn h-9 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center text-slate-500" data-dir="to top right" title="좌하 → 우상"><i class="ph ph-arrow-up-right"></i></button>
-                                        <button onclick="setDirection('to bottom left')" class="dir-btn h-9 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center text-slate-500" data-dir="to bottom left" title="우상 → 좌하"><i class="ph ph-arrow-down-left"></i></button>
-                                        <button onclick="setDirection('to top left')" class="dir-btn h-9 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center text-slate-500" data-dir="to top left" title="우하 → 좌상"><i class="ph ph-arrow-up-left"></i></button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 5. Color Presets (Split: Solid vs Gradient) -->
-                        <div class="pt-1">
-                            <!-- Gradient Palette -->
-                            <div id="gradientPalette" class="flex gap-2 overflow-x-auto no-scrollbar py-1">
-                                <button onclick="setPreset('gradient', '#a18cd1', '#fbc2eb', '#4A4A4A')" class="w-8 h-8 rounded-full border border-slate-200 shadow-sm flex-shrink-0" style="background: linear-gradient(to bottom right, #a18cd1, #fbc2eb)" title="Dreamy Purple"></button>
-                                <button onclick="setPreset('gradient', '#0f2027', '#203a43', '#ffffff')" class="w-8 h-8 rounded-full border border-slate-200 shadow-sm flex-shrink-0" style="background: linear-gradient(to bottom right, #0f2027, #2c5364)" title="Deep Sea"></button>
-                                <button onclick="setPreset('gradient', '#232526', '#414345', '#ffffff')" class="w-8 h-8 rounded-full border border-slate-200 shadow-sm flex-shrink-0" style="background: linear-gradient(to bottom right, #232526, #414345)" title="Midnight"></button>
-                                <button onclick="setPreset('gradient', '#4b1248', '#f0c27b', '#ffffff')" class="w-8 h-8 rounded-full border border-slate-200 shadow-sm flex-shrink-0" style="background: linear-gradient(to bottom right, #4b1248, #f0c27b)" title="Sunset"></button>
-                                <button onclick="setPreset('gradient', '#141E30', '#243B55', '#ffffff')" class="w-8 h-8 rounded-full border border-slate-200 shadow-sm flex-shrink-0" style="background: linear-gradient(to bottom right, #141E30, #243B55)" title="Royal Blue"></button>
-                                <button onclick="setPreset('gradient', '#1a2a6c', '#b21f1f', '#ffffff')" class="w-8 h-8 rounded-full border border-slate-200 shadow-sm flex-shrink-0" style="background: linear-gradient(to bottom right, #1a2a6c, #b21f1f)" title="Mystic"></button>
-                                <button onclick="setPreset('gradient', '#000000', '#434343', '#ffffff')" class="w-8 h-8 rounded-full border border-slate-200 shadow-sm flex-shrink-0" style="background: linear-gradient(to bottom right, #000000, #434343)" title="Charcoal"></button>
-                            </div>
-                            
-                            <!-- Solid Palette (Hidden initially if gradient is default) -->
-                            <div id="solidPalette" class="flex gap-2 overflow-x-auto no-scrollbar py-1 hidden">
-                                <button onclick="setPreset('solid', '#E6E6FA', null, '#000000')" class="w-8 h-8 rounded-full bg-[#E6E6FA] border border-slate-200 shadow-sm flex-shrink-0" title="Lavender"></button>
-                                <button onclick="setPreset('solid', '#000000', null, '#ffffff')" class="w-8 h-8 rounded-full bg-black border border-slate-200 shadow-sm flex-shrink-0" title="Black"></button>
-                                <button onclick="setPreset('solid', '#1a1a1a', null, '#ffffff')" class="w-8 h-8 rounded-full bg-[#1a1a1a] border border-slate-200 shadow-sm flex-shrink-0" title="Dark Gray"></button>
-                                <button onclick="setPreset('solid', '#1e293b', null, '#ffffff')" class="w-8 h-8 rounded-full bg-[#1e293b] border border-slate-200 shadow-sm flex-shrink-0" title="Slate"></button>
-                                <button onclick="setPreset('solid', '#312e81', null, '#ffffff')" class="w-8 h-8 rounded-full bg-[#312e81] border border-slate-200 shadow-sm flex-shrink-0" title="Indigo"></button>
-                                <button onclick="setPreset('solid', '#4a044e', null, '#ffffff')" class="w-8 h-8 rounded-full bg-[#4a044e] border border-slate-200 shadow-sm flex-shrink-0" title="Fuchsia"></button>
-                                <button onclick="setPreset('solid', '#365314', null, '#ffffff')" class="w-8 h-8 rounded-full bg-[#365314] border border-slate-200 shadow-sm flex-shrink-0" title="Olive"></button>
-                                <button onclick="setPreset('solid', '#881337', null, '#ffffff')" class="w-8 h-8 rounded-full bg-[#881337] border border-slate-200 shadow-sm flex-shrink-0" title="Rose"></button>
-                            </div>
-                        </div>
-
-                        <!-- 6. Background Image -->
-                        <div class="pt-2">
-                            <label class="flex items-center justify-center w-full h-24 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl hover:border-brand-500 dark:hover:border-brand-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer group">
-                                <div class="text-center">
-                                    <div class="text-slate-400 group-hover:text-brand-500 transition-colors mb-1">
-                                        <i class="ph ph-image text-2xl"></i>
-                                    </div>
-                                    <span class="text-xs text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300">배경 이미지 업로드</span>
-                                </div>
-                                <input type="file" id="bgImageUpload" accept="image/*" class="hidden">
-                            </label>
-                            
-                            <div id="imageControlPanel" class="hidden mt-3 p-3 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <span id="imageFileName" class="text-xs text-slate-500 truncate max-w-[150px]"></span>
-                                    <button id="btnImageDelete" onclick="deleteBackgroundImage()" class="text-xs text-red-500 hover:bg-red-50 p-1 rounded transition-colors"><i class="ph ph-trash"></i> 삭제</button>
-                                </div>
-                                
-                                <!-- Image Controls -->
-                                <div id="imageOptions" class="space-y-3">
-                                    <div class="flex bg-white dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
-                                        <label class="flex-1 cursor-pointer text-center">
-                                            <input type="radio" name="imageFit" value="cover" checked class="peer hidden" id="fit-cover">
-                                            <span class="block text-xs py-1 rounded text-slate-500 peer-checked:bg-brand-50 peer-checked:text-brand-600 font-medium">채우기</span>
-                                        </label>
-                                        <label class="flex-1 cursor-pointer text-center">
-                                            <input type="radio" name="imageFit" value="contain" class="peer hidden" id="fit-contain">
-                                            <span class="block text-xs py-1 rounded text-slate-500 peer-checked:bg-brand-50 peer-checked:text-brand-600 font-medium">맞추기</span>
-                                        </label>
-                                    </div>
-                                    
-                                    <div class="grid grid-cols-3 gap-1 max-w-[120px] mx-auto">
-                                        <!-- 3x3 Grid for Position -->
-                                        <label class="aspect-square cursor-pointer"><input type="radio" name="imagePosition" value="top-left" class="peer hidden"><div class="w-full h-full border border-slate-200 rounded hover:bg-slate-100 peer-checked:bg-brand-500 peer-checked:border-brand-500"></div></label>
-                                        <label class="aspect-square cursor-pointer"><input type="radio" name="imagePosition" value="top-center" class="peer hidden"><div class="w-full h-full border border-slate-200 rounded hover:bg-slate-100 peer-checked:bg-brand-500 peer-checked:border-brand-500"></div></label>
-                                        <label class="aspect-square cursor-pointer"><input type="radio" name="imagePosition" value="top-right" class="peer hidden"><div class="w-full h-full border border-slate-200 rounded hover:bg-slate-100 peer-checked:bg-brand-500 peer-checked:border-brand-500"></div></label>
-                                        
-                                        <label class="aspect-square cursor-pointer"><input type="radio" name="imagePosition" value="middle-left" class="peer hidden"><div class="w-full h-full border border-slate-200 rounded hover:bg-slate-100 peer-checked:bg-brand-500 peer-checked:border-brand-500"></div></label>
-                                        <label class="aspect-square cursor-pointer"><input type="radio" name="imagePosition" value="middle-center" checked class="peer hidden"><div class="w-full h-full border border-slate-200 rounded hover:bg-slate-100 peer-checked:bg-brand-500 peer-checked:border-brand-500"></div></label>
-                                        <label class="aspect-square cursor-pointer"><input type="radio" name="imagePosition" value="middle-right" class="peer hidden"><div class="w-full h-full border border-slate-200 rounded hover:bg-slate-100 peer-checked:bg-brand-500 peer-checked:border-brand-500"></div></label>
-                                        
-                                        <label class="aspect-square cursor-pointer"><input type="radio" name="imagePosition" value="bottom-left" class="peer hidden"><div class="w-full h-full border border-slate-200 rounded hover:bg-slate-100 peer-checked:bg-brand-500 peer-checked:border-brand-500"></div></label>
-                                        <label class="aspect-square cursor-pointer"><input type="radio" name="imagePosition" value="bottom-center" class="peer hidden"><div class="w-full h-full border border-slate-200 rounded hover:bg-slate-100 peer-checked:bg-brand-500 peer-checked:border-brand-500"></div></label>
-                                        <label class="aspect-square cursor-pointer"><input type="radio" name="imagePosition" value="bottom-right" class="peer hidden"><div class="w-full h-full border border-slate-200 rounded hover:bg-slate-100 peer-checked:bg-brand-500 peer-checked:border-brand-500"></div></label>
-                                    </div>
-                                    
-                                    <div class="relative pt-2">
-                                         <div class="flex justify-between text-xs mb-1">
-                                            <span class="text-slate-500">이미지 크기</span>
-                                            <span class="font-mono text-brand-600"><span id="scaleValue">100</span>%</span>
-                                        </div>
-                                        <input type="range" id="bgImageScale" min="10" max="200" value="100" class="w-full">
-                                    </div>
-
-                                    <div class="relative">
-                                         <div class="flex justify-between text-xs mb-1">
-                                            <span class="text-slate-500">오버레이</span>
-                                            <span class="font-mono text-brand-600" id="overlayValueText">원본</span>
-                                        </div>
-                                        <input type="range" id="overlayOpacity" min="-80" max="80" value="0" class="w-full">
-                                        <div class="flex justify-between text-[10px] text-slate-400 mt-1 px-1">
-                                            <span>밝게</span>
-                                            <span>원본</span>
-                                            <span>어둡게</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <hr class="border-slate-100 dark:border-slate-800">
-
-                    <!-- Section: Logo Settings -->
-                    <section class="space-y-4">
-                        <h2 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">로고 설정</h2>
-                        
-                         <div class="space-y-2">
-                            <label class="text-xs font-medium text-slate-500">플랫폼 로고</label>
-                            <select id="platformSelect" class="w-full appearance-none px-3 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
-                                <option value="">선택 안함</option>
-                                <option value="dokiChat">도키챗</option>
-                                <option value="luvDuv">러비더비</option>
-                                <option value="reppley">레플리</option>
-                                <option value="rplay">로맨틱플레이</option>
-                                <option value="ropanAI">로판AI</option>
-                                <option value="melting">멜팅</option>
-                                <option value="bloom">블룸</option>
-                                <option value="inkChat">잉크챗</option>
-                                <option value="zeta">제타</option>
-                                <option value="carat">캐럿</option>
-                                <option value="chemi">케밍</option>
-                                <option value="caveDuck">케이브덕</option>
-                                <option value="crack">크랙</option>
-                                <option value="pulse">펄스</option>
-                                <option value="Fizzchat">피즈챗</option>
-                                <option value="whif">WHIF</option> 
-                            </select>
-                        </div>
-
-                        <div class="space-y-1">
-                             <div class="flex justify-between text-xs mb-1">
-                                <span class="text-slate-500">로고 크기</span>
-                                <span class="font-mono text-brand-600"><span id="logoSizeValue">80</span>px</span>
-                            </div>
-                            <input type="range" id="logoSize" min="50" max="200" step="10" value="80" class="w-full">
-                        </div>
-                    </section>
-                    
-                    <!-- Footer Info -->
-                    <footer class="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-400 dark:text-slate-500 space-y-4 pb-8">
-                         <!-- Sister Site Link -->
-                        <a href="https://yuliyulidaz.github.io/yulipage/" target="_blank" class="block w-full p-3 bg-brand-50/50 dark:bg-brand900/10 border border-brand-100 dark:border-brand-800/30 rounded-xl hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-all group">
-                            <div class="flex items-center gap-2 text-brand-600 dark:text-brand-400 font-bold mb-0.5">
-                                <i class="ph ph-file-text text-lg"></i>
-                                <span>내지 생성기</span>
-                            </div>
-                            <p class="text-[11px] text-slate-500 dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300">소설 내지 이미지가 필요하신가요? 여기서 만들어보세요.</p>
-                        </a>
-                        
-                        <div>
-                            <h3 class="font-bold text-slate-500 dark:text-slate-400 mb-1">📖 발췌 문구 생성기 v1.3.1</h3>
-                            <p>본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
-                        </div>
-                        
-                        <div class="space-y-2">
-                            <h4 class="font-bold text-slate-500 dark:text-slate-400">⚠️ 이용 시 주의사항</h4>
-                            <ul class="list-disc list-outside pl-3 space-y-1 text-[11px] leading-relaxed">
-                                <li><strong>저작권 책임:</strong> 업로드한 이미지 및 텍스트의 저작권은 사용자에게 있으며, 저작권 침해에 대한 모든 법적 책임은 사용자에게 있습니다.</li>
-                                <li><strong>이미지 사용:</strong> 타인의 저작물(사진, 일러스트 등)을 무단으로 사용하지 마세요. 저작권자의 허락을 받거나 저작권이 없는 이미지만 사용하세요.</li>
-                                <li><strong>텍스트 인용:</strong> 책이나 기타 저작물의 텍스트를 발췌할 경우, 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요.</li>
-                                <li><strong>플랫폼 로고:</strong> 각 플랫폼의 로고는 해당 플랫폼의 상표이며, 사용 시 각 플랫폼의 브랜드 가이드라인을 준수해야 합니다.</li>
-                                <li><strong>상업적 이용:</strong> 생성된 이미지는 상업적으로 사용할 수 없습니다.</li>
-                            </ul>
-                            <p class="text-[10px] pt-1">본 도구의 제작자는 사용자가 생성한 콘텐츠에 대해 어떠한 책임도 지지 않습니다.<br>이미지 및 텍스트 사용으로 인해 발생하는 모든 법적 문제는 사용자 본인의 책임입니다.</p>
-                        </div>
-                    </footer>
-                </div>
-                
-            </aside>
-
-        </main>
-    </div>
-
-    <!-- Scripts -->
-    <script>
-        // --- 1. State Management & Constants ---
-        const state = {
-            canvas: null,
-            ctx: null,
-            bgImage: null,
-            bgImageName: null,
-            logoImages: {}, // Preloaded logos
-            platform: '',
-            isDarkMode: localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches),
-            // Colors managed by state now (synced with Pickr)
-            bgType: 'gradient', // Default to Gradient
-            gradDirection: 'to bottom right',
-            canvasRatio: '1:1',
-            fontFamily: 'Noto Serif KR',
-            colors: {
-                text: '#4A4A4A', // Default Text Color Changed to Dark Grey for Dreamy Purple
-                bgMain: '#E6E6FA', // Default Solid Color: Lavender
-                gradStart: '#a18cd1', // Default Gradient Start (Dreamy Purple)
-                gradEnd: '#fbc2eb',   // Default Gradient End (Dreamy Purple)
-            },
-            pickrs: {}
+            );
         };
 
-        const LOGO_URLS = {
-            bloom: 'https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/bloom.jpg',
-            carat: 'https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/carat.png',
-            caveDuck: 'https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/Caveduck.jpg',  
-    	    dokiChat: 'https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/dokichat.jpg',
-            inkChat: 'https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/inkchat.jpg',
-            zeta: 'https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/zeta.jpg',
-            luvDuv: 'https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/LoveyDovey.jpg',
-            melting: 'https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/melting.jpg',
-            pulse: 'https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/pulse.jpg',
-            ropanAI: 'https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/rofan.png',
-            crack: 'https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/crack.png',
-            whif: 'https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/whif.jpg',
-            chemi: 'https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/chemi.png',
-            Fizzchat: 'https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/Fizzchat.png',
-            reppley: 'https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/reppley.jpg',
-            rplay: 'https://raw.githubusercontent.com/yuliyulidaz/yulilog/refs/heads/logos/rplay.png'
+        const Flyleaf = ({ isFront, isHidden, text, setText, onEdit }) => {
+            const hasContent = text && text.trim().length > 0;
+            const mobile = isMobile();
+            
+            if (isHidden && !hasContent) {
+                return <div className={`flyleaf ${isFront ? 'front' : 'back'}`}></div>;
+            }
+
+            const handleChange = (e) => {
+                const val = e.target.value;
+                const lines = val.split('\n');
+                if (lines.length > 6) {
+                    setText(lines.slice(0, 6).join('\n'));
+                } else {
+                    setText(val);
+                }
+            };
+
+            return (
+                <div 
+                    className={`flyleaf ${isFront ? 'front' : 'back'}`} 
+                    onClick={!isHidden && mobile ? onEdit : undefined}
+                >
+                    <div className="w-1/2 relative z-10 flex flex-col" style={{ maxWidth: '50%' }}>
+                        <div className={`w-[30px] h-px bg-white/50 mb-4 ${!isFront ? 'ml-auto' : ''}`}></div>
+                        {!isHidden && !hasContent && (
+                            <div className={`flyleaf-hint ${isFront ? 'text-left' : 'text-right'}`}>
+                                클릭하여 문구 입력
+                            </div>
+                        )}
+                        {(!isHidden || hasContent) && (
+                            <textarea
+                                value={text}
+                                onChange={!isHidden && !mobile ? handleChange : undefined}
+                                readOnly={isHidden || mobile} 
+                                className={`w-full bg-transparent border-none text-white/70 text-[10px] p-0 focus:outline-none placeholder:text-transparent resize-none overflow-hidden ${isFront ? 'text-left' : 'text-right'} ${mobile && !isHidden ? 'cursor-pointer' : ''}`}
+                                rows={6}
+                                spellCheck={false}
+                                disabled={isHidden} 
+                                style={{ lineHeight: '1.6', maxHeight: '96px', pointerEvents: isHidden ? 'none' : 'auto' }}
+                            />
+                        )}
+                    </div>
+                </div>
+            );
         };
-        
-        // --- 2. Initialization ---
-        document.addEventListener('DOMContentLoaded', () => {
-            initTheme();
-            initCanvas();
-            initColorPickers();
-            loadLogos();
-            bindEvents();
-            
-            // Set default styling in UI
-            updateRatioUI();
-            updateFontUI();
-            updateDirectionUI();
 
-            // iOS Check to hide Copy buttons
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            if (isIOS) {
-                document.querySelectorAll('.copy-btn').forEach(el => el.style.display = 'none');
-                const divider = document.getElementById('desktop-action-divider');
-                if(divider) divider.style.display = 'none';
-            }
+        const MockupBookRenderer = ({ spreadIdx, spreads, isCaptureMode = false, activeTheme, activeFont, frontFlyleafText, setFrontFlyleafText, backFlyleafText, setBackFlyleafText, pageHighlights, pages, metadata, onEditFlyleaf }) => {
+            const spread = spreads[spreadIdx];
+            if (!spread) return null;
 
-            // Font Loading Fix: Wait for fonts to load before drawing
-            document.fonts.ready.then(() => {
-                updateCanvas();
-            });
-            // Fallback: Redraw after short delay to ensure fonts are applied
-            setTimeout(updateCanvas, 500);
-            setTimeout(updateCanvas, 1000);
-            
-            updateCanvas(); // Initial draw attempt
-        });
+            const renderSide = (sideData, isRight) => {
+                if (!sideData) return <div className="mockup-page bg-transparent"></div>;
 
-        function initTheme() {
-            if (state.isDarkMode) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
-        }
-
-        function toggleDarkMode() {
-            state.isDarkMode = !state.isDarkMode;
-            localStorage.setItem('theme', state.isDarkMode ? 'dark' : 'light');
-            initTheme();
-        }
-
-        function initCanvas() {
-            state.canvas = document.getElementById('canvas');
-            state.ctx = state.canvas.getContext('2d');
-        }
-
-        function initColorPickers() {
-            const createPickr = (elId, defaultColor, key) => {
-                let initialColor = defaultColor;
-
-                const pickr = Pickr.create({
-                    el: elId,
-                    theme: 'classic',
-                    default: defaultColor,
-                    swatches: [
-                        '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e', '#06b6d4',
-                        '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', '#f43f5e', '#000000', '#ffffff',
-                        '#1a1a1a', '#0f2027', '#4b1248', '#203a43', '#2c5364', '#f0c27b'
-                    ],
-                    components: {
-                        preview: true,
-                        opacity: true,
-                        hue: true,
-                        interaction: {
-                            hex: true,
-                            input: true,
-                            save: true,
-                            cancel: true // 취소 버튼
-                        }
-                    },
-                    i18n: {
-                        'btn:save': '확인',
-                        'btn:cancel': '취소',
-                        'btn:clear': '지우기'
-                    }
-                });
-
-                // 열릴 때 색상 저장
-                pickr.on('show', (color, instance) => {
-                    initialColor = state.colors[key];
-                });
-
-                // 색상 변경 시 (드래그 등) - 즉시 반영
-                pickr.on('change', (color, source, instance) => {
-                    const hex = color.toHEXA().toString();
-                    state.colors[key] = hex;
-                    updateCanvas();     
-                });
-
-                // 저장 버튼 클릭
-                pickr.on('save', (color, instance) => {
-                    const hex = color.toHEXA().toString();
-                    state.colors[key] = hex;
-                    instance.applyColor(true); // 버튼 색상 업데이트
-                    instance.hide();
-                });
-
-                // 취소 버튼 클릭 시 - 이전 색으로 복구
-                pickr.on('cancel', (instance) => {
-                    state.colors[key] = initialColor;
-                    pickr.setColor(initialColor, true); 
-                    updateCanvas();
-                    instance.hide();
-                });
-                
-                // 창이 닫힐 때 (저장, 취소, 외부클릭 모두 포함)
-                pickr.on('hide', (instance) => {
-                     // 핵심 수정: 창이 닫힐 때 현재 피커의 색상을 버튼에 강제 적용하여
-                     // "외부 클릭 시에도 색상이 선택된 상태"로 만듦.
-                     // (취소 버튼을 눌렀을 때는 위 'cancel' 이벤트에서 이미 원복했으므로 괜찮음)
-                     const currentColor = instance.getColor().toHEXA().toString();
-                     // 만약 취소 버튼을 눌러서 닫힌게 아니라면 (외부 클릭 등)
-                     if (state.colors[key] === currentColor) {
-                        instance.applyColor(true);
-                     }
-                });
-
-                // 팔레트(Swatch) 클릭 시
-                pickr.on('swatchselect', (color) => {
-                    const hex = color.toHEXA().toString();
-                    state.colors[key] = hex;
-                    pickr.setColor(hex); 
-                    updateCanvas();
-                });
-
-                return pickr;
+                if (sideData.type === 'flyleaf-front') {
+                    return (
+                        <div className="mockup-page">
+                            <Flyleaf 
+                                isFront={true} 
+                                isHidden={isCaptureMode} 
+                                text={frontFlyleafText} 
+                                setText={setFrontFlyleafText} 
+                                onEdit={() => onEditFlyleaf && onEditFlyleaf('front')}
+                            />
+                            <div className="effect-gutter-left"></div>
+                        </div>
+                    );
+                }
+                if (sideData.type === 'flyleaf-back') {
+                    return (
+                        <div className="mockup-page">
+                            <Flyleaf 
+                                isFront={false} 
+                                isHidden={isCaptureMode} 
+                                text={backFlyleafText} 
+                                setText={setBackFlyleafText} 
+                                onEdit={() => onEditFlyleaf && onEditFlyleaf('back')}
+                            />
+                            <div className="effect-gutter-right"></div>
+                        </div>
+                    );
+                }
+                if (sideData.type === 'page') {
+                    return (
+                        <div className={`mockup-page page-container theme-${activeTheme}`} style={{ fontFamily: FONT_MAP[activeFont].family }}>
+                            <PageContent pageIdx={sideData.index} pages={pages} pageHighlights={pageHighlights} metadata={metadata} activeFont={activeFont} />
+                            <PageFooter pageIdx={sideData.index} isRight={isRight} metadata={metadata} />
+                            {isRight ? <div className="effect-gutter-right"></div> : <div className="effect-gutter-left"></div>}
+                        </div>
+                    );
+                }
+                return null;
             };
 
-            state.pickrs.text = createPickr('#textColorPicker', state.colors.text, 'text');
-            state.pickrs.bgMain = createPickr('#bgColorMainPicker', state.colors.bgMain, 'bgMain');
-            state.pickrs.gradStart = createPickr('#gradStartColorPicker', state.colors.gradStart, 'gradStart');
-            state.pickrs.gradEnd = createPickr('#gradEndColorPicker', state.colors.gradEnd, 'gradEnd');
-        }
+            return (
+                <div className="mockup-book-wrapper">
+                    {renderSide(spread.left, false)}
+                    {renderSide(spread.right, true)}
+                </div>
+            );
+        };
 
-        function loadLogos() {
-            for (const [key, url] of Object.entries(LOGO_URLS)) {
-                const img = new Image();
-                img.crossOrigin = "Anonymous"; 
-                img.src = url;
-                state.logoImages[key] = img;
-                // Redraw when loaded if this is the selected platform
-                img.onload = () => {
-                    if (state.platform === key) updateCanvas();
-                };
-            }
-        }
+        // ----------------------------------------------------------------------
+        // 3. Main Application Component
+        // ----------------------------------------------------------------------
 
-        // --- 3. Event Binding ---
-        function bindEvents() {
-            // Text Inputs
-            ['quote', 'author', 'title'].forEach(id => {
-                document.getElementById(id).addEventListener('input', updateCanvas);
-            });
+        const PAGE_CONTENT_HEIGHT = 460;
+        const BOTTOM_BUFFER_P1 = 15;
 
-            // Style Inputs
-            ['fontSize', 'lineHeight', 'padding', 'logoSize', 'overlayOpacity', 'bgImageScale'].forEach(id => {
-                const el = document.getElementById(id);
-                el.addEventListener('input', (e) => {
-                    // Update value displays
-                    if(id === 'fontSize') document.getElementById('fontSizeValue').innerText = e.target.value;
-                    if(id === 'lineHeight') document.getElementById('lineHeightValue').innerText = e.target.value;
-                    if(id === 'padding') document.getElementById('paddingValue').innerText = e.target.value;
-                    if(id === 'logoSize') document.getElementById('logoSizeValue').innerText = e.target.value;
-                    if(id === 'bgImageScale') document.getElementById('scaleValue').innerText = e.target.value;
-                    if(id === 'overlayOpacity') {
-                         const val = parseInt(e.target.value);
-                         let text = "원본";
-                         if(val < 0) text = `밝게 ${Math.abs(val)}%`;
-                         if(val > 0) text = `어둡게 ${val}%`;
-                         document.getElementById('overlayValueText').innerText = text;
+        function App() {
+            // -- State --
+            const [step, setStep] = useState('input'); // 'input' | 'preview' | 'mockup'
+            const [textInput, setTextInput] = useState('');
+            const [metadata, setMetadata] = useState({ title: '', author: '', producer: '' });
+            
+            // Settings
+            const [activeTheme, setActiveTheme] = useState('white'); 
+            const [activeFont, setActiveFont] = useState('noto'); 
+            
+            // UI State
+            const [activeTab, setActiveTab] = useState(null); 
+            const [toolMode, setToolMode] = useState('highlight'); 
+            
+            const [pages, setPages] = useState([]);
+            const [currentPageIdx, setCurrentPageIdx] = useState(0);
+            const [pageHighlights, setPageHighlights] = useState({});
+            
+            const [currentHighlightColor, setCurrentHighlightColor] = useState('highlight-yellow');
+            const [currentTextColor, setCurrentTextColor] = useState('text-crimson');
+            
+            const [isGenerating, setIsGenerating] = useState(false);
+            const [loadingMessage, setLoadingMessage] = useState('');
+            const [loadingProgress, setLoadingProgress] = useState(0);
+            
+            const debouncedText = useDebounce(textInput, 500);
+            const [estimatedPages, setEstimatedPages] = useState(0);
+
+            // MOCKUP STATE
+            const [mockupSpreadIdx, setMockupSpreadIdx] = useState(0);
+            const [frontFlyleafText, setFrontFlyleafText] = useState('');
+            const [backFlyleafText, setBackFlyleafText] = useState('');
+            
+            // Focus Modal State
+            const [focusedFlyleaf, setFocusedFlyleaf] = useState(null); // 'front' | 'back' | null
+
+            const measureContainerRef = useRef(null);
+            const viewerRef = useRef(null);
+            const contentRef = useRef(null);
+
+            // -- Logic: Pagination --
+            const calculatePages = (text, fontKey) => {
+                const measureBox = measureContainerRef.current;
+                if (!measureBox) return [];
+                measureBox.style.fontFamily = FONT_MAP[fontKey].family;
+                const rawParagraphs = text.split('\n');
+                let currentParagraphs = [];
+                let pageNum = 1;
+                let resultPages = [];
+                let queue = rawParagraphs.map(text => {
+                    const trimmed = text.trim();
+                    if (trimmed === '***') return { text: '*\u00A0\u00A0\u00A0\u00A0\u00A0*\u00A0\u00A0\u00A0\u00A0\u00A0*', isContinued: false, isSceneBreak: true };
+                    return { text: text, isContinued: false, isSceneBreak: false };
+                });
+                measureBox.innerHTML = ''; 
+                if (metadata.title && pageNum === 1) {
+                    const titlePlaceholder = document.createElement('div');
+                    titlePlaceholder.style.height = "200px"; titlePlaceholder.style.width = "100%"; titlePlaceholder.style.marginBottom = "0"; 
+                    measureBox.appendChild(titlePlaceholder);
+                }
+                const findSplitIndex = (text, maxHeight, isContinued) => {
+                    const tempP = document.createElement('p');
+                    tempP.style.lineHeight = "1.8"; tempP.style.marginBottom = "0"; tempP.style.fontFamily = FONT_MAP[fontKey].family;
+                    if (isContinued) tempP.classList.add('continued'); else tempP.style.textIndent = '1em';
+                    measureBox.appendChild(tempP);
+                    let low = 0; let high = text.length; let bestIdx = 0;
+                    while (low <= high) {
+                        const mid = Math.floor((low + high) / 2);
+                        const subText = text.substring(0, mid);
+                        tempP.textContent = subText;
+                        if (tempP.offsetHeight <= maxHeight) { bestIdx = mid; low = mid + 1; } else { high = mid - 1; }
                     }
-                    updateCanvas();
-                });
-            });
-
-            // Radio Groups
-            document.querySelectorAll('input[name="align"], input[name="linebreak"], input[name="imageFit"], input[name="imagePosition"]').forEach(el => {
-                el.addEventListener('change', updateCanvas);
-            });
-            
-            // Background Mode Toggle
-            document.querySelectorAll('input[name="bgMode"]').forEach(el => {
-                el.addEventListener('change', (e) => {
-                    state.bgType = e.target.value;
-                    togglePaletteVisibility();
-                    updateCanvas();
-                });
-            });
-
-            // Platform Select
-            document.getElementById('platformSelect').addEventListener('change', (e) => {
-                state.platform = e.target.value;
-                updateCanvas();
-            });
-
-            // Image Upload
-            document.getElementById('bgImageUpload').addEventListener('change', handleImageUpload);
-        }
-
-        // --- 4. Logic Functions (Updated) ---
-        
-        function setRatio(ratio) {
-            state.canvasRatio = ratio;
-            updateRatioUI();
-            resizeCanvas();
-            updateCanvas();
-        }
-
-        function updateRatioUI() {
-            // Remove active classes
-            document.querySelectorAll('.ratio-btn').forEach(btn => {
-                btn.classList.remove('bg-brand-50', 'dark:bg-slate-800', 'border-brand-500', 'dark:border-slate-500', 'ring-1', 'ring-brand-500', 'dark:ring-slate-500');
-            });
-            // Add active class
-            const idMap = { '1:1': 'btn-ratio-1-1', '4:5': 'btn-ratio-4-5', '16:9': 'btn-ratio-16-9' };
-            const activeBtn = document.getElementById(idMap[state.canvasRatio]);
-            if(activeBtn) {
-                activeBtn.classList.add('bg-brand-50', 'dark:bg-slate-800', 'border-brand-500', 'dark:border-slate-500', 'ring-1', 'ring-brand-500', 'dark:ring-slate-500');
-            }
-        }
-
-        function setFont(fontName) {
-            state.fontFamily = fontName;
-            updateFontUI();
-            
-            // Improved Font Loading:
-            // Explicitly load the font string before updating canvas to prevent "double click" issue.
-            // Construct a font string similar to what is used in drawContent
-            let fontWeight = '400';
-            if (fontName === 'Noto Serif KR' || fontName === 'KoPub Batang') fontWeight = '300';
-            else if (fontName === 'Noto Sans KR' || fontName === 'Pretendard') fontWeight = '200';
-            
-            const fontString = `${fontWeight} 40px '${fontName}'`;
-            
-            document.fonts.load(fontString).then(() => {
-                updateCanvas();
-            }).catch(() => {
-                 // Fallback if load fails (or already loaded)
-                 updateCanvas();
-            });
-            
-            // Safety redraw for stubborn browsers
-            setTimeout(updateCanvas, 100);
-        }
-
-        function updateFontUI() {
-            document.querySelectorAll('.font-btn').forEach(btn => {
-                if(btn.dataset.font === state.fontFamily) {
-                    btn.classList.add('bg-brand-50', 'dark:bg-slate-800', 'border-brand-500', 'dark:border-slate-500', 'text-brand-600', 'dark:text-brand-400', 'ring-1', 'ring-brand-500', 'dark:ring-slate-500');
-                } else {
-                    btn.classList.remove('bg-brand-50', 'dark:bg-slate-800', 'border-brand-500', 'dark:border-slate-500', 'text-brand-600', 'dark:text-brand-400', 'ring-1', 'ring-brand-500', 'dark:ring-slate-500');
-                }
-            });
-        }
-
-        function setDirection(direction) {
-            state.gradDirection = direction;
-            updateDirectionUI();
-            updateCanvas();
-        }
-
-        function updateDirectionUI() {
-            document.querySelectorAll('.dir-btn').forEach(btn => {
-                if(btn.dataset.dir === state.gradDirection) {
-                    btn.classList.add('active-dir', 'bg-brand-50', 'dark:bg-slate-800', 'border-brand-500', 'dark:border-slate-500', 'text-brand-600', 'dark:text-brand-400');
-                } else {
-                    btn.classList.remove('active-dir', 'bg-brand-50', 'dark:bg-slate-800', 'border-brand-500', 'dark:border-slate-500', 'text-brand-600', 'dark:text-brand-400');
-                }
-            });
-        }
-
-        function togglePaletteVisibility() {
-            const solidPanel = document.getElementById('solidColorPanel');
-            const gradPanel = document.getElementById('gradientColorPanel');
-            const solidPalette = document.getElementById('solidPalette');
-            const gradPalette = document.getElementById('gradientPalette');
-
-            if (state.bgType === 'solid') {
-                solidPanel.classList.remove('hidden');
-                gradPanel.classList.add('hidden');
-                solidPalette.classList.remove('hidden');
-                gradPalette.classList.add('hidden');
-            } else {
-                solidPanel.classList.add('hidden');
-                gradPanel.classList.remove('hidden');
-                solidPalette.classList.add('hidden');
-                gradPalette.classList.remove('hidden');
-            }
-        }
-
-        function resizeCanvas() {
-            let width = 1080;
-            let height = 1080;
-
-            if (state.canvasRatio === '4:5') height = 1350;
-            else if (state.canvasRatio === '16:9') { width = 1920; height = 1080; }
-
-            state.canvas.width = width;
-            state.canvas.height = height;
-        }
-
-        function handleImageUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = new Image();
-                img.onload = () => {
-                    state.bgImage = img;
-                    state.bgImageName = file.name;
-                    document.getElementById('imageFileName').innerText = file.name;
-                    document.getElementById('imageControlPanel').classList.remove('hidden');
-                    updateCanvas();
+                    measureBox.removeChild(tempP);
+                    return bestIdx;
                 };
-                img.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function deleteBackgroundImage() {
-            state.bgImage = null;
-            state.bgImageName = null;
-            document.getElementById('bgImageUpload').value = '';
-            document.getElementById('imageControlPanel').classList.add('hidden');
-            
-            // Reset Overlay Settings
-            document.getElementById('overlayOpacity').value = 0;
-            document.getElementById('overlayValueText').innerText = "원본";
-            
-            updateCanvas();
-        }
-        
-        function clearQuoteTextOnly() {
-            document.getElementById('quote').value = '';
-            // Author and Title are preserved
-            updateCanvas();
-        }
-
-        function setPreset(type, color1, color2, textColor) {
-            state.bgType = type;
-            state.colors.text = textColor;
-            
-            if (type === 'solid') {
-                state.colors.bgMain = color1;
-                document.querySelector('input[name="bgMode"][value="solid"]').checked = true;
-                if(state.pickrs.bgMain) state.pickrs.bgMain.setColor(color1, true);
-            } else {
-                state.colors.gradStart = color1;
-                state.colors.gradEnd = color2;
-                document.querySelector('input[name="bgMode"][value="gradient"]').checked = true;
-                if(state.pickrs.gradStart) state.pickrs.gradStart.setColor(color1, true);
-                if(state.pickrs.gradEnd) state.pickrs.gradEnd.setColor(color2, true);
-            }
-
-            if(state.pickrs.text) state.pickrs.text.setColor(textColor, true);
-            togglePaletteVisibility();
-            updateCanvas();
-        }
-
-        // --- 5. Drawing Core ---
-        function updateCanvas() {
-            if (!state.ctx) return;
-            const ctx = state.ctx;
-            const width = state.canvas.width;
-            const height = state.canvas.height;
-
-            // Clear
-            ctx.clearRect(0, 0, width, height);
-
-            // 1. Background
-            drawBackground(ctx, width, height);
-
-            // 2. Content (Text + Logo)
-            drawContent(ctx, width, height);
-        }
-
-        function normalizeColor(color) {
-            if (!color) return '#000000';
-            // Check for 8-digit hex (e.g. #RRGGBBAA)
-            if (/^#[0-9A-F]{8}$/i.test(color)) {
-                const r = parseInt(color.slice(1, 3), 16);
-                const g = parseInt(color.slice(3, 5), 16);
-                const b = parseInt(color.slice(5, 7), 16);
-                const a = parseInt(color.slice(7, 9), 16) / 255;
-                return `rgba(${r}, ${g}, ${b}, ${a.toFixed(2)})`;
-            }
-            return color;
-        }
-
-        function drawBackground(ctx, width, height) {
-            // Force reset alpha to prevent ghosting
-            ctx.globalAlpha = 1;
-            
-            if (state.bgType === 'solid') {
-                // Color Only
-                let colorMain = normalizeColor(state.colors.bgMain);
-                ctx.fillStyle = colorMain;
-            } else {
-                // Gradient Mode
-                let x0 = 0, y0 = 0, x1 = 0, y1 = 0;
-                
-                switch(state.gradDirection) {
-                    case 'to bottom': y1 = height; break;
-                    case 'to top': y0 = height; y1 = 0; break;
-                    case 'to right': x1 = width; break;
-                    case 'to left': x0 = width; x1 = 0; break;
-                    case 'to bottom right': x1 = width; y1 = height; break;
-                    case 'to top right': y0 = height; x1 = width; y1 = 0; break;
-                    case 'to bottom left': x0 = width; y1 = height; break;
-                    case 'to top left': x0 = width; y0 = height; break;
-                }
-                
-                const grad = ctx.createLinearGradient(x0, y0, x1, y1);
-                grad.addColorStop(0, normalizeColor(state.colors.gradStart));
-                grad.addColorStop(1, normalizeColor(state.colors.gradEnd));
-                ctx.fillStyle = grad;
-            }
-            
-            // Always fill the rect
-            ctx.fillRect(0, 0, width, height);
-
-            // Background Image
-            if (state.bgImage) {
-                drawImage(ctx, width, height);
-            }
-
-            // Overlay
-            const overlayVal = parseInt(document.getElementById('overlayOpacity').value);
-            
-            if (overlayVal !== 0) {
-                ctx.save();
-                if (overlayVal < 0) {
-                    // Light (White)
-                    ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(overlayVal) / 100})`;
-                } else {
-                    // Dark (Black)
-                    ctx.fillStyle = `rgba(0, 0, 0, ${overlayVal / 100})`;
-                }
-                ctx.fillRect(0, 0, width, height);
-                ctx.restore();
-            }
-        }
-
-        function drawImage(ctx, width, height) {
-            const img = state.bgImage;
-            const fit = document.querySelector('input[name="imageFit"]:checked').value;
-            const position = document.querySelector('input[name="imagePosition"]:checked').value;
-            const scalePercent = parseInt(document.getElementById('bgImageScale').value);
-            const scale = scalePercent / 100;
-
-            let sWidth = img.width;
-            let sHeight = img.height;
-            
-            // Calculate draw dimensions based on fit mode (base size)
-            let dWidth, dHeight;
-            const imgRatio = sWidth / sHeight;
-            const canvasRatio = width / height;
-
-            if (fit === 'cover') {
-                if (imgRatio > canvasRatio) {
-                    dHeight = height;
-                    dWidth = height * imgRatio;
-                } else {
-                    dWidth = width;
-                    dHeight = width / imgRatio;
-                }
-            } else { // contain
-                 if (imgRatio > canvasRatio) {
-                    dWidth = width;
-                    dHeight = width / imgRatio;
-                } else {
-                    dHeight = height;
-                    dWidth = height * imgRatio;
-                }
-            }
-
-            // Apply Scale
-            dWidth *= scale;
-            dHeight *= scale;
-
-            // Calculate Position
-            let dx, dy;
-            const [vPos, hPos] = position.split('-');
-
-            if (hPos === 'left') dx = 0;
-            else if (hPos === 'center') dx = (width - dWidth) / 2;
-            else if (hPos === 'right') dx = width - dWidth;
-
-            if (vPos === 'top') dy = 0;
-            else if (vPos === 'middle') dy = (height - dHeight) / 2;
-            else if (vPos === 'bottom') dy = height - dHeight;
-
-            ctx.drawImage(img, dx, dy, dWidth, dHeight);
-        }
-
-        function drawContent(ctx, width, height) {
-            const quote = document.getElementById('quote').value;
-            const author = document.getElementById('author').value;
-            const title = document.getElementById('title').value;
-            const platform = state.platform;
-            
-            const fontSize = parseInt(document.getElementById('fontSize').value);
-            const lineHeightMultiplier = parseFloat(document.getElementById('lineHeight').value);
-            const padding = parseInt(document.getElementById('padding').value);
-            const align = document.querySelector('input[name="align"]:checked').value;
-            const fontFamily = state.fontFamily; // Use state, not select
-            const breakMode = document.querySelector('input[name="linebreak"]:checked').value;
-            const logoSize = parseInt(document.getElementById('logoSize').value);
-
-            ctx.fillStyle = state.colors.text;
-            ctx.textBaseline = 'middle';
-
-            // --- Footer Metrics (Increased Size) ---
-            const footerFontSize = Math.max(24, fontSize * 0.8);
-            const footerLineHeight = footerFontSize * 1.5;
-
-            // --- Quote Calculation ---
-            // Determine font weight based on family for the thinnest look (Thin/Light Application)
-            // Modified weights as requested (+100)
-            let fontWeight = 400; // Default
-            if (fontFamily === 'Noto Serif KR') fontWeight = 300;       // Light (was 200)
-            else if (fontFamily === 'Noto Sans KR') fontWeight = 200;    // ExtraLight (was 100)
-            else if (fontFamily === 'Pretendard') fontWeight = 200;      // ExtraLight (was 100)
-            else if (fontFamily === 'KoPub Batang') fontWeight = 300;    // Light
-            
-            ctx.font = `${fontWeight} ${fontSize}px '${fontFamily}'`;
-            const contentWidth = width - (padding * 2);
-            
-            const lineHeight = fontSize * lineHeightMultiplier;
-            const lines = getLines(ctx, quote, contentWidth, breakMode);
-            
-            // --- Vertical Layout ---
-            const hasFooterText = !!(author || title);
-            const quoteBlockHeight = lines.length * lineHeight;
-            const spacing = hasFooterText ? (fontSize * 1.0) : 0;
-            const totalContentHeight = quoteBlockHeight + spacing + (hasFooterText ? footerLineHeight : 0);
-            
-            let currentY = (height - totalContentHeight) / 2 + (lineHeight / 2);
-
-            // --- Draw Quote ---
-            if (quote) {
-                lines.forEach(line => {
-                    let x;
-                    if (align === 'left') x = padding;
-                    else if (align === 'center') x = width / 2;
-                    else if (align === 'right') x = width - padding;
-                    else if (align === 'justify') x = width / 2; 
-
-                    if (align === 'justify' && lines.length > 1) {
-                         ctx.textAlign = 'center';
-                         ctx.fillText(line, x, currentY);
+                while (queue.length > 0) {
+                    const item = queue.shift();
+                    const effectiveText = (!item.isSceneBreak && item.text.trim().length === 0) ? '\u00A0' : item.text;
+                    const p = document.createElement('p');
+                    p.textContent = effectiveText;
+                    p.style.lineHeight = "1.8"; p.style.marginBottom = "0"; p.style.fontFamily = FONT_MAP[fontKey].family;
+                    if (item.isSceneBreak) { p.style.textAlign = 'center'; p.style.textIndent = '0'; } else if (item.isContinued) { p.classList.add('continued'); } else { p.style.textIndent = '1em'; }
+                    measureBox.appendChild(p);
+                    const currentHeight = measureBox.scrollHeight;
+                    const currentBuffer = (pageNum === 1) ? BOTTOM_BUFFER_P1 : 0;
+                    const limitHeight = PAGE_CONTENT_HEIGHT - currentBuffer;
+                    if (currentHeight <= limitHeight) {
+                        currentParagraphs.push({ text: effectiveText, isContinued: item.isContinued, isSceneBreak: item.isSceneBreak });
                     } else {
-                        ctx.textAlign = align === 'justify' ? 'center' : align;
-                        ctx.fillText(line, x, currentY);
-                    }
-                    currentY += lineHeight;
-                });
-            }
-
-            // --- Draw Footer Text (Fixed to Pretendard, Mixed Styles) ---
-            if (hasFooterText) {
-                currentY = currentY - (lineHeight/2) + spacing + (footerLineHeight / 2);
-                
-                // Prepare parts
-                const authorPart = author || '';
-                const separator = (author && title) ? ' | ' : '';
-                const titlePart = title || '';
-
-                // Force Fonts to Pretendard
-                const footerFontFamily = 'Pretendard';
-                const fontNormal = `200 ${footerFontSize}px '${footerFontFamily}'`;
-                const fontBold = `400 ${footerFontSize}px '${footerFontFamily}'`;
-
-                // Measure widths
-                ctx.font = fontNormal;
-                const wAuthor = ctx.measureText(authorPart).width;
-                const wSep = ctx.measureText(separator).width;
-                ctx.font = fontBold;
-                const wTitle = ctx.measureText(titlePart).width;
-                
-                const totalFooterWidth = wAuthor + wSep + wTitle;
-
-                // Calculate Start X
-                let startX;
-                if (align === 'left') {
-                    startX = padding;
-                } else if (align === 'center' || align === 'justify') {
-                    startX = (width - totalFooterWidth) / 2;
-                } else if (align === 'right') {
-                    startX = width - padding - totalFooterWidth;
-                }
-
-                // Draw Parts
-                ctx.textAlign = 'left'; // Always draw left-to-right from startX
-                
-                // 1. Author (Normal)
-                ctx.font = fontNormal;
-                ctx.fillText(authorPart, startX, currentY);
-                
-                // 2. Separator (Normal)
-                ctx.fillText(separator, startX + wAuthor, currentY);
-
-                // 3. Title (Bold)
-                ctx.font = fontBold;
-                ctx.fillText(titlePart, startX + wAuthor + wSep, currentY);
-            }
-
-            // --- Draw Logo (Fixed Position: Bottom Right) ---
-            const logoImg = platform ? state.logoImages[platform] : null;
-            if (logoImg && logoImg.complete && logoImg.naturalHeight !== 0) {
-                const radius = logoSize / 2;
-                const margin = 60; // Fixed margin from edges
-                
-                // Absolute Position: Bottom Right
-                const logoX = width - margin - radius;
-                const logoY = height - margin - radius;
-
-                ctx.save();
-                
-                // Apply 20% Transparency (80% Opacity)
-                ctx.globalAlpha = 0.8;
-                
-                ctx.beginPath();
-                ctx.arc(logoX, logoY, radius, 0, Math.PI * 2);
-                ctx.closePath();
-                ctx.clip();
-                
-                // Image fitting (cover)
-                const aspect = logoImg.width / logoImg.height;
-                let sw, sh, sx, sy;
-                if (aspect > 1) {
-                    sh = logoImg.height; sw = sh; sx = (logoImg.width - sw) / 2; sy = 0;
-                } else {
-                    sw = logoImg.width; sh = sw; sx = 0; sy = (logoImg.height - sh) / 2;
-                }
-
-                ctx.drawImage(logoImg, sx, sy, sw, sh, logoX - radius, logoY - radius, logoSize, logoSize);
-                ctx.restore();
-            }
-        }
-
-        function getLines(ctx, text, maxWidth, breakMode) {
-            if (!text) return [];
-            
-            const paragraphs = text.split('\n');
-            let lines = [];
-
-            paragraphs.forEach(para => {
-                if (breakMode === 'word') {
-                    const words = para.split(' ');
-                    let currentLine = words[0];
-
-                    for (let i = 1; i < words.length; i++) {
-                        const word = words[i];
-                        const width = ctx.measureText(currentLine + " " + word).width;
-                        if (width < maxWidth) {
-                            currentLine += " " + word;
+                        measureBox.removeChild(p); 
+                        const currentBaseHeight = measureBox.scrollHeight;
+                        const availableHeight = limitHeight - currentBaseHeight;
+                        if (availableHeight < 18) {
+                            queue.unshift(item);
                         } else {
-                            lines.push(currentLine);
-                            currentLine = word;
+                            const splitIdx = findSplitIndex(effectiveText, availableHeight, item.isContinued);
+                            if (splitIdx > 0) {
+                                const partA = effectiveText.substring(0, splitIdx);
+                                const partB = effectiveText.substring(splitIdx);
+                                currentParagraphs.push({ text: partA, isContinued: item.isContinued, isSceneBreak: item.isSceneBreak });
+                                if (partB.length > 0) queue.unshift({ text: partB, isContinued: true, isSceneBreak: item.isSceneBreak });
+                            } else {
+                                queue.unshift(item);
+                            }
                         }
+                        resultPages.push({ paragraphs: currentParagraphs });
+                        currentParagraphs = [];
+                        pageNum++;
+                        measureBox.innerHTML = '';
                     }
-                    lines.push(currentLine);
-                } else {
-                    let currentLine = para[0] || '';
-                    for (let i = 1; i < para.length; i++) {
-                        const char = para[i];
-                        const width = ctx.measureText(currentLine + char).width;
-                        if (width < maxWidth) {
-                            currentLine += char;
-                        } else {
-                            lines.push(currentLine);
-                            currentLine = char;
-                        }
-                    }
-                    lines.push(currentLine);
                 }
-            });
-            return lines;
-        }
+                if (currentParagraphs.length > 0) resultPages.push({ paragraphs: currentParagraphs });
+                return resultPages;
+            };
 
-        // --- 6. Export ---
-        async function downloadImage() {
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            
-            if (isIOS && navigator.share) {
-                 state.canvas.toBlob(async (blob) => {
-                    const file = new File([blob], "lumina_quote.png", { type: "image/png" });
-                    try {
-                        await navigator.share({
-                            files: [file],
+            useEffect(() => {
+                if (step === 'input' && debouncedText) {
+                    const p = calculatePages(debouncedText, activeFont);
+                    setEstimatedPages(p.length);
+                } else {
+                    setEstimatedPages(0);
+                }
+            }, [debouncedText, step, activeFont, metadata.title]);
+
+            const startGeneration = async (targetFont = null) => {
+                const fontToUse = targetFont || activeFont;
+                const txt = textInput;
+                if (!txt.trim()) { if(!targetFont) alert("본문 내용을 입력해주세요."); return; }
+                if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+                setIsGenerating(true);
+                setTimeout(() => {
+                    const resultPages = calculatePages(txt, fontToUse);
+                    setPages(resultPages);
+                    if (targetFont) {
+                        setCurrentPageIdx(prev => Math.min(prev, resultPages.length - 1));
+                        setActiveTab('style');
+                    } else {
+                        setCurrentPageIdx(0);
+                        setPageHighlights({});
+                        setActiveTab('style'); 
+                    }
+                    setStep('preview');
+                    setIsGenerating(false);
+                    if (!targetFont) setTimeout(() => window.scrollTo(0, 0), 100);
+                }, 400);
+            };
+
+            const handleFontChange = (newFont) => {
+                if (activeFont === newFont) return;
+                if (window.confirm("폰트를 변경하면 페이지 레이아웃이 다시 계산됩니다.\n형광펜 및 수정 내용이 초기화됩니다. 계속하시겠습니까?")) {
+                    setActiveFont(newFont);
+                    setPageHighlights({});
+                    startGeneration(newFont);
+                }
+            };
+
+            const saveCurrentPageState = () => {
+                if (contentRef.current) {
+                     setPageHighlights(prev => ({ ...prev, [currentPageIdx]: contentRef.current.innerHTML }));
+                }
+            };
+
+            const handleHighlightSelection = () => {
+                if (activeTab !== 'tool') return;
+                const selection = window.getSelection();
+                if (!selection || selection.rangeCount === 0 || selection.toString().trim() === '') return;
+                const range = selection.getRangeAt(0);
+                const container = contentRef.current;
+                if (!container || !container.contains(range.commonAncestorContainer)) return;
+                const highlightId = 'hl-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                try {
+                    const treeWalker = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT, { acceptNode: function(node) { if (!range.intersectsNode(node)) return NodeFilter.FILTER_REJECT; return NodeFilter.FILTER_ACCEPT; } });
+                    const nodesToHighlight = [];
+                    if (range.commonAncestorContainer.nodeType === Node.TEXT_NODE) { if (range.intersectsNode(range.commonAncestorContainer)) nodesToHighlight.push(range.commonAncestorContainer); }
+                    else { let currentNode = treeWalker.nextNode(); while (currentNode) { nodesToHighlight.push(currentNode); currentNode = treeWalker.nextNode(); } }
+                    nodesToHighlight.forEach(node => {
+                        const nodeRange = document.createRange(); nodeRange.selectNodeContents(node);
+                        if (node === range.startContainer) nodeRange.setStart(node, range.startOffset);
+                        if (node === range.endContainer) nodeRange.setEnd(node, range.endOffset);
+                        const text = nodeRange.toString();
+                        if (text.trim().length > 0) {
+                            const span = document.createElement('span');
+                            if (toolMode === 'highlight') span.className = `highlight ${currentHighlightColor}`;
+                            else span.className = `colored-text ${currentTextColor}`;
+                            span.setAttribute('data-group-id', highlightId);
+                            nodeRange.surroundContents(span);
+                        }
+                    });
+                    selection.removeAllRanges();
+                    saveCurrentPageState();
+                } catch (e) { console.log("Highlight failed", e); }
+            };
+
+            const handleContentClick = (e) => {
+                if (activeTab !== 'tool') return;
+                const target = e.target;
+                let shouldRemove = false;
+                if (toolMode === 'highlight' && target.classList.contains('highlight')) shouldRemove = true;
+                else if (toolMode === 'text' && target.classList.contains('colored-text')) shouldRemove = true;
+                if (shouldRemove) {
+                    const groupId = target.getAttribute('data-group-id');
+                    if (groupId) {
+                        const allSpans = contentRef.current.querySelectorAll(`span[data-group-id="${groupId}"]`);
+                        allSpans.forEach(span => {
+                            const text = span.textContent;
+                            const textNode = document.createTextNode(text);
+                            span.parentNode.replaceChild(textNode, span);
                         });
-                    } catch (err) {
-                        console.log("Share failed or canceled", err);
+                        saveCurrentPageState();
                     }
-                });
-            } else {
-                const link = document.createElement('a');
-                link.download = `lumina_quote_${Date.now()}.png`;
-                link.href = state.canvas.toDataURL('image/png');
-                link.click();
-            }
+                }
+            };
+
+            const goToPage = (idx) => {
+                saveCurrentPageState();
+                setCurrentPageIdx(idx);
+                window.scrollTo(0, 0);
+            };
+
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (step === 'preview') {
+                        if (e.key === 'ArrowLeft' && currentPageIdx > 0) goToPage(currentPageIdx - 1);
+                        else if (e.key === 'ArrowRight' && currentPageIdx < pages.length - 1) goToPage(currentPageIdx + 1);
+                    } else if (step === 'mockup' && !focusedFlyleaf) {
+                        if (e.key === 'ArrowLeft' && mockupSpreadIdx > 0) setMockupSpreadIdx(prev => prev - 1);
+                        else if (e.key === 'ArrowRight' && mockupSpreadIdx < spreads.length - 1) setMockupSpreadIdx(prev => prev + 1);
+                    }
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [step, currentPageIdx, pages.length, mockupSpreadIdx, focusedFlyleaf]);
+
+            const touchStartRef = useRef(null);
+            const touchEndRef = useRef(null);
+            const minSwipeDistance = 50;
+            const onTouchStart = (e) => { touchEndRef.current = null; touchStartRef.current = e.targetTouches[0].clientX; };
+            const onTouchMove = (e) => { touchEndRef.current = e.targetTouches[0].clientX; };
+            const onTouchEnd = () => {
+                // Modified Touch Logic
+                if (activeTab === 'tool') {
+                    // Try to highlight/color text, but do NOT swipe
+                    handleHighlightSelection();
+                    return; 
+                }
+
+                if (!touchStartRef.current || !touchEndRef.current) return;
+                const distance = touchStartRef.current - touchEndRef.current;
+                const isLeftSwipe = distance > minSwipeDistance;
+                const isRightSwipe = distance < -minSwipeDistance;
+                if (step === 'preview') {
+                    if (isLeftSwipe && currentPageIdx < pages.length - 1) goToPage(currentPageIdx + 1);
+                    if (isRightSwipe && currentPageIdx > 0) goToPage(currentPageIdx - 1);
+                } else if (step === 'mockup' && !focusedFlyleaf) {
+                    if (isLeftSwipe && mockupSpreadIdx < spreads.length - 1) setMockupSpreadIdx(prev => prev + 1);
+                    if (isRightSwipe && mockupSpreadIdx > 0) setMockupSpreadIdx(prev => prev - 1);
+                }
+            };
+
+            const backToEdit = () => {
+                if (window.confirm('형광펜이 모두 지워집니다. 수정 화면으로 가시겠습니까?')) {
+                    setStep('input'); setPages([]); setPageHighlights({}); setCurrentPageIdx(0); setActiveTab(null); window.scrollTo(0, 0);
+                }
+            };
+            const resetApp = () => {
+                if (window.confirm('작업 내용을 지우고 처음으로 돌아가시겠습니까?')) {
+                    setStep('input'); setPages([]); setPageHighlights({}); setTextInput(''); setMetadata({ ...metadata, title: '', author: '', producer: '' }); setActiveTab(null); window.scrollTo(0, 0);
+                }
+            };
+
+            const downloadCurrentPage = async () => {
+                const target = document.getElementById('captureTarget');
+                if (!target) return;
+                const title = metadata.title || 'novel';
+                const fileName = `${title}_${currentPageIdx + 1}p.png`;
+                setLoadingMessage('저장 중...');
+                // Warm-up for mobile single page download
+                if(isMobile()) await new Promise(r => setTimeout(r, 300));
+
+                try {
+                    const fontCss = await prepareFontEmbedCSS(activeFont);
+                    await captureNode(target, fileName, 420, 600, fontCss);
+                } catch (error) {
+                    console.error('[다운로드] 실패:', error);
+                    alert('이미지 생성에 실패했습니다. 다시 시도해주세요.');
+                } finally {
+                    setLoadingMessage('');
+                }
+            };
+
+            const downloadAllPages = async () => {
+                if (isMobile()) return; 
+                if (!window.confirm(`총 ${pages.length}장의 이미지를 저장합니다.`)) return;
+                saveCurrentPageState();
+                const originalPageIdx = currentPageIdx;
+                window.scrollTo(0, 0);
+                try {
+                    await ensureFontsLoaded();
+                    const fontCss = await prepareFontEmbedCSS(activeFont);
+                    for (let i = 0; i < pages.length; i++) {
+                        setCurrentPageIdx(i);
+                        setLoadingMessage(`저장 중... (${i + 1}/${pages.length})`);
+                        setLoadingProgress(Math.floor(((i + 1) / pages.length) * 100));
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        const target = document.getElementById('captureTarget');
+                        if (target) {
+                            const fileName = `${metadata.title || 'novel'}_${String(i+1).padStart(3, '0')}p.png`;
+                            await captureNode(target, fileName, 420, 600, fontCss);
+                        }
+                    }
+                    alert("완료되었습니다.");
+                } catch (e) { console.error(e); alert("오류가 발생했습니다."); } finally { setLoadingMessage(''); setLoadingProgress(0); setCurrentPageIdx(originalPageIdx); }
+            };
+            
+            const downloadPDF = async () => {
+                if (!window.confirm(`총 ${pages.length}페이지를 PDF로 변환합니다.\n시간이 다소 소요될 수 있습니다.`)) return;
+                saveCurrentPageState();
+                const originalPageIdx = currentPageIdx;
+                try {
+                    setLoadingMessage('PDF 생성 준비 중...');
+                    await ensureFontsLoaded();
+                    const fontCss = await prepareFontEmbedCSS(activeFont);
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: [105, 148] });
+
+                    for (let i = 0; i < pages.length; i++) {
+                        setCurrentPageIdx(i);
+                        setLoadingMessage(`페이지 렌더링 중... (${i + 1}/${pages.length})`);
+                        setLoadingProgress(Math.floor(((i + 1) / pages.length) * 100));
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        const target = document.getElementById('captureTarget');
+                        if (target) {
+                           const options = {
+                                quality: 1.0, pixelRatio: 2, cacheBust: false,
+                                width: 420, height: 600,
+                                style: { transform: 'none', margin: '0' },
+                                fontEmbedCSS: fontCss,
+                                filter: (node) => !node.classList || !node.classList.contains('no-capture')
+                            };
+                            const dataUrl = await htmlToImage.toPng(target, options);
+                            if (i > 0) doc.addPage();
+                            doc.addImage(dataUrl, 'PNG', 0, 0, 105, 148);
+                        }
+                    }
+                    doc.save(`${metadata.title || 'novel'}.pdf`);
+                    alert("PDF 저장이 완료되었습니다.");
+                } catch (e) { console.error(e); alert("PDF 생성 중 오류가 발생했습니다."); }
+                finally { setLoadingMessage(''); setLoadingProgress(0); setCurrentPageIdx(originalPageIdx); window.scrollTo(0,0); }
+            };
+
+
+            // MOCKUP LOGIC
+            const getSpreads = useCallback(() => {
+                const spreadList = [];
+                spreadList.push({ left: { type: 'flyleaf-front' }, right: { type: 'page', index: 0 } });
+                let i = 1;
+                while (i < pages.length) {
+                    const left = { type: 'page', index: i };
+                    const right = (i + 1 < pages.length) ? { type: 'page', index: i + 1 } : null;
+                    if (!right) { spreadList.push({ left, right: { type: 'flyleaf-back' } }); } 
+                    else { spreadList.push({ left, right }); }
+                    i += 2;
+                }
+                return spreadList;
+            }, [pages.length]);
+
+            const spreads = getSpreads();
+
+            const goToMockup = () => {
+                saveCurrentPageState();
+                setMockupSpreadIdx(0);
+                setStep('mockup');
+                setFocusedFlyleaf(null);
+                window.scrollTo(0,0);
+            };
+
+            const backToPreview = () => {
+                setStep('preview');
+                window.scrollTo(0,0);
+            };
+
+            const downloadCurrentMockup = async () => {
+                const target = document.getElementById('mockupCaptureHidden'); 
+                if(!target) return;
+                const fileName = `${metadata.title || 'novel'}_mockup_${mockupSpreadIdx + 1}.png`;
+                setLoadingMessage('목업 저장 중...');
+                const fontCss = await prepareFontEmbedCSS(activeFont);
+                // Capture only the book (840x600)
+                captureNode(target, fileName, 840, 600, fontCss).catch(e => { console.error(e); alert('실패'); }).finally(() => setLoadingMessage(''));
+            };
+
+            const downloadAllMockups = async () => {
+                if (isMobile()) return;
+                if (!window.confirm(`총 ${spreads.length}장의 목업 이미지를 저장합니다.`)) return;
+                const originalSpreadIdx = mockupSpreadIdx;
+                try {
+                    const fontCss = await prepareFontEmbedCSS(activeFont);
+                    for(let i=0; i<spreads.length; i++){
+                        setMockupSpreadIdx(i);
+                        setLoadingMessage(`목업 저장 중... (${i+1}/${spreads.length})`);
+                        await new Promise(r => setTimeout(r, 500));
+                        const target = document.getElementById('mockupCaptureHidden');
+                        if(target){
+                            const fileName = `${metadata.title || 'novel'}_mockup_${String(i+1).padStart(2,'0')}.png`;
+                            await captureNode(target, fileName, 840, 600, fontCss);
+                        }
+                    }
+                    alert("완료되었습니다.");
+                } catch(e) { console.error(e); alert("실패"); }
+                finally { setLoadingMessage(''); setMockupSpreadIdx(originalSpreadIdx); }
+            };
+
+            // Flyleaf Modal Handlers
+            const handleFlyleafEdit = (type) => {
+                setFocusedFlyleaf(type);
+            };
+
+            const handleFlyleafModalChange = (e) => {
+                const val = e.target.value;
+                const lines = val.split('\n');
+                let text = val;
+                if (lines.length > 6) {
+                    text = lines.slice(0, 6).join('\n');
+                }
+                
+                if (focusedFlyleaf === 'front') setFrontFlyleafText(text);
+                else if (focusedFlyleaf === 'back') setBackFlyleafText(text);
+            };
+
+            // -- Render --
+            return (
+                <div className="min-h-screen font-serif" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+                    {/* Measurement Container (Hidden) */}
+                    <div ref={measureContainerRef} className="hidden-measure"></div>
+
+                    {/* Hidden Mockup Capture Target (Exact Book Size) */}
+                    {step === 'mockup' && (
+                        <div style={{ position: 'fixed', top: '-10000px', left: '-10000px' }}>
+                            <div id="mockupCaptureHidden" style={{ width: '840px', height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' }}>
+                                <MockupBookRenderer 
+                                    spreadIdx={mockupSpreadIdx} spreads={spreads} isCaptureMode={true} activeTheme={activeTheme} activeFont={activeFont}
+                                    frontFlyleafText={frontFlyleafText} setFrontFlyleafText={setFrontFlyleafText}
+                                    backFlyleafText={backFlyleafText} setBackFlyleafText={setBackFlyleafText}
+                                    pageHighlights={pageHighlights} pages={pages} metadata={metadata}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Flyleaf Focus Modal */}
+                    {focusedFlyleaf && (
+                        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setFocusedFlyleaf(null)}>
+                            <div className="bg-[#1a2233] p-8 rounded-lg shadow-2xl relative flex flex-col" onClick={e => e.stopPropagation()}>
+                                <div className="text-white/50 text-xs mb-4 text-center">
+                                    {focusedFlyleaf === 'front' ? '앞표지' : '뒤표지'} 속지 문구 입력 (최대 6줄)
+                                </div>
+                                <div className={`flex flex-col ${focusedFlyleaf === 'front' ? 'items-start text-left' : 'items-end text-right'}`}>
+                                    <div className={`w-[30px] h-px bg-white/50 mb-4`}></div>
+                                    <textarea
+                                        value={focusedFlyleaf === 'front' ? frontFlyleafText : backFlyleafText}
+                                        onChange={handleFlyleafModalChange}
+                                        className={`bg-transparent border-none text-white/90 focus:outline-none placeholder:text-white/20 resize-none ${focusedFlyleaf === 'front' ? 'text-left' : 'text-right'}`}
+                                        rows={6}
+                                        placeholder="문구를 입력하세요..."
+                                        autoFocus
+                                        style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 300, lineHeight: 1.6, fontSize: '16px', width: '240px' }}
+                                    />
+                                </div>
+                                <button onClick={() => setFocusedFlyleaf(null)} className="mt-8 w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded text-sm transition-colors">
+                                    완료
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Loading Overlay */}
+                    {loadingMessage && (
+                        <div className="fixed inset-0 bg-black/70 text-white flex flex-col items-center justify-center z-[9999]">
+                            <div className="text-xl mb-4 font-light">{loadingMessage}</div>
+                            {loadingProgress > 0 && <div className="text-sm opacity-80">잠시만 기다려주세요 ({loadingProgress}%)</div>}
+                        </div>
+                    )}
+
+                    {/* STEP 1: INPUT */}
+                    {step === 'input' && (
+                        <div className="max-w-[900px] mx-auto my-10 bg-white p-6 md:p-10 rounded-2xl shadow-sm">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 border-b pb-4 gap-4">
+                                <div className="flex items-center gap-3">
+                                    <h1 className="text-2xl font-serif font-medium text-slate-800">소설 내지 생성기</h1>
+                                    <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-bold">v1.2.1</span>
+                                </div>
+                                <a href="https://yuliyulidaz.github.io/yulilog/" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 transition-colors py-1 px-2 rounded hover:bg-indigo-50 w-fit">
+                                    <span className="text-lg">🔗</span><span className="text-xs font-medium">발췌 문구 생성기 바로가기</span>
+                                </a>
+                            </div>
+                            <div className="mb-6">
+                                <label className="block text-sm text-slate-500 mb-1">제목 (필요시 입력)</label>
+                                <input type="text" value={metadata.title} onChange={(e) => setMetadata({...metadata, title: e.target.value})} className="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all" placeholder="제목을 입력하세요" />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <label className="block text-sm text-slate-500 mb-1">캐릭터</label>
+                                    <input type="text" value={metadata.author} onChange={(e) => setMetadata({...metadata, author: e.target.value})} className="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-slate-500 mb-1">제작자</label>
+                                    <input type="text" value={metadata.producer} onChange={(e) => setMetadata({...metadata, producer: e.target.value})} className="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all" />
+                                </div>
+                            </div>
+                            <div className="mb-6 relative">
+                                <label className="block text-sm text-slate-500 mb-1 flex justify-between">
+                                    <span>본문 내용</span>
+                                    {estimatedPages > 0 && <span className="text-indigo-600 font-bold">예상 분량: 약 {estimatedPages} 페이지</span>}
+                                </label>
+                                <div className="relative">
+                                    {!textInput && (
+                                        <div className="custom-placeholder">
+                                            <p className="mb-4">여기에 소설 본문을 붙여넣으세요.<br/>엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.<br/>*** 를 입력하면 장면 전환(중앙 정렬)이 적용됩니다.</p>
+                                            <div className="mt-6 border-t border-slate-100 pt-4">
+                                                <strong className="block mb-2 text-indigo-400 text-xs">📢 2025.11.29 업데이트 안내 (v1.2.1)</strong>
+                                                <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-400">
+                                                    <li><strong>PDF 저장:</strong> 전체 페이지를 PDF로 저장하는 기능 추가</li>
+                                                    <li><strong>UI 개선:</strong> 툴바 버튼 재배치 및 최적화</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <textarea value={textInput} onChange={(e) => setTextInput(e.target.value)} className="w-full h-[400px] p-6 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all resize-none font-serif leading-loose relative z-10 bg-transparent"></textarea>
+                                </div>
+                            </div>
+                            <button onClick={() => startGeneration(null)} disabled={isGenerating} className="btn w-full py-4 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-700 shadow-lg flex justify-center items-center gap-2 disabled:opacity-70">
+                                <span>{isGenerating ? '생성 중...' : 'A6 레이아웃 생성하기'}</span>
+                            </button>
+                             <footer className="max-w-4xl mx-auto px-6 py-10 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
+                                <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.2.1</p>
+                                <p className="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br/>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
+                                <div className="bg-slate-50 rounded-xl p-6 text-left inline-block w-full max-w-2xl border border-slate-100">
+                                    <p className="font-bold mb-3 text-slate-700 flex items-center gap-2"><span className="text-base">⚠️</span> 이용 시 주의사항</p>
+                                    <ul className="list-disc pl-4 space-y-2 mb-5 text-slate-600">
+                                        <li><strong className="text-slate-700">텍스트 인용:</strong> 책이나 기타 저작물의 텍스트를 발췌할 경우, 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요.</li>
+                                        <li><strong className="text-slate-700">상업적 이용:</strong> 생성된 이미지는 상업적으로 사용할 수 없습니다.</li>
+                                    </ul>
+                                </div>
+                            </footer>
+                        </div>
+                    )}
+
+                    {/* STEP 2: PREVIEW */}
+                    {step === 'preview' && (
+                        <div className="pb-20 bg-gray-100 min-h-screen">
+                            <div className="sticky top-0 z-50 bg-white shadow-sm">
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 max-w-2xl mx-auto w-full">
+                                    {/* Left Group: Reset, Edit, Mockup */}
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={resetApp} className="flex flex-col items-center justify-center w-10 text-slate-500 hover:text-red-600 transition-colors">
+                                            <span className="text-xl leading-none">↺</span><span className="text-[9px] mt-0.5">초기화</span>
+                                        </button>
+                                        <button onClick={backToEdit} className="flex flex-col items-center justify-center w-10 text-slate-500 hover:text-indigo-600 transition-colors">
+                                            <span className="text-xl leading-none">✎</span><span className="text-[9px] mt-0.5">수정</span>
+                                        </button>
+                                        <button onClick={goToMockup} className="flex flex-col items-center justify-center w-10 text-slate-500 hover:text-indigo-600 transition-colors">
+                                            <span className="text-xl leading-none">📖</span><span className="text-[9px] mt-0.5">목업</span>
+                                        </button>
+                                    </div>
+                                    
+                                    {/* Center Group: Pagination */}
+                                    <div className="flex items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                                        <button onClick={() => { if(currentPageIdx > 0) goToPage(currentPageIdx - 1) }} disabled={currentPageIdx === 0} className="text-slate-400 hover:text-slate-800 disabled:opacity-20 px-1">‹</button>
+                                        <span className="font-serif tabular-nums text-sm w-12 text-center text-slate-700">{currentPageIdx + 1} / {pages.length}</span>
+                                        <button onClick={() => { if(currentPageIdx < pages.length - 1) goToPage(currentPageIdx + 1) }} disabled={currentPageIdx === pages.length - 1} className="text-slate-400 hover:text-slate-800 disabled:opacity-20 px-1">›</button>
+                                    </div>
+                                    
+                                    {/* Right Group: PDF, Save All, Save */}
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={downloadPDF} className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded text-xs font-medium hover:bg-slate-200 transition-colors">
+                                            PDF
+                                        </button>
+                                        {!isMobile() && (
+                                            <button onClick={downloadAllPages} className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded text-xs font-medium hover:bg-slate-200 transition-colors">
+                                                전체 이미지
+                                            </button>
+                                        )}
+                                        <button onClick={downloadCurrentPage} className="bg-slate-800 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-slate-700 shadow-sm">
+                                            {isIOS() ? '저장' : '저장'}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex border-b border-slate-200 max-w-2xl mx-auto w-full">
+                                    <button onClick={() => setActiveTab(activeTab === 'style' ? null : 'style')} className={`flex-1 py-3 text-xs font-medium flex items-center justify-center gap-2 transition-all ${activeTab === 'style' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/30' : 'text-slate-500 hover:bg-slate-50'}`}>
+                                        <span>🎨 스타일 설정</span>
+                                    </button>
+                                    <button onClick={() => setActiveTab(activeTab === 'tool' ? null : 'tool')} className={`flex-1 py-3 text-xs font-medium flex items-center justify-center gap-2 transition-all ${activeTab === 'tool' ? 'text-pink-600 border-b-2 border-pink-600 bg-pink-50/30' : 'text-slate-500 hover:bg-slate-50'}`}>
+                                        <span>🛠 도구</span>
+                                    </button>
+                                </div>
+                                {activeTab && (
+                                    <div className="bg-slate-50/80 backdrop-blur-sm border-b border-slate-200 animate-fade-in">
+                                        <div className="max-w-2xl mx-auto w-full p-4">
+                                            {activeTab === 'style' && (
+                                                <div className="flex flex-col gap-5 animate-slide-down">
+                                                    <div className="flex items-center justify-center gap-4">
+                                                        <span className="text-[10px] tracking-widest text-slate-400 font-bold">THEME</span>
+                                                        <div className="flex gap-3">
+                                                            {['white', 'cream', 'kraft', 'dark'].map(theme => (
+                                                                <button key={theme} onClick={() => setActiveTheme(theme)} className={`circle-btn theme-btn-${theme} ${activeTheme === theme ? 'active shadow-md' : ''}`} title={theme}></button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <div className="h-px bg-slate-200 w-full"></div>
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <div className="flex items-center gap-4">
+                                                            <span className="text-[10px] tracking-widest text-slate-400 font-bold">FONT</span>
+                                                            <div className="flex gap-1 bg-white p-1 rounded-lg border border-slate-200">
+                                                                {Object.keys(FONT_MAP).map(key => (
+                                                                    <button key={key} onClick={() => handleFontChange(key)} className={`px-3 py-1.5 text-xs rounded-md transition-all ${activeFont === key ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}>
+                                                                        {FONT_MAP[key].name}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-[10px] text-red-400 mt-1">⚠ 폰트 변경 시 형광펜이 초기화됩니다.</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {activeTab === 'tool' && (
+                                                <div className="flex flex-col items-center gap-3 animate-slide-down">
+                                                    <div className="flex bg-slate-200 rounded-lg p-1 mb-1">
+                                                       <button onClick={() => setToolMode('highlight')} className={`px-3 py-1 text-xs rounded-md transition-all ${toolMode === 'highlight' ? 'bg-white shadow-sm text-slate-800 font-medium' : 'text-slate-500'}`}>🖍 형광펜</button>
+                                                       <button onClick={() => setToolMode('text')} className={`px-3 py-1 text-xs rounded-md transition-all ${toolMode === 'text' ? 'bg-white shadow-sm text-slate-800 font-medium' : 'text-slate-500'}`}>✒️ 글자색</button>
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-500">💡 Tip: 폰트를 먼저 확정한 후 도구를 사용하세요.</p>
+                                                    {toolMode === 'highlight' ? (
+                                                        <div className="flex gap-4">
+                                                            {['highlight-yellow', 'highlight-pink', 'highlight-mint', 'highlight-blue'].map(color => (
+                                                                <button key={color} onClick={() => setCurrentHighlightColor(color)} className={`circle-btn ${color} ${currentHighlightColor === color ? 'border-slate-800 scale-110 shadow-sm' : ''}`}></button>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex gap-4">
+                                                            {[{ id: 'text-crimson', bg: 'bg-text-crimson' }, { id: 'text-navy', bg: 'bg-text-navy' }, { id: 'text-forest', bg: 'bg-text-forest' }, { id: 'text-purple', bg: 'bg-text-purple' }, { id: 'text-brown', bg: 'bg-text-brown' }, { id: 'text-teal', bg: 'bg-text-teal' }, { id: 'text-gray', bg: 'bg-text-gray' }].map(item => (
+                                                                <button key={item.id} onClick={() => setCurrentTextColor(item.id)} className={`circle-btn ${item.bg} ${currentTextColor === item.id ? 'border-slate-800 scale-110 shadow-sm' : ''}`}></button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    <p className="text-[10px] text-slate-400">드래그하여 적용, 터치하여 삭제</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div id="bookViewerWrapper" className="flex justify-center overflow-visible px-4 py-8 select-text cursor-text" onClick={() => {}}>
+                                <div ref={viewerRef} id="captureTarget" className={`page-container theme-${activeTheme}`} style={{ fontFamily: FONT_MAP[activeFont].family }}>
+                                    <PageContent 
+                                        pageIdx={currentPageIdx} 
+                                        pages={pages} 
+                                        pageHighlights={pageHighlights} 
+                                        metadata={metadata} 
+                                        activeFont={activeFont} 
+                                        onMouseUp={handleHighlightSelection} 
+                                        onClick={handleContentClick}
+                                        contentRef={contentRef}
+                                    />
+                                    <PageFooter pageIdx={currentPageIdx} metadata={metadata} />
+                                </div>
+                            </div>
+
+                            {/* Floating Navigation Buttons (Bottom Corners) - Moved OUTSIDE wrapper */}
+                            {currentPageIdx > 0 && (
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx - 1); }} 
+                                    className="fixed bottom-6 left-6 w-12 h-12 flex items-center justify-center bg-gray-800/30 hover:bg-gray-800/60 backdrop-blur-sm rounded-full text-white transition-all z-50 shadow-lg no-capture"
+                                    title="이전 페이지"
+                                >
+                                    <span className="text-2xl font-bold pb-1">‹</span>
+                                </button>
+                            )}
+                            {currentPageIdx < pages.length - 1 && (
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx + 1); }} 
+                                    className="fixed bottom-6 right-6 w-12 h-12 flex items-center justify-center bg-gray-800/30 hover:bg-gray-800/60 backdrop-blur-sm rounded-full text-white transition-all z-50 shadow-lg no-capture"
+                                    title="다음 페이지"
+                                >
+                                    <span className="text-2xl font-bold pb-1">›</span>
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    {/* STEP 3: MOCKUP */}
+                    {step === 'mockup' && (
+                        <div className="mockup-container overflow-hidden">
+                             <div className="fixed top-0 left-0 right-0 z-50 bg-slate-900/90 backdrop-blur-md text-white border-b border-slate-700">
+                                <div className="flex items-center justify-between px-4 py-3 max-w-3xl mx-auto w-full">
+                                    <button onClick={backToPreview} className="text-slate-300 hover:text-white flex items-center gap-1 text-xs font-medium">
+                                        <span className="text-lg">←</span> 나가기
+                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => { if(mockupSpreadIdx > 0) setMockupSpreadIdx(mockupSpreadIdx - 1) }} disabled={mockupSpreadIdx === 0} className="text-slate-400 hover:text-white disabled:opacity-20 px-2 text-xl">‹</button>
+                                        <span className="font-serif tabular-nums text-sm text-slate-300">Spread {mockupSpreadIdx + 1} / {spreads.length}</span>
+                                        <button onClick={() => { if(mockupSpreadIdx < spreads.length - 1) setMockupSpreadIdx(mockupSpreadIdx + 1) }} disabled={mockupSpreadIdx === spreads.length - 1} className="text-slate-400 hover:text-white disabled:opacity-20 px-2 text-xl">›</button>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {!isMobile() && <button onClick={downloadAllMockups} className="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-1.5 rounded text-slate-200">전체 저장</button>}
+                                        <button onClick={downloadCurrentMockup} className="bg-indigo-600 hover:bg-indigo-500 text-xs px-3 py-1.5 rounded text-white font-medium shadow-md">
+                                            저장
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="mockup-scaler mt-10">
+                                <MockupBookRenderer 
+                                    spreadIdx={mockupSpreadIdx} spreads={spreads} activeTheme={activeTheme} activeFont={activeFont}
+                                    frontFlyleafText={frontFlyleafText} setFrontFlyleafText={setFrontFlyleafText}
+                                    backFlyleafText={backFlyleafText} setBackFlyleafText={setBackFlyleafText}
+                                    pageHighlights={pageHighlights} pages={pages} metadata={metadata}
+                                    onEditFlyleaf={handleFlyleafEdit}
+                                />
+                            </div>
+                            <p className="mt-8 text-slate-400 text-[10px] text-center opacity-80 font-light select-none">
+                                만약 저장이 정상적으로 되지 않을 시, 다시 '저장' 버튼을 눌러주세요.🥲 죄송해요오....
+                            </p>
+                        </div>
+                    )}
+                </div>
+            );
         }
 
-        function copyImage() {
-            state.canvas.toBlob(blob => {
-                const item = new ClipboardItem({ "image/png": blob });
-                navigator.clipboard.write([item]).then(() => {
-                    alert('클립보드에 복사되었습니다!');
-                }).catch(err => {
-                    console.error('복사 실패:', err);
-                    alert('복사에 실패했습니다.');
-                });
-            });
-        }
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
