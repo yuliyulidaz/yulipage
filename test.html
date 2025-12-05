@@ -673,6 +673,9 @@
                 const textarea = textareaRef.current;
                 if (!textarea) return;
                 
+                // Save Scroll Position
+                const scrollTop = textarea.scrollTop;
+                
                 const start = textarea.selectionStart;
                 const end = textarea.selectionEnd;
                 const prevValue = textInput;
@@ -682,13 +685,19 @@
                 
                 // Restore focus and cursor position (delayed to allow react render)
                 setTimeout(() => {
-                    textarea.focus();
+                    // preventScroll: true to avoid jumping
+                    textarea.focus({ preventScroll: true });
                     const newPos = start + text.length - moveCursorBack;
                     textarea.setSelectionRange(newPos, newPos);
+                    // Restore Scroll Position
+                    textarea.scrollTop = scrollTop;
                 }, 0);
             };
 
             const handleSmartQuoteToggle = () => {
+                const textarea = textareaRef.current;
+                const scrollTop = textarea ? textarea.scrollTop : 0;
+
                 if (isCurlyMode) {
                     // Convert to Straight
                     setTextInput(prev => prev.replace(/[“”]/g, '"').replace(/[‘’]/g, "'"));
@@ -699,9 +708,19 @@
                     setTextInput(newText);
                     setIsCurlyMode(true);
                 }
+
+                setTimeout(() => {
+                    if(textarea) {
+                        textarea.focus({ preventScroll: true });
+                        textarea.scrollTop = scrollTop;
+                    }
+                }, 0);
             };
 
             const handleSmartSpacingToggle = () => {
+                const textarea = textareaRef.current;
+                const scrollTop = textarea ? textarea.scrollTop : 0;
+
                 if (isAutoSpaceMode) {
                     // Convert to Compact (Remove all blank lines)
                     const lines = textInput.split('\n');
@@ -731,6 +750,13 @@
                     setTextInput(result.join('\n'));
                     setIsAutoSpaceMode(true);
                 }
+
+                setTimeout(() => {
+                    if(textarea) {
+                        textarea.focus({ preventScroll: true });
+                        textarea.scrollTop = scrollTop;
+                    }
+                }, 0);
             };
 
             // -- Logic: Pagination --
@@ -1182,7 +1208,7 @@
                             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 border-b pb-4 gap-4">
                                 <div className="flex items-center gap-3">
                                     <h1 className="text-2xl font-serif font-medium text-slate-800">소설 내지 생성기</h1>
-                                    <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-bold">v1.2.2</span>
+                                    <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-bold">v1.2.1</span>
                                 </div>
                                 <a href="https://yuliyulidaz.github.io/yulilog/" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 transition-colors py-1 px-2 rounded hover:bg-indigo-50 w-fit">
                                     <span className="text-lg">🔗</span><span className="text-xs font-medium">발췌 문구 생성기 바로가기</span>
@@ -1212,7 +1238,7 @@
                                         <div className="custom-placeholder">
                                             <p className="mb-4">여기에 소설 본문을 붙여넣으세요.<br/>엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.<br/>*** 를 입력하면 장면 전환(중앙 정렬)이 적용됩니다.</p>
                                             <div className="mt-6 border-t border-slate-100 pt-4">
-                                                <strong className="block mb-2 text-indigo-400 text-xs">📢 2025.12.06 업데이트 안내 (v1.2.2)</strong>
+                                                <strong className="block mb-2 text-indigo-400 text-xs">📢 2025.11.29 업데이트 안내 (v1.2.1)</strong>
                                                 <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-400">
                                                     <li><strong>특수기호 툴바:</strong> 까다로운 특수 기호를 한 번에 입력</li>
                                                     <li><strong>따옴표 자동 변환</strong> 클릭 한 번으로 둥근따옴표 ↔️ 직선따옴표 한 번에 변환</li>
@@ -1268,7 +1294,7 @@
                                 <span>{isGenerating ? '생성 중...' : 'A6 레이아웃 생성하기'}</span>
                             </button>
                              <footer className="max-w-4xl mx-auto px-6 py-10 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
-                                <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.2.2</p>
+                                <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.2.1</p>
                                 <p className="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br/>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
                                 <div className="bg-slate-50 rounded-xl p-6 text-left inline-block w-full max-w-2xl border border-slate-100">
                                     <p className="font-bold mb-3 text-slate-700 flex items-center gap-2"><span className="text-base">⚠️</span> 이용 시 주의사항</p>
