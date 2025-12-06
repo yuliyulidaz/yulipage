@@ -498,7 +498,6 @@
         };
 
         const PageFooter = ({ pageIdx, isRight, metadata }) => {
-            // Mockup spreads pass direct isRight boolean. Preview mode calculates based on index.
             const isOdd = (pageIdx + 1) % 2 !== 0;
             const alignRight = isRight !== undefined ? isRight : isOdd;
 
@@ -624,20 +623,16 @@
         const BOTTOM_BUFFER_P1 = 15;
 
         function App() {
-            // -- State --
-            const [step, setStep] = useState('input'); // 'input' | 'preview' | 'mockup'
+            const [step, setStep] = useState('input');
             const [textInput, setTextInput] = useState('');
             const [metadata, setMetadata] = useState({ title: '', author: '', producer: '' });
             
-            // Settings
             const [activeTheme, setActiveTheme] = useState('white'); 
             const [activeFont, setActiveFont] = useState('noto'); 
             
-            // Smart Formatting States
             const [isCurlyMode, setIsCurlyMode] = useState(false);
             const [isAutoSpaceMode, setIsAutoSpaceMode] = useState(false);
 
-            // UI State
             const [activeTab, setActiveTab] = useState(null); 
             const [toolMode, setToolMode] = useState('highlight'); 
             
@@ -655,27 +650,57 @@
             const debouncedText = useDebounce(textInput, 500);
             const [estimatedPages, setEstimatedPages] = useState(0);
 
-            // MOCKUP STATE
             const [mockupSpreadIdx, setMockupSpreadIdx] = useState(0);
             const [frontFlyleafText, setFrontFlyleafText] = useState('');
             const [backFlyleafText, setBackFlyleafText] = useState('');
             
-            // Focus Modal State
-            const [focusedFlyleaf, setFocusedFlyleaf] = useState(null); // 'front' | 'back' | null
+            const [focusedFlyleaf, setFocusedFlyleaf] = useState(null);
 
             const measureContainerRef = useRef(null);
             const viewerRef = useRef(null);
             const contentRef = useRef(null);
             const textareaRef = useRef(null);
 
-            // -- Logic: Smart Input Toolbar --
-            const insertTextAtCursor = (text, moveCursorBack = 0) => {
+            // History API Logic for Android Back Button
+            useEffect(() => {
+                const pushState = (s) => window.history.pushState({ step: s }, '');
+                
+                // Initial state
+                window.history.replaceState({ step: 'input' }, '');
+
+                const onPopState = (e) => {
+                    if (step === 'mockup') {
+                        setStep('preview');
+                    } else if (step === 'preview') {
+                        if (window.confirm("형광펜/글자색이 모두 지워집니다. 수정 화면으로 가시겠습니까?")) {
+                             setStep('input');
+                             setPages([]); setPageHighlights({}); setCurrentPageIdx(0); setActiveTab(null);
+                        } else {
+                            pushState('preview');
+                        }
+                    } else if (step === 'input') {
+                        if (textInput.length > 0) {
+                            if (!window.confirm("입력된 내용이 삭제됩니다. 뒤로 가시겠습니까?")) {
+                                pushState('input');
+                            }
+                        }
+                    }
+                };
+                window.addEventListener('popstate', onPopState);
+                return () => window.removeEventListener('popstate', onPopState);
+            }, [step, textInput]);
+
+            // Helper to update history when changing steps manually
+            const updateStep = (newStep) => {
+                window.history.pushState({ step: newStep }, '');
+                setStep(newStep);
+            };
+
+            const insertTextAtCursor = (text, moveCursorBack = 0, keepFocus = true) => {
                 const textarea = textareaRef.current;
                 if (!textarea) return;
                 
-                // Save Scroll Position
                 const scrollTop = textarea.scrollTop;
-                
                 const start = textarea.selectionStart;
                 const end = textarea.selectionEnd;
                 const prevValue = textInput;
@@ -683,13 +708,14 @@
                 const newValue = prevValue.substring(0, start) + text + prevValue.substring(end);
                 setTextInput(newValue);
                 
-                // Restore focus and cursor position (delayed to allow react render)
                 setTimeout(() => {
-                    // preventScroll: true to avoid jumping
-                    textarea.focus({ preventScroll: true });
-                    const newPos = start + text.length - moveCursorBack;
-                    textarea.setSelectionRange(newPos, newPos);
-                    // Restore Scroll Position
+                    if (keepFocus || !isMobile()) {
+                        textarea.focus({ preventScroll: true });
+                        const newPos = start + text.length - moveCursorBack;
+                        textarea.setSelectionRange(newPos, newPos);
+                    } else {
+                        textarea.blur();
+                    }
                     textarea.scrollTop = scrollTop;
                 }, 0);
             };
@@ -699,11 +725,9 @@
                 const scrollTop = textarea ? textarea.scrollTop : 0;
 
                 if (isCurlyMode) {
-                    // Convert to Straight
                     setTextInput(prev => prev.replace(/[“”]/g, '"').replace(/[‘’]/g, "'"));
                     setIsCurlyMode(false);
                 } else {
-                    // Convert to Curly (Naive)
                     let newText = textInput.replace(/"([^"]*)"/g, "“$1”").replace(/'([^']*)'/g, "‘$1’");
                     setTextInput(newText);
                     setIsCurlyMode(true);
@@ -711,7 +735,8 @@
 
                 setTimeout(() => {
                     if(textarea) {
-                        textarea.focus({ preventScroll: true });
+                        if (isMobile()) textarea.blur(); 
+                        else textarea.focus({ preventScroll: true });
                         textarea.scrollTop = scrollTop;
                     }
                 }, 0);
@@ -722,16 +747,13 @@
                 const scrollTop = textarea ? textarea.scrollTop : 0;
 
                 if (isAutoSpaceMode) {
-                    // Convert to Compact (Remove all blank lines)
                     const lines = textInput.split('\n');
                     const compact = lines.filter(line => line.trim() !== '').join('\n');
                     setTextInput(compact);
                     setIsAutoSpaceMode(false);
                 } else {
-                    // Convert to Auto Spacing (Smart)
                     const lines = textInput.split('\n').filter(line => line.trim() !== '');
                     let result = [];
-                    // Update dialogue regex to include vertical bars (| and ❘)
                     const isDialogue = (s) => s.trim().match(/^[“"‘'|❘]/);
                     
                     for (let i = 0; i < lines.length; i++) {
@@ -740,7 +762,6 @@
                         if (i > 0) {
                             const currIsDiag = isDialogue(line);
                             const prevIsDiag = isDialogue(prev);
-                            // Add blank line if transitioning to/from dialogue
                             if (!!currIsDiag !== !!prevIsDiag) {
                                 result.push('');
                             }
@@ -753,13 +774,13 @@
 
                 setTimeout(() => {
                     if(textarea) {
-                        textarea.focus({ preventScroll: true });
+                        if (isMobile()) textarea.blur();
+                        else textarea.focus({ preventScroll: true });
                         textarea.scrollTop = scrollTop;
                     }
                 }, 0);
             };
 
-            // -- Logic: Pagination --
             const calculatePages = (text, fontKey) => {
                 const measureBox = measureContainerRef.current;
                 if (!measureBox) return [];
@@ -860,7 +881,7 @@
                         setPageHighlights({});
                         setActiveTab('style'); 
                     }
-                    setStep('preview');
+                    updateStep('preview');
                     setIsGenerating(false);
                     if (!targetFont) setTimeout(() => window.scrollTo(0, 0), 100);
                 }, 400);
@@ -958,13 +979,10 @@
             const onTouchStart = (e) => { touchEndRef.current = null; touchStartRef.current = e.targetTouches[0].clientX; };
             const onTouchMove = (e) => { touchEndRef.current = e.targetTouches[0].clientX; };
             const onTouchEnd = () => {
-                // Modified Touch Logic
                 if (activeTab === 'tool') {
-                    // Try to highlight/color text, but do NOT swipe
                     handleHighlightSelection();
                     return; 
                 }
-
                 if (!touchStartRef.current || !touchEndRef.current) return;
                 const distance = touchStartRef.current - touchEndRef.current;
                 const isLeftSwipe = distance > minSwipeDistance;
@@ -979,13 +997,16 @@
             };
 
             const backToEdit = () => {
-                if (window.confirm('형광펜이 모두 지워집니다. 수정 화면으로 가시겠습니까?')) {
+                if (window.confirm('형광펜/글자색이 모두 지워집니다. 수정 화면으로 가시겠습니까?')) {
                     setStep('input'); setPages([]); setPageHighlights({}); setCurrentPageIdx(0); setActiveTab(null); window.scrollTo(0, 0);
+                    // Correct history
+                    window.history.pushState({ step: 'input' }, '');
                 }
             };
             const resetApp = () => {
                 if (window.confirm('작업 내용을 지우고 처음으로 돌아가시겠습니까?')) {
                     setStep('input'); setPages([]); setPageHighlights({}); setTextInput(''); setMetadata({ ...metadata, title: '', author: '', producer: '' }); setActiveTab(null); window.scrollTo(0, 0);
+                    window.history.pushState({ step: 'input' }, '');
                 }
             };
 
@@ -995,7 +1016,6 @@
                 const title = metadata.title || 'novel';
                 const fileName = `${title}_${currentPageIdx + 1}p.png`;
                 setLoadingMessage('저장 중...');
-                // Warm-up for mobile single page download
                 if(isMobile()) await new Promise(r => setTimeout(r, 300));
 
                 try {
@@ -1069,8 +1089,6 @@
                 finally { setLoadingMessage(''); setLoadingProgress(0); setCurrentPageIdx(originalPageIdx); window.scrollTo(0,0); }
             };
 
-
-            // MOCKUP LOGIC
             const getSpreads = useCallback(() => {
                 const spreadList = [];
                 spreadList.push({ left: { type: 'flyleaf-front' }, right: { type: 'page', index: 0 } });
@@ -1090,13 +1108,13 @@
             const goToMockup = () => {
                 saveCurrentPageState();
                 setMockupSpreadIdx(0);
-                setStep('mockup');
+                updateStep('mockup');
                 setFocusedFlyleaf(null);
                 window.scrollTo(0,0);
             };
 
             const backToPreview = () => {
-                setStep('preview');
+                updateStep('preview');
                 window.scrollTo(0,0);
             };
 
@@ -1106,7 +1124,6 @@
                 const fileName = `${metadata.title || 'novel'}_mockup_${mockupSpreadIdx + 1}.png`;
                 setLoadingMessage('목업 저장 중...');
                 const fontCss = await prepareFontEmbedCSS(activeFont);
-                // Capture only the book (840x600)
                 captureNode(target, fileName, 840, 600, fontCss).catch(e => { console.error(e); alert('실패'); }).finally(() => setLoadingMessage(''));
             };
 
@@ -1131,7 +1148,6 @@
                 finally { setLoadingMessage(''); setMockupSpreadIdx(originalSpreadIdx); }
             };
 
-            // Flyleaf Modal Handlers
             const handleFlyleafEdit = (type) => {
                 setFocusedFlyleaf(type);
             };
@@ -1143,18 +1159,14 @@
                 if (lines.length > 6) {
                     text = lines.slice(0, 6).join('\n');
                 }
-                
                 if (focusedFlyleaf === 'front') setFrontFlyleafText(text);
                 else if (focusedFlyleaf === 'back') setBackFlyleafText(text);
             };
 
-            // -- Render --
             return (
                 <div className="min-h-screen font-serif" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-                    {/* Measurement Container (Hidden) */}
                     <div ref={measureContainerRef} className="hidden-measure"></div>
 
-                    {/* Hidden Mockup Capture Target (Exact Book Size) */}
                     {step === 'mockup' && (
                         <div style={{ position: 'fixed', top: '-10000px', left: '-10000px' }}>
                             <div id="mockupCaptureHidden" style={{ width: '840px', height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' }}>
@@ -1168,7 +1180,6 @@
                         </div>
                     )}
 
-                    {/* Flyleaf Focus Modal */}
                     {focusedFlyleaf && (
                         <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setFocusedFlyleaf(null)}>
                             <div className="bg-[#1a2233] p-8 rounded-lg shadow-2xl relative flex flex-col" onClick={e => e.stopPropagation()}>
@@ -1194,7 +1205,6 @@
                         </div>
                     )}
 
-                    {/* Loading Overlay */}
                     {loadingMessage && (
                         <div className="fixed inset-0 bg-black/70 text-white flex flex-col items-center justify-center z-[9999]">
                             <div className="text-xl mb-4 font-light">{loadingMessage}</div>
@@ -1202,23 +1212,20 @@
                         </div>
                     )}
 
-                    {/* STEP 1: INPUT */}
                     {step === 'input' && (
                         <div className="max-w-[900px] mx-auto my-10 bg-white p-6 md:p-10 rounded-2xl shadow-sm">
                             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 border-b pb-4 gap-4">
                                 <div className="flex items-center gap-3">
                                     <h1 className="text-2xl font-serif font-medium text-slate-800">소설 내지 생성기</h1>
-                                    <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-bold">v1.2.2</span>
+                                    <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-bold">v1.2.1</span>
                                 </div>
-                                <a href="https://yuliyulidaz.github.io/yulilog/" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 transition-colors py-1 px-2 rounded hover:bg-indigo-50 w-fit">
-                                    <span className="text-lg">🔗</span><span className="text-xs font-medium">발췌 문구 생성기 바로가기</span>
-                                </a>
+                                
                             </div>
                             <div className="mb-6">
                                 <label className="block text-sm text-slate-500 mb-1">제목 (필요시 입력)</label>
                                 <input type="text" value={metadata.title} onChange={(e) => setMetadata({...metadata, title: e.target.value})} className="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all" placeholder="제목을 입력하세요" />
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div className="grid grid-cols-2 gap-4 mb-6">
                                 <div>
                                     <label className="block text-sm text-slate-500 mb-1">캐릭터</label>
                                     <input type="text" value={metadata.author} onChange={(e) => setMetadata({...metadata, author: e.target.value})} className="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all" />
@@ -1238,7 +1245,7 @@
                                         <div className="custom-placeholder">
                                             <p className="mb-4">여기에 소설 본문을 붙여넣으세요.<br/>엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.<br/>*** 를 입력하면 장면 전환(중앙 정렬)이 적용됩니다.</p>
                                             <div className="mt-6 border-t border-slate-100 pt-4">
-                                                <strong className="block mb-2 text-indigo-400 text-xs">📢 2025.11.29 업데이트 안내 (v1.2.2)</strong>
+                                                <strong className="block mb-2 text-indigo-400 text-xs">📢 2025.11.29 업데이트 안내 (v1.2.1)</strong>
                                                 <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-400">
                                                     <li><strong>특수기호 툴바:</strong> 까다로운 특수 기호를 한 번에 입력</li>
                                                     <li><strong>따옴표 자동 변환</strong> 클릭 한 번으로 둥근따옴표 ↔️ 직선따옴표 한 번에 변환</li>
@@ -1255,18 +1262,17 @@
                                     ></textarea>
                                 </div>
                                 
-                                {/* Simple Toolbar - Updated Design */}
                                 <div className="flex items-center gap-12 px-6 py-2.5 bg-slate-100 border border-slate-200 border-t-0 rounded-b-lg w-full overflow-x-auto scrollbar-hide justify-center">
                                     {[
-                                        { label: '“ ”', open: '“', close: '”' },
-                                        { label: '‘ ’', open: '‘', close: '’' },
-                                        { label: '…', val: '…' },
-                                        { label: '―', val: '―' },
-                                        { label: '***', val: '***' }
+                                        { label: '“ ”', open: '“', close: '”', keepFocus: true },
+                                        { label: '‘ ’', open: '‘', close: '’', keepFocus: true },
+                                        { label: '…', val: '…', keepFocus: false },
+                                        { label: '―', val: '―', keepFocus: false },
+                                        { label: '***', val: '***', keepFocus: false }
                                     ].map((item, idx) => (
                                         <button 
                                             key={idx}
-                                            onClick={() => item.open ? insertTextAtCursor(item.open + item.close, 1) : insertTextAtCursor(item.val, 0)}
+                                            onClick={() => item.open ? insertTextAtCursor(item.open + item.close, 1, item.keepFocus) : insertTextAtCursor(item.val, 0, item.keepFocus)}
                                             className="text-slate-600 hover:text-indigo-600 text-sm font-serif font-medium transition-colors min-w-fit"
                                         >
                                             {item.label}
@@ -1274,7 +1280,6 @@
                                     ))}
                                 </div>
 
-                                {/* Smart Formatting Pills - Updated Design */}
                                 <div className="flex flex-wrap items-center gap-2 mt-4 justify-center">
                                      <button 
                                         onClick={handleSmartQuoteToggle}
@@ -1293,26 +1298,35 @@
                             <button onClick={() => startGeneration(null)} disabled={isGenerating} className="btn w-full py-4 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-700 shadow-lg flex justify-center items-center gap-2 disabled:opacity-70">
                                 <span>{isGenerating ? '생성 중...' : 'A6 레이아웃 생성하기'}</span>
                             </button>
-                             <footer className="max-w-4xl mx-auto px-6 py-10 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
-                                <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.2.2</p>
-                                <p className="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br/>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
-                                <div className="bg-slate-50 rounded-xl p-6 text-left inline-block w-full max-w-2xl border border-slate-100">
-                                    <p className="font-bold mb-3 text-slate-700 flex items-center gap-2"><span className="text-base">⚠️</span> 이용 시 주의사항</p>
-                                    <ul className="list-disc pl-4 space-y-2 mb-5 text-slate-600">
-                                        <li><strong className="text-slate-700">텍스트 인용:</strong> 책이나 기타 저작물의 텍스트를 발췌할 경우, 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요.</li>
-                                        <li><strong className="text-slate-700">상업적 이용:</strong> 생성된 이미지는 상업적으로 사용할 수 없습니다.</li>
-                                    </ul>
-                                </div>
-                            </footer>
+                                <footer className="max-w-4xl mx-auto px-6 py-8 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
+                                    <a 
+                                        href="https://yuliyulidaz.github.io/yulilog/" 
+                                        target="_blank" 
+                                        rel="noreferrer"
+                                        className="inline-block px-4 py-1.5 rounded-full text-xs font-medium transition-all border shadow-sm bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+                                    >
+                                        발췌 문구 생성기 바로가기
+                                    </a>
+                                    
+                                    <div className="mt-8">
+                                        <p className="font-bold mb-2 text-sm text-slate-700">📖 소설 내지 생성기 v1.2.1</p>
+                                        <p className="mb-6">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br/>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
+                                        <div className="bg-slate-50 rounded-xl p-5 text-left inline-block w-full max-w-2xl border border-slate-100">
+                                            <p className="font-bold mb-3 text-slate-700 flex items-center gap-2"><span className="text-base">⚠️</span> 이용 시 주의사항</p>
+                                            <ul className="list-disc pl-4 space-y-1.5 mb-0 text-slate-600">
+                                                <li><strong className="text-slate-700">텍스트 인용:</strong> 책이나 기타 저작물의 텍스트를 발췌할 경우, 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요.</li>
+                                                <li><strong className="text-slate-700">상업적 이용:</strong> 생성된 이미지는 상업적으로 사용할 수 없습니다.</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </footer>
                         </div>
                     )}
 
-                    {/* STEP 2: PREVIEW */}
                     {step === 'preview' && (
                         <div className="pb-20 bg-gray-100 min-h-screen">
                             <div className="sticky top-0 z-50 bg-white shadow-sm">
                                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 max-w-2xl mx-auto w-full">
-                                    {/* Left Group: Reset, Edit, Mockup */}
                                     <div className="flex items-center gap-2">
                                         <button onClick={resetApp} className="flex flex-col items-center justify-center w-10 text-slate-500 hover:text-red-600 transition-colors">
                                             <span className="text-xl leading-none">↺</span><span className="text-[9px] mt-0.5">초기화</span>
@@ -1320,25 +1334,18 @@
                                         <button onClick={backToEdit} className="flex flex-col items-center justify-center w-10 text-slate-500 hover:text-indigo-600 transition-colors">
                                             <span className="text-xl leading-none">✎</span><span className="text-[9px] mt-0.5">수정</span>
                                         </button>
-                                        <button onClick={goToMockup} className="flex flex-col items-center justify-center w-10 text-slate-500 hover:text-indigo-600 transition-colors">
-                                            <span className="text-xl leading-none">📖</span><span className="text-[9px] mt-0.5">목업</span>
-                                        </button>
+                                        
                                     </div>
-                                    
-                                    {/* Center Group: Pagination */}
                                     <div className="flex items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
                                         <button onClick={() => { if(currentPageIdx > 0) goToPage(currentPageIdx - 1) }} disabled={currentPageIdx === 0} className="text-slate-400 hover:text-slate-800 disabled:opacity-20 px-1">‹</button>
                                         <span className="font-serif tabular-nums text-sm w-12 text-center text-slate-700">{currentPageIdx + 1} / {pages.length}</span>
                                         <button onClick={() => { if(currentPageIdx < pages.length - 1) goToPage(currentPageIdx + 1) }} disabled={currentPageIdx === pages.length - 1} className="text-slate-400 hover:text-slate-800 disabled:opacity-20 px-1">›</button>
                                     </div>
-                                    
-                                    {/* Right Group: PDF, Save All, Save */}
                                     <div className="flex items-center gap-2">
-                                        {/* PDF Button Hidden
-                                        <button onClick={downloadPDF} className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded text-xs font-medium hover:bg-slate-200 transition-colors">
-                                            PDF
+                                        {/* <button onClick={downloadPDF} className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded text-xs font-medium hover:bg-slate-200 transition-colors">PDF</button> */}
+                                        <button onClick={goToMockup} className="flex flex-col items-center justify-center w-10 text-slate-500 hover:text-indigo-600 transition-colors">
+                                            <span className="text-xl leading-none">📖</span><span className="text-[9px] mt-0.5">목업</span>
                                         </button>
-                                        */}
                                         {!isMobile() && (
                                             <button onClick={downloadAllPages} className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded text-xs font-medium hover:bg-slate-200 transition-colors">
                                                 전체 이미지
@@ -1430,7 +1437,6 @@
                                 </div>
                             </div>
 
-                            {/* Floating Navigation Buttons (Bottom Corners) - Fixed */}
                             {currentPageIdx > 0 && (
                                 <button 
                                     onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx - 1); }} 
@@ -1451,42 +1457,6 @@
                             )}
                         </div>
                     )}
-
-                    {/* STEP 3: MOCKUP */}
-                    {step === 'mockup' && (
-                        <div className="mockup-container overflow-hidden">
-                             <div className="fixed top-0 left-0 right-0 z-50 bg-slate-900/90 backdrop-blur-md text-white border-b border-slate-700">
-                                <div className="flex items-center justify-between px-4 py-3 max-w-3xl mx-auto w-full">
-                                    <button onClick={backToPreview} className="text-slate-300 hover:text-white flex items-center gap-1 text-xs font-medium">
-                                        <span className="text-lg">←</span> 나가기
-                                    </button>
-                                    <div className="flex items-center gap-2">
-                                        <button onClick={() => { if(mockupSpreadIdx > 0) setMockupSpreadIdx(mockupSpreadIdx - 1) }} disabled={mockupSpreadIdx === 0} className="text-slate-400 hover:text-white disabled:opacity-20 px-2 text-xl">‹</button>
-                                        <span className="font-serif tabular-nums text-sm text-slate-300">Spread {mockupSpreadIdx + 1} / {spreads.length}</span>
-                                        <button onClick={() => { if(mockupSpreadIdx < spreads.length - 1) setMockupSpreadIdx(mockupSpreadIdx + 1) }} disabled={mockupSpreadIdx === spreads.length - 1} className="text-slate-400 hover:text-white disabled:opacity-20 px-2 text-xl">›</button>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {!isMobile() && <button onClick={downloadAllMockups} className="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-1.5 rounded text-slate-200">전체 저장</button>}
-                                        <button onClick={downloadCurrentMockup} className="bg-indigo-600 hover:bg-indigo-500 text-xs px-3 py-1.5 rounded text-white font-medium shadow-md">
-                                            저장
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="mockup-scaler mt-10">
-                                <MockupBookRenderer 
-                                    spreadIdx={mockupSpreadIdx} spreads={spreads} activeTheme={activeTheme} activeFont={activeFont}
-                                    frontFlyleafText={frontFlyleafText} setFrontFlyleafText={setFrontFlyleafText}
-                                    backFlyleafText={backFlyleafText} setBackFlyleafText={setBackFlyleafText}
-                                    pageHighlights={pageHighlights} pages={pages} metadata={metadata}
-                                    onEditFlyleaf={handleFlyleafEdit}
-                                />
-                            </div>
-                            <p className="mt-8 text-slate-400 text-[10px] text-center opacity-80 font-light select-none">
-                                만약 저장이 정상적으로 되지 않을 시, 다시 '저장' 버튼을 눌러주세요.🥲 죄송해요오....
-                            </p>
-                        </div>
-                    )}
                 </div>
             );
         }
@@ -1496,4 +1466,3 @@
     </script>
 </body>
 </html>
-
