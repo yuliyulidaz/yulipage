@@ -223,7 +223,7 @@
         /* MOCKUP STYLES */
         /* ----------------------------------------------------------------- */
         .mockup-book-wrapper {
-            position: relative;
+            position: absolute;
             width: 840px; 
             height: 600px;
             display: flex;
@@ -1778,7 +1778,7 @@
                             </div>
                             
                             {/* Scrollable Content */}
-                            <div className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden pb-0">
+                            <div className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden pb-0 overflow-y-auto">
                                 {/* Metadata Group - Compact */}
                                 <div className="space-y-3 mb-4">
                                     <div>
@@ -1795,10 +1795,33 @@
                                             <input type="text" value={metadata.producer} onChange={(e) => setMetadata({...metadata, producer: e.target.value})} className="w-full p-2.5 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all text-sm" />
                                         </div>
                                     </div>
+                                    
+                                    {/* Moved Footer Content Here */}
+                                    <footer className="mt-6 text-center text-[10px] text-slate-300">
+                                        <p>📖 소설 내지 생성기 v1.3.0 : 본 사이트는 어떠한 개인정보도 수집하지 않습니다. 모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
+                                        <p>⚠️ 이용 시 주의사항 : 텍스트 인용: 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요. 상업적 이용: 생성된 이미지는 상업적으로 사용할 수 없습니다.</p>
+                                            <a
+                                              href="https://yuliyulidaz.github.io/yulilog/"
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              className="
+                                                text-[10px]
+                                                text-indigo-400
+                                                hover:text-indigo-600
+                                                underline
+                                                underline-offset-2
+                                                decoration-indigo-200
+                                                hover:decoration-indigo-400
+                                                transition-colors
+                                              "
+                                            >
+                                              🔗발췌 문구 생성기 바로가기
+                                            </a>
+                                    </footer>
                                 </div>
                                 
                                 {/* Body Input - Fills remaining space */}
-                                <div className="flex-1 flex flex-col min-h-0 relative border rounded-lg bg-slate-50 ring-slate-200 focus-within:ring-2 focus-within:bg-white transition-all overflow-hidden">
+                                <div className="flex-1 flex flex-col min-h-0 relative border rounded-lg bg-slate-50 ring-slate-200 focus-within:ring-2 focus-within:bg-white transition-all overflow-hidden min-h-[50vh]">
                                     <div className="flex justify-between items-center px-4 pt-3 pb-1 shrink-0">
                                          <label className="text-xs text-slate-500">본문 <span className="text-red-500 font-light ml-1 text-[10px]">*필수</span></label>
                                          {estimatedPages > 0 && <span className="text-indigo-600 font-bold text-xs">약 {estimatedPages} 페이지</span>}
@@ -1824,31 +1847,10 @@
                             </div>
 
                             {/* Footer Action */}
-                            <div className="p-4 md:p-6 bg-white z-10 shrink-0 pb-safe">
+                            <div className="p-4 md:p-6 bg-white z-10 shrink-0 pb-safe border-t border-slate-100">
                                 <button onClick={() => startGeneration(null)} disabled={isGenerating} className="btn w-full py-4 bg-[#1a2233] text-white rounded-lg font-medium shadow-lg flex justify-center items-center gap-2 disabled:opacity-70 transition-transform active:scale-95 hover:bg-[#2a3344]">
                                     <span>{isGenerating ? '생성 중...' : 'A6 레이아웃 생성하기'}</span>
                                 </button>
-                                <footer className="mt-4 text-center text-[10px] text-slate-300">
-                                    <p>📖 소설 내지 생성기 v1.3.0 : 본 사이트는 어떠한 개인정보도 수집하지 않습니다. 모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
-                                    <p>⚠️ 이용 시 주의사항 : 텍스트 인용: 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요. 상업적 이용: 생성된 이미지는 상업적으로 사용할 수 없습니다.</p>
-                                        <a
-                                          href="https://yuliyulidaz.github.io/yulilog/"
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          className="
-                                            text-[10px]
-                                            text-indigo-400
-                                            hover:text-indigo-600
-                                            underline
-                                            underline-offset-2
-                                            decoration-indigo-200
-                                            hover:decoration-indigo-400
-                                            transition-colors
-                                          "
-                                        >
-                                          🔗발췌 문구 생성기 바로가기
-                                        </a>
-                                </footer>
                             </div>
                         </div>
                     )}
@@ -2114,12 +2116,12 @@
                                         <div className="relative h-fit">
                                             {/* Floating Nav Buttons for Desktop - Absolute Positioned */}
                                             {currentPageIdx > 0 && (
-                                                <button onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx - 1); }} className="absolute top-1/2 -left-20 -translate-y-1/2 w-12 h-12 bg-gray-800/30 hover:bg-gray-800/60 rounded-full flex items-center justify-center text-white backdrop-blur-sm shadow-lg z-50 transition-all">
+                                                <button onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx - 1); }} className="absolute top-1/2 -left-24 -translate-y-1/2 w-12 h-12 bg-gray-800/30 hover:bg-gray-800/60 rounded-full flex items-center justify-center text-white backdrop-blur-sm shadow-lg z-50 transition-all">
                                                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                                                 </button>
                                             )}
                                             {currentPageIdx < pages.length - 1 && (
-                                                <button onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx + 1); }} className="absolute top-1/2 -right-20 -translate-y-1/2 w-12 h-12 bg-gray-800/30 hover:bg-gray-800/60 rounded-full flex items-center justify-center text-white backdrop-blur-sm shadow-lg z-50 transition-all">
+                                                <button onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx + 1); }} className="absolute top-1/2 -right-24 -translate-y-1/2 w-12 h-12 bg-gray-800/30 hover:bg-gray-800/60 rounded-full flex items-center justify-center text-white backdrop-blur-sm shadow-lg z-50 transition-all">
                                                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                                                 </button>
                                             )}
@@ -2148,8 +2150,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
