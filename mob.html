@@ -1,8 +1,9 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#ffffff">
     <title>한 장의 소설</title>
     
@@ -26,12 +27,11 @@
     <!-- 2. Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 3. Libraries (React, ReactDOM, Babel, html-to-image, JSZip) -->
+    <!-- 3. Libraries (React, ReactDOM, Babel, html-to-image) -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <style>
         /* 폰트 강제 적용 */
@@ -139,7 +139,8 @@
             font-weight: 300;
             cursor: text;
         }
-
+        
+        /* 하이라이트 상태에서도 스타일 유지 */
         .page-content p {
             margin-bottom: 0;
             padding: 0;
@@ -305,6 +306,10 @@
         }
         
         /* New Glassmorphism & UI Utilities */
+        /* iPhone Safe Area Utilities */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .pt-safe { padding-top: env(safe-area-inset-top); }
+
         /* Transparent Glass Button (Header) */
         .glass-btn {
             width: 40px;
@@ -375,22 +380,26 @@
             scrollbar-width: none;
         }
 
-        /* Centered Toast for Download */
-        .toast-centered {
+        /* Centered Toast Overlay Strategy - Robust for Mobile */
+        .toast-overlay {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #1a1a1a; /* Black background */
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .toast-box {
+            background-color: #1a1a1a;
             color: white;
             padding: 16px 24px;
-            border-radius: 8px; /* Slightly less rounded */
-            z-index: 9999;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
             font-size: 14px;
             font-weight: 500;
             text-align: center;
-            pointer-events: none;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
             white-space: nowrap;
         }
 
@@ -422,7 +431,10 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(registration => console.log('SW registered'))
+                    .then(registration => {
+                        console.log('SW registered');
+                        registration.update();
+                    })
                     .catch(err => console.log('SW registration failed: ', err));
             });
         }
@@ -436,7 +448,11 @@
         // ----------------------------------------------------------------------
         
         function isMobile() {
-            return /Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            return /Android|webOS|BlackBerry|IEMobile|Opera Mini|iPad|iPhone|iPod/.test(navigator.userAgent);
+        }
+        
+        function isIOS() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         }
 
         // Haptic Feedback Helper
@@ -532,15 +548,27 @@
             const blob = await htmlToImage.toBlob(node, options);
             if (!blob) throw new Error('Blob creation failed');
 
+            if (isIOS() && navigator.share && navigator.canShare) {
+                const file = new File([blob], fileName, { type: 'image/png' });
+                if (navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: fileName });
+                    return;
+                }
+            }
+
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.download = fileName;
             link.href = url;
-            // Append to body for better Android support
+            link.style.display = 'none'; // Ensure hidden
             document.body.appendChild(link);
             link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            
+            // Critical for Android: Delay removal
+            setTimeout(() => {
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }, 1000);
         }
         
         async function getBlobFromNode(node, width, height, fontEmbedCSS = null) {
@@ -658,7 +686,7 @@
                                 value={text}
                                 onChange={!isHidden && !mobile ? handleChange : undefined}
                                 readOnly={isHidden || mobile} 
-                                className={`w-full bg-transparent border-none text-white/70 text-[10px] p-0 focus:outline-none placeholder:text-transparent resize-none overflow-hidden ${isFront ? 'text-left' : 'text-right'}`}
+                                className={`w-full bg-transparent border-none text-white/70 text-[10px] p-0 focus:outline-none placeholder:text-transparent resize-none overflow-hidden ${isFront ? 'text-left' : 'text-right'} ${mobile && !isHidden ? 'cursor-pointer' : ''}`}
                                 rows={6}
                                 spellCheck={false}
                                 disabled={isHidden} 
@@ -730,7 +758,6 @@
         // ----------------------------------------------------------------------
 
         const MemoAlert = ({ config, onClose }) => {
-            // Status: enter-start, idle, exiting
             const [status, setStatus] = useState('enter-start');
 
             useEffect(() => {
@@ -752,14 +779,13 @@
 
             if (!config) return null;
 
-            // Positioning Logic
             const position = config.position || 'center';
             let posClass = '';
             if (position === 'center') posClass = 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2';
-            else if (position === 'top-left') posClass = 'top-[70px] left-[20px]'; // Below header back button
-            else if (position === 'bottom-right') posClass = 'bottom-[80px] right-[20px]'; // Near thumb
+            else if (position === 'top-left') posClass = 'top-[60px] left-[20px]'; 
+            else if (position === 'bottom-right') posClass = 'bottom-[80px] right-[20px]'; 
+            else if (position === 'center-up') posClass = 'top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2';
 
-            // Animation States
             const isIdle = status === 'idle';
             const baseClass = "transform transition-all duration-300 ease-out";
             const stateClass = isIdle 
@@ -768,22 +794,14 @@
 
             return (
                 <div className="fixed inset-0 z-[100]">
-                     {/* Transparent overlay to block clicks outside */}
                      <div className="absolute inset-0 bg-transparent" onClick={() => handleAction(() => { if(config.onCancel) config.onCancel(); })}></div>
-                     
-                     {/* Note Container (Vertical Post-it) */}
                      <div className={`absolute ${posClass} ${baseClass} ${stateClass} pointer-events-auto`}>
                          <div className="relative bg-[#fffbf0] w-48 min-h-[100px] p-5 pt-8 shadow-[2px_4px_8px_rgba(0,0,0,0.15)] rotate-1 border border-[#e8e4d9]">
-                            {/* Tape Effect */}
                             <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-8 bg-white/40 backdrop-blur-[1px] shadow-sm rotate-[-2deg] border-l border-r border-white/60"></div>
-                            
-                            {/* Message */}
                             <div className="text-center flex flex-col h-full justify-between">
                                 <p className="font-['Gowun_Batang'] text-[10px] leading-relaxed text-slate-800 whitespace-pre-line mb-3 pt-0">
                                     {config.message}
                                 </p>
-                                
-                                {/* Handwritten Text Buttons */}
                                 <div className="flex gap-6 justify-center items-center pb-2 font-['Gowun_Batang']">
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); handleAction(() => config.onConfirm()); }}
@@ -808,7 +826,7 @@
         const UndoSnackbar = ({ visible, onUndo }) => {
             if (!visible) return null;
             return (
-                <div className="fixed top-16 right-4 z-[70] bg-slate-900 text-white px-4 py-3 rounded shadow-lg flex items-center gap-4 text-xs animate-slide-down">
+                <div className="absolute top-[70px] right-6 z-[70] bg-slate-900 text-white px-4 py-3 rounded shadow-lg flex items-center gap-4 text-xs animate-slide-down">
                     <span>삭제되었습니다.</span>
                     <button onClick={onUndo} className="font-bold text-yellow-400 hover:text-yellow-300 underline">실행 취소</button>
                 </div>
@@ -834,9 +852,8 @@
                 
                 setTextInput(newText);
                 
-                // Move cursor
                 setTimeout(() => {
-                    textarea.focus();
+                    textarea.focus({ preventScroll: true });
                     const newCursorPos = start + text.length + cursorOffset;
                     textarea.setSelectionRange(newCursorPos, newCursorPos);
                 }, 0);
@@ -851,23 +868,21 @@
                 const newText = textInput.substring(0, start) + open + close + textInput.substring(end);
                 setTextInput(newText);
                 setTimeout(() => {
-                    textarea.focus();
+                    textarea.focus({ preventScroll: true });
                     textarea.setSelectionRange(start + 1, start + 1);
                 }, 0);
             };
 
-            const toggleQuotes = () => {
+            const toggleQuotes = (e) => {
+                if(e && e.preventDefault) e.preventDefault();
                 haptic.success();
-                // 1. Force blur to hide keyboard
-                if (textAreaRef.current) textAreaRef.current.blur();
-                if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+                if (textAreaRef.current && isMobile()) textAreaRef.current.blur();
 
                 const newState = !isCurlyQuotes;
                 setIsCurlyQuotes(newState);
                 
                 let formatted = textInput;
                 if (newState) {
-                    // Convert to Curly
                     formatted = formatted.replace(/(")([^"]+)(")/g, "“$2”");
                     formatted = formatted.replace(/(')([^']+)(')/g, "‘$2’");
                     formatted = formatted.replace(/(^|[\s\(\[\{])"/g, '$1“');
@@ -875,18 +890,16 @@
                     formatted = formatted.replace(/(^|[\s\(\[\{])"/g, '$1‘');
                     formatted = formatted.replace(/'/g, '’');
                 } else {
-                    // Convert to Straight
                     formatted = formatted.replace(/[“”]/g, '"');
                     formatted = formatted.replace(/[‘’]/g, "'");
                 }
                 setTextInput(formatted);
             };
 
-            const toggleSpacing = () => {
+            const toggleSpacing = (e) => {
+                if(e && e.preventDefault) e.preventDefault();
                 haptic.success();
-                // 1. Force blur to hide keyboard
-                if (textAreaRef.current) textAreaRef.current.blur();
-                if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+                if (textAreaRef.current && isMobile()) textAreaRef.current.blur();
 
                 const newState = !isSpacedDialogue;
                 setIsSpacedDialogue(newState);
@@ -896,18 +909,14 @@
                 let inDialogueBlock = false;
 
                 if (newState) {
-                     // Add spacing (Compact -> Spaced)
                     for (let i = 0; i < lines.length; i++) {
                         const line = lines[i].trim();
-                        // Check if line is dialogue OR translation/interpretation
                         const isQuote = line.startsWith('“') || line.startsWith('"') || line.startsWith("'") || line.startsWith('‘');
                         const isTranslation = line.startsWith('❘') || line.startsWith('|');
                         const isDialogueLine = isQuote || isTranslation;
                         
                         if (isDialogueLine) {
-                            // If start of a dialogue block
                             if (!inDialogueBlock) {
-                                // Add empty line above if not already there (and not very first line)
                                 if (newLines.length > 0 && newLines[newLines.length - 1] !== '') {
                                     newLines.push('');
                                 }
@@ -915,9 +924,7 @@
                             }
                             newLines.push(line);
                         } else {
-                            // If end of a dialogue block
                             if (inDialogueBlock) {
-                                // Add empty line after previous block (before this line)
                                 if (line !== '') newLines.push('');
                                 inDialogueBlock = false;
                             }
@@ -925,7 +932,6 @@
                         }
                     }
                 } else {
-                    // Remove spacing (Spaced -> Compact)
                     const compactLines = [];
                     for(let i=0; i<lines.length; i++) {
                         const line = lines[i]; 
@@ -933,14 +939,12 @@
                         const nextLine = (i < lines.length - 1) ? lines[i+1].trim() : '';
                         const prevLine = (i > 0) ? lines[i-1].trim() : '';
                         
-                        // Helpers
                         const checkIsDialogue = (str) => str.startsWith('“') || str.startsWith('"') || str.startsWith("'") || str.startsWith('‘') || str.startsWith('❘') || str.startsWith('|');
 
                         const isNextDialogue = checkIsDialogue(nextLine);
                         const isPrevDialogue = checkIsDialogue(prevLine);
 
                         if (trimmed === '') {
-                             // If this is an empty line, remove if around dialogue
                              if (isNextDialogue || isPrevDialogue) {
                                  continue; 
                              }
@@ -955,8 +959,7 @@
 
             return (
                 <div className="flex flex-col bg-white border-t border-slate-100">
-                    {/* 1. Simple Symbol Toolbar */}
-                    <div className="flex justify-between items-center w-full h-11 px-6">
+                    <div className="flex justify-center items-center w-full h-11 px-6 gap-12">
                         <button onMouseDown={(e) => e.preventDefault()} onClick={() => insertPair('“', '”')} className="text-xl font-serif text-slate-800 hover:text-black active:scale-90 transition-transform">“ ”</button>
                         <button onMouseDown={(e) => e.preventDefault()} onClick={() => insertPair('‘', '’')} className="text-xl font-serif text-slate-800 hover:text-black active:scale-90 transition-transform">‘ ’</button>
                         <button onMouseDown={(e) => e.preventDefault()} onClick={() => insertText('…')} className="text-xl font-serif text-slate-800 hover:text-black active:scale-90 transition-transform">…</button>
@@ -964,11 +967,11 @@
                         <button onMouseDown={(e) => e.preventDefault()} onClick={() => insertText('***')} className="text-sm font-sans text-slate-800 font-bold hover:text-black active:scale-90 transition-transform tracking-widest">***</button>
                     </div>
 
-                    {/* 2. Smart Formatting Toggle Pills */}
-                    <div className="flex gap-2 px-4 pb-3">
+                    <div className="flex gap-2 px-4 pb-3 justify-center">
                          <button 
+                            onMouseDown={(e) => e.preventDefault()}
                             onClick={toggleQuotes}
-                            className={`flex-1 py-2 px-3 rounded-full text-xs font-medium transition-all shadow-sm border ${
+                            className={`py-2 px-4 rounded-full text-xs font-medium transition-all shadow-sm border ${
                                 isCurlyQuotes 
                                 ? 'bg-indigo-50 border-indigo-200 text-indigo-700' 
                                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -977,8 +980,9 @@
                             {isCurlyQuotes ? '🪄 직선따옴표로 변환' : '🪄 둥근따옴표로 변환'}
                         </button>
                         <button 
+                            onMouseDown={(e) => e.preventDefault()}
                             onClick={toggleSpacing}
-                            className={`flex-1 py-2 px-3 rounded-full text-xs font-medium transition-all shadow-sm border ${
+                            className={`py-2 px-4 rounded-full text-xs font-medium transition-all shadow-sm border ${
                                 isSpacedDialogue
                                 ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
                                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -1000,16 +1004,13 @@
         const STORAGE_KEY = 'novel_generator_draft';
 
         function App() {
-            // -- State --
-            const [step, setStep] = useState('input'); // 'input' | 'result'
+            const [step, setStep] = useState('input');
             const [textInput, setTextInput] = useState('');
             const [metadata, setMetadata] = useState({ title: '', author: '', producer: '' });
             
-            // Settings
             const [activeTheme, setActiveTheme] = useState('white'); 
             const [activeFont, setActiveFont] = useState('noto'); 
             
-            // UI State
             const [activeTab, setActiveTab] = useState(null); 
             const [renderedTab, setRenderedTab] = useState(null); 
             const [isLayer2Visible, setIsLayer2Visible] = useState(false);
@@ -1017,15 +1018,13 @@
             const [toolMode, setToolMode] = useState('highlight'); 
             const [tipsShown, setTipsShown] = useState({ highlight: false, text: false });
             const [toastVisible, setToastVisible] = useState(false);
-            const [saveToast, setSaveToast] = useState(false); // New Toast for Save
+            const [startTipVisible, setStartTipVisible] = useState(false); // New state for start tip
+            const [saveToast, setSaveToast] = useState(false); 
             const [mockupToast, setMockupToast] = useState(null);
             const [inputToast, setInputToast] = useState('');
-            const [exitToast, setExitToast] = useState(false); // Toast for "Press back again to exit"
+            const [exitToast, setExitToast] = useState(false); 
             
-            // Memo Alert State (Formerly Slide Alert)
-            const [memoAlert, setMemoAlert] = useState(null); // { message, onConfirm, onCancel, timestamp, position, isDraft }
-
-            // Undo Snackbar State
+            const [memoAlert, setMemoAlert] = useState(null); 
             const [showUndo, setShowUndo] = useState(false);
             const [undoData, setUndoData] = useState(null);
 
@@ -1043,37 +1042,40 @@
             const debouncedText = useDebounce(textInput, 500);
             const [estimatedPages, setEstimatedPages] = useState(0);
 
-            // MOCKUP STATE
             const [mockupSpreadIdx, setMockupSpreadIdx] = useState(0);
             const [frontFlyleafText, setFrontFlyleafText] = useState('');
             const [backFlyleafText, setBackFlyleafText] = useState('');
             
-            // Focus Modal State
             const [focusedFlyleaf, setFocusedFlyleaf] = useState(null);
 
             const measureContainerRef = useRef(null);
             const viewerRef = useRef(null);
-            const contentRef = useRef(null);
+            
+            // Separation of refs for mobile and desktop views
+            const mobileContentRef = useRef(null);
+            const desktopContentRef = useRef(null);
+            
             const textAreaRef = useRef(null);
 
             // -- Logic: Auto-Save & Load --
             useEffect(() => {
                 const savedData = localStorage.getItem(STORAGE_KEY);
+                window.history.replaceState({ step: 'input' }, '');
+                
                 if (savedData) {
-                    // Push state IMMEDIATELY so that pressing back can be intercepted
-                    window.history.pushState({ popup: 'draft' }, '');
-                    
-                    setMemoAlert({
-                        isDraft: true,
-                        message: '작성 중인 내용이 있습니다.\n불러오시겠습니까?',
-                        onConfirm: () => loadDraft(),
-                        onCancel: () => {
-                            // User clicked No (Cancel). We need to go back in history to remove the pushed state.
-                            window.history.back(); 
-                        },
-                        position: 'center',
-                        timestamp: Date.now()
-                    });
+                    setTimeout(() => {
+                        window.history.pushState({ popup: 'draft' }, '');
+                        setMemoAlert({
+                            isDraft: true,
+                            message: '작성 중인 내용이 있습니다.\n불러오시겠습니까?',
+                            onConfirm: () => loadDraft(),
+                            onCancel: () => {
+                                window.history.back(); 
+                            },
+                            position: 'center',
+                            timestamp: Date.now()
+                        });
+                    }, 200);
                 }
             }, []);
 
@@ -1099,18 +1101,15 @@
 
             const handleDelete = () => {
                 haptic.tap();
-                // 1. Backup
                 const backup = {
                     textInput, metadata, activeTheme, activeFont
                 };
                 setUndoData(backup);
                 
-                // 2. Clear
                 localStorage.removeItem(STORAGE_KEY);
                 setTextInput('');
                 setMetadata({ title: '', author: '', producer: '' });
                 
-                // 3. Show Snackbar
                 setShowUndo(true);
                 setTimeout(() => setShowUndo(false), 3000);
             };
@@ -1127,7 +1126,6 @@
             };
 
             useEffect(() => {
-                // Save to local storage on change
                 if (textInput || metadata.title || metadata.author || metadata.producer) {
                     const dataToSave = {
                         textInput,
@@ -1144,37 +1142,29 @@
             // -- Logic: Back Button Handling --
             useEffect(() => {
                 const handlePopState = (event) => {
-                    // Check if we are handling the Draft Popup
-                    if (memoAlert) {
-                        if (memoAlert.isDraft) {
-                             // User pressed Physical Back button (or Cancel button called back())
-                             // We are now back to state [A] from [B].
-                             setMemoAlert(null);
-                             clearDraft(); // "No" behavior
-                             return;
-                        }
-                        // For other alerts, we usually just close them
+                    if (memoAlert && memoAlert.isDraft) {
+                         setMemoAlert(null);
+                         clearDraft(); 
+                         return;
+                    }
+                    
+                    if (memoAlert && !memoAlert.isDraft) {
                         setMemoAlert(null);
                         return;
                     }
 
                     if (step === 'result') {
                         if (activeTab) {
-                            // If Layer 2 is open, close it but stay on 'result'
-                            // Push 'result' state back because the browser just popped it
                             window.history.pushState({ step: 'result' }, '');
                             toggleTab(activeTab, null); 
                             return;
                         } else {
-                            // Layer 2 closed, Check physical back button intent
-                            
-                            // Check if any decorations exist
+                            const container = mobileContentRef.current || desktopContentRef.current;
                             const hasDecorations = Object.values(pageHighlights).some(html => html.includes('data-group-id')) ||
-                                                 (contentRef.current && contentRef.current.innerHTML.includes('data-group-id'));
+                                                 (container && container.innerHTML.includes('data-group-id'));
 
                             if (hasDecorations) {
-                                // Show alert
-                                window.history.pushState({ step: 'result' }, ''); // prevent immediate back
+                                window.history.pushState({ step: 'result' }, ''); 
                                 setMemoAlert({
                                     message: '형광펜과 글자색이\n지워집니다.\n그래도 나가시겠어요?',
                                     onConfirm: () => {
@@ -1194,8 +1184,6 @@
                              setExitToast(true);
                              haptic.tap();
                              setTimeout(() => setExitToast(false), 2000);
-                         } else {
-                             // Let it exit
                          }
                     }
                 };
@@ -1305,7 +1293,6 @@
                 return () => clearTimeout(timer);
             }, [activeTab]);
 
-            // Save Toast Auto Hide
             useEffect(() => {
                 let timer;
                 if (saveToast) {
@@ -1329,7 +1316,6 @@
                 if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
                 setIsGenerating(true);
                 
-                // Push history for Result state
                 if (!targetFont) {
                     window.history.pushState({ step: 'result' }, '');
                 }
@@ -1344,9 +1330,14 @@
                         setPageHighlights({});
                     }
                     if (!targetFont) {
-                        // toggleTab('theme', null); // Don't auto open theme on result
                         setStep('result');
-                        setActiveTab('theme'); // Set theme active but don't toggle animation yet if we want
+                        if (isMobile()) {
+                            setActiveTab('theme');
+                            setStartTipVisible(true); // Show start tip
+                            setTimeout(() => setStartTipVisible(false), 4000);
+                        } else {
+                            setActiveTab('style');
+                        }
                         setTimeout(() => setIsLayer2Visible(true), 100);
                     }
                     setIsGenerating(false);
@@ -1383,9 +1374,9 @@
                 haptic.tap();
                 if (activeFont === newFont) return;
                 
-                // Check if any decorations exist
+                const container = mobileContentRef.current || desktopContentRef.current;
                 const hasDecorations = Object.values(pageHighlights).some(html => html.includes('data-group-id')) ||
-                                     (contentRef.current && contentRef.current.innerHTML.includes('data-group-id'));
+                                     (container && container.innerHTML.includes('data-group-id'));
 
                 if (hasDecorations) {
                     setMemoAlert({
@@ -1396,7 +1387,7 @@
                              startGeneration(newFont);
                         },
                         onCancel: () => {},
-                        position: 'bottom-right',
+                        position: 'center-up',
                         timestamp: Date.now()
                     });
                 } else {
@@ -1406,20 +1397,32 @@
                 }
             };
 
-            const saveCurrentPageState = () => {
-                if (contentRef.current) {
-                     setPageHighlights(prev => ({ ...prev, [currentPageIdx]: contentRef.current.innerHTML }));
+            const saveCurrentPageState = (containerOverride) => {
+                const container = containerOverride || mobileContentRef.current || desktopContentRef.current;
+                if (container) {
+                     setPageHighlights(prev => ({ ...prev, [currentPageIdx]: container.innerHTML }));
                 }
             };
 
             const handleHighlightSelection = () => {
-                if (activeTab !== 'highlight' && activeTab !== 'text') return;
+                if (activeTab !== 'highlight' && activeTab !== 'text' && activeTab !== 'tool' && activeTab !== 'style') return;
+                
                 const selection = window.getSelection();
                 if (!selection || selection.rangeCount === 0 || selection.toString().trim() === '') return;
+                
                 haptic.tap();
                 const range = selection.getRangeAt(0);
-                const container = contentRef.current;
-                if (!container || !container.contains(range.commonAncestorContainer)) return;
+                
+                // Determine which container the user is selecting from
+                let container = null;
+                if (mobileContentRef.current && mobileContentRef.current.contains(range.commonAncestorContainer)) {
+                    container = mobileContentRef.current;
+                } else if (desktopContentRef.current && desktopContentRef.current.contains(range.commonAncestorContainer)) {
+                    container = desktopContentRef.current;
+                }
+                
+                if (!container) return;
+                
                 const highlightId = 'hl-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
                 try {
                     const treeWalker = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT, { acceptNode: function(node) { if (!range.intersectsNode(node)) return NodeFilter.FILTER_REJECT; return NodeFilter.FILTER_ACCEPT; } });
@@ -1433,34 +1436,45 @@
                         const text = nodeRange.toString();
                         if (text.trim().length > 0) {
                             const span = document.createElement('span');
-                            if (activeTab === 'highlight') span.className = `highlight ${currentHighlightColor}`;
-                            else if (activeTab === 'text') span.className = `colored-text ${currentTextColor}`;
+                            if (activeTab === 'highlight' || (activeTab === 'tool' && toolMode === 'highlight')) span.className = `highlight ${currentHighlightColor}`;
+                            else if (activeTab === 'text' || (activeTab === 'tool' && toolMode === 'text')) span.className = `colored-text ${currentTextColor}`;
                             span.setAttribute('data-group-id', highlightId);
                             nodeRange.surroundContents(span);
                         }
                     });
                     selection.removeAllRanges();
-                    saveCurrentPageState();
+                    saveCurrentPageState(container);
                 } catch (e) { console.log("Highlight failed", e); }
             };
 
             const handleContentClick = (e) => {
-                if (activeTab !== 'highlight' && activeTab !== 'text') return;
+                if (activeTab !== 'highlight' && activeTab !== 'text' && activeTab !== 'tool') return;
                 const target = e.target;
+                
+                // Determine container
+                let container = null;
+                if (mobileContentRef.current && mobileContentRef.current.contains(target)) {
+                    container = mobileContentRef.current;
+                } else if (desktopContentRef.current && desktopContentRef.current.contains(target)) {
+                    container = desktopContentRef.current;
+                }
+                if (!container) return;
+
                 let shouldRemove = false;
-                if (activeTab === 'highlight' && target.classList.contains('highlight')) shouldRemove = true;
-                else if (activeTab === 'text' && target.classList.contains('colored-text')) shouldRemove = true;
+                if ((activeTab === 'highlight' || (activeTab === 'tool' && toolMode === 'highlight')) && target.classList.contains('highlight')) shouldRemove = true;
+                else if ((activeTab === 'text' || (activeTab === 'tool' && toolMode === 'text')) && target.classList.contains('colored-text')) shouldRemove = true;
+                
                 if (shouldRemove) {
                     haptic.tap();
                     const groupId = target.getAttribute('data-group-id');
                     if (groupId) {
-                        const allSpans = contentRef.current.querySelectorAll(`span[data-group-id="${groupId}"]`);
+                        const allSpans = container.querySelectorAll(`span[data-group-id="${groupId}"]`);
                         allSpans.forEach(span => {
                             const text = span.textContent;
                             const textNode = document.createTextNode(text);
                             span.parentNode.replaceChild(textNode, span);
                         });
-                        saveCurrentPageState();
+                        saveCurrentPageState(container);
                     }
                 }
             };
@@ -1494,7 +1508,7 @@
             const onTouchStart = (e) => { touchEndRef.current = null; touchStartRef.current = e.targetTouches[0].clientX; };
             const onTouchMove = (e) => { touchEndRef.current = e.targetTouches[0].clientX; };
             const onTouchEnd = () => {
-                if (activeTab === 'highlight' || activeTab === 'text') {
+                if (activeTab === 'highlight' || activeTab === 'text' || activeTab === 'tool') {
                     handleHighlightSelection();
                     return; 
                 }
@@ -1522,10 +1536,16 @@
 
             const backToEditUI = () => {
                 haptic.tap();
-                
-                // Check if any decorations exist
+                // 1. If Menu is open, always close it first
+                if (activeTab && activeTab !== 'mockup' && isMobile()) {
+                    toggleTab(activeTab, null);
+                    return;
+                }
+
+                // 2. Normal Back Logic
+                const container = mobileContentRef.current || desktopContentRef.current;
                 const hasDecorations = Object.values(pageHighlights).some(html => html.includes('data-group-id')) ||
-                                     (contentRef.current && contentRef.current.innerHTML.includes('data-group-id'));
+                                     (container && container.innerHTML.includes('data-group-id'));
 
                 if (hasDecorations) {
                     setMemoAlert({
@@ -1540,10 +1560,37 @@
                 }
             };
 
-            const downloadAllZIP = async () => {
+            const downloadAllSequential = async () => {
                 haptic.tap();
                 if (activeTab === 'mockup') {
-                    return downloadAllMockups();
+                    const originalSpreadIdx = mockupSpreadIdx;
+                    try {
+                        setLoadingMessage('폰트 로딩 중...');
+                        const fontCss = await prepareFontEmbedCSS(activeFont);
+                        const safeTitle = (metadata.title || 'novel').replace(/[\/\?<>\\:\*\|":\s]/g, '_');
+
+                        for(let i=0; i<spreads.length; i++){
+                            setMockupSpreadIdx(i);
+                            setLoadingMessage(`목업 저장 중... (${i+1}/${spreads.length})`);
+                            await new Promise(r => setTimeout(r, 300)); 
+                            
+                            const target = document.getElementById('mockupCaptureHidden');
+                            if(target){
+                                const fileName = `${safeTitle}_mockup_${String(i+1).padStart(2,'0')}.png`;
+                                await captureNode(target, fileName, 840, 600, fontCss);
+                            }
+                        }
+                        haptic.success();
+                        setSaveToast(true);
+                    } catch(e) { 
+                        haptic.error();
+                        console.error(e); 
+                        alert("저장 실패"); 
+                    } finally { 
+                        setLoadingMessage(''); 
+                        setMockupSpreadIdx(originalSpreadIdx); 
+                    }
+                    return;
                 }
 
                 saveCurrentPageState();
@@ -1554,51 +1601,26 @@
                     setLoadingMessage('폰트 로딩 중...');
                     await ensureFontsLoaded();
                     const fontCss = await prepareFontEmbedCSS(activeFont);
-                    
-                    const zip = new JSZip();
-                    // Sanitize filename to ensure safe download
-                    const safeTitle = (metadata.title || 'novel').replace(/[\/\?<>\\:\*\|":]/g, '_');
-                    const folder = zip.folder(`${safeTitle}_images`);
+                    const safeTitle = (metadata.title || 'novel').replace(/[\/\?<>\\:\*\|":\s]/g, '_');
 
                     for (let i = 0; i < pages.length; i++) {
                         setCurrentPageIdx(i);
-                        setLoadingMessage(`이미지 생성 중... (${i + 1}/${pages.length})`);
-                        // Wait for render
-                        await new Promise(resolve => setTimeout(resolve, 500));
+                        setLoadingMessage(`이미지 저장 중... (${i + 1}/${pages.length})`);
+                        await new Promise(resolve => setTimeout(resolve, 300));
                         
                         const target = document.getElementById('captureTarget');
                         if (target) {
-                            const blob = await getBlobFromNode(target, 420, 600, fontCss);
-                            if (blob) {
-                                const fileName = `${String(i+1).padStart(3, '0')}p.png`;
-                                folder.file(fileName, blob);
-                            }
+                            const fileName = `${safeTitle}_${String(i+1).padStart(3, '0')}p.png`;
+                            await captureNode(target, fileName, 420, 600, fontCss);
                         }
                     }
 
-                    setLoadingMessage('압축 파일 생성 중...');
-                    // Explicitly set mime type for ZIP to avoid file system confusion
-                    const content = await zip.generateAsync({ type: "blob", mimeType: "application/zip" });
-                    
-                    const url = URL.createObjectURL(content);
-                    const link = document.createElement('a');
-                    link.download = `${safeTitle}_pages.zip`;
-                    link.href = url;
-                    
-                    // Append for better mobile support
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    URL.revokeObjectURL(url);
-
                     haptic.success();
-                    // Show save toast AFTER successful operation
                     setTimeout(() => setSaveToast(true), 500);
                 } catch (e) { 
                     haptic.error();
                     console.error(e); 
-                    alert("오류가 발생했습니다."); 
+                    alert("오류가 발생했습니다: " + e.message); 
                 } finally { 
                     setLoadingMessage(''); 
                     setLoadingProgress(0); 
@@ -1609,32 +1631,28 @@
             const downloadCurrent = async () => {
                 haptic.tap();
                 const isMockup = activeTab === 'mockup';
-                
-                // NO CONFIRM DIALOG - Straight to download
 
                 setLoadingMessage('이미지 저장 중...');
                 try {
                     await ensureFontsLoaded();
                     const fontCss = await prepareFontEmbedCSS(activeFont);
                     
+                    const safeTitle = (metadata.title || 'novel').replace(/[\/\?<>\\:\*\|":\s]/g, '_');
+
                     if (isMockup) {
                         const target = document.getElementById('mockupCaptureHidden');
                         if (target) {
-                             const safeTitle = (metadata.title || 'novel').replace(/[\/\?<>\\:\*\|":]/g, '_');
                              const fileName = `${safeTitle}_mockup_${String(mockupSpreadIdx+1).padStart(2,'0')}.png`;
                              await captureNode(target, fileName, 840, 600, fontCss);
                         }
                     } else {
-                        // Page
                         const target = document.getElementById('captureTarget');
                         if (target) {
-                            const safeTitle = (metadata.title || 'novel').replace(/[\/\?<>\\:\*\|":]/g, '_');
                             const fileName = `${safeTitle}_${String(currentPageIdx+1).padStart(3, '0')}p.png`;
                             await captureNode(target, fileName, 420, 600, fontCss);
                         }
                     }
                     haptic.success();
-                    // Show save toast AFTER successful operation
                     setTimeout(() => setSaveToast(true), 500);
                 } catch (e) {
                     haptic.error();
@@ -1645,8 +1663,6 @@
                 }
             };
 
-
-            // MOCKUP LOGIC
             const getSpreads = useCallback(() => {
                 const spreadList = [];
                 spreadList.push({ left: { type: 'flyleaf-front' }, right: { type: 'page', index: 0 } });
@@ -1662,60 +1678,6 @@
             }, [pages.length]);
 
             const spreads = getSpreads();
-
-            const downloadAllMockups = async () => {
-                const originalSpreadIdx = mockupSpreadIdx;
-                
-                try {
-                    setLoadingMessage('폰트 로딩 중...');
-                    const fontCss = await prepareFontEmbedCSS(activeFont);
-                    
-                    const zip = new JSZip();
-                    const safeTitle = (metadata.title || 'novel').replace(/[\/\?<>\\:\*\|":]/g, '_');
-                    const folder = zip.folder(`${safeTitle}_mockups`);
-
-                    for(let i=0; i<spreads.length; i++){
-                        setMockupSpreadIdx(i);
-                        setLoadingMessage(`목업 생성 중... (${i+1}/${spreads.length})`);
-                        await new Promise(r => setTimeout(r, 500));
-                        
-                        const target = document.getElementById('mockupCaptureHidden');
-                        if(target){
-                            const blob = await getBlobFromNode(target, 840, 600, fontCss);
-                            if (blob) {
-                                const fileName = `mockup_${String(i+1).padStart(2,'0')}.png`;
-                                folder.file(fileName, blob);
-                            }
-                        }
-                    }
-
-                    setLoadingMessage('압축 파일 생성 중...');
-                    const content = await zip.generateAsync({ type: "blob", mimeType: "application/zip" });
-                    
-                    const url = URL.createObjectURL(content);
-                    const link = document.createElement('a');
-                    link.download = `${safeTitle}_mockups.zip`;
-                    link.href = url;
-                    
-                    // Append for better mobile support
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    
-                    URL.revokeObjectURL(url);
-
-                    haptic.success();
-                    setTimeout(() => setSaveToast(true), 500);
-                } catch(e) { 
-                    haptic.error();
-                    console.error(e); 
-                    alert("실패"); 
-                }
-                finally { 
-                    setLoadingMessage(''); 
-                    setMockupSpreadIdx(originalSpreadIdx); 
-                }
-            };
 
             const handleFlyleafEdit = (type) => {
                 haptic.tap();
@@ -1759,7 +1721,6 @@
                     <MemoAlert key={memoAlert ? memoAlert.timestamp : 'empty'} config={memoAlert} onClose={() => setMemoAlert(null)} />
 
                     {/* UNDO SNACKBAR */}
-                    <UndoSnackbar visible={showUndo} onUndo={handleUndo} />
                     
                     {/* Flyleaf Focus Modal */}
                     {focusedFlyleaf && (
@@ -1802,16 +1763,19 @@
                         </div>
                     )}
 
-                    {/* DOWNLOAD SAVE TOAST (CENTER) */}
+                    {/* DOWNLOAD SAVE TOAST (CENTER - NEW OVERLAY STRATEGY) */}
                     {saveToast && (
-                        <div className="toast-centered animate-bounce-slight">
-                            갤러리에 이미지가 저장되었습니다
+                        <div className="toast-overlay">
+                            <div className="toast-box animate-bounce-slight">
+                                갤러리에 이미지가 저장되었습니다
+                            </div>
                         </div>
                     )}
 
                     {/* STEP 1: INPUT */}
                     {step === 'input' && (
-                        <div className="h-[100dvh] flex flex-col bg-white md:max-w-[900px] md:mx-auto md:my-10 md:rounded-2xl md:shadow-sm md:h-auto md:min-h-[80vh] overflow-hidden relative">
+                        <div className="h-[100dvh] flex flex-col bg-white md:max-w-[900px] md:mx-auto md:my-10 md:rounded-2xl md:shadow-sm md:h-auto md:min-h-[92vh] overflow-hidden relative">
+                            <UndoSnackbar visible={showUndo} onUndo={handleUndo} />
                             {/* Input Validation Toast */}
                             {inputToast && (
                                 <div className="fixed inset-0 flex items-center justify-center z-[9999] pointer-events-none">
@@ -1822,7 +1786,7 @@
                             )}
 
                             {/* Header */}
-                            <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 bg-white z-10">
+                            <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 bg-white z-10 pt-safe relative">
                                 <h1 className="text-2xl font-serif font-medium text-slate-800">한 장의 소설</h1>
                                 <button onClick={handleDelete} className="text-slate-400 hover:text-red-500 transition-colors p-2" title="전체 삭제">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
@@ -1837,12 +1801,12 @@
                                         <label className="block text-xs text-slate-500 mb-1">소제목 (첫 장 표시) <span className="text-slate-400 font-light ml-1 text-[10px]">*필요시 입력</span></label>
                                         <input type="text" value={metadata.title} onChange={(e) => setMetadata({...metadata, title: e.target.value})} className="w-full p-2.5 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all text-sm" placeholder="첫 페이지에 들어갈 제목" />
                                     </div>
-                                    <div className="flex gap-3">
-                                        <div className="flex-1">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
                                             <label className="block text-xs text-slate-500 mb-1">작품 제목</label>
                                             <input type="text" value={metadata.author} onChange={(e) => setMetadata({...metadata, author: e.target.value})} className="w-full p-2.5 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all text-sm" />
                                         </div>
-                                        <div className="flex-1">
+                                        <div>
                                             <label className="block text-xs text-slate-500 mb-1">작가</label>
                                             <input type="text" value={metadata.producer} onChange={(e) => setMetadata({...metadata, producer: e.target.value})} className="w-full p-2.5 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all text-sm" />
                                         </div>
@@ -1876,7 +1840,7 @@
                             </div>
 
                             {/* Footer Action */}
-                            <div className="p-4 md:p-6 bg-white z-10 shrink-0">
+                            <div className="p-4 md:p-6 bg-white z-10 shrink-0 pb-safe">
                                 <button onClick={() => startGeneration(null)} disabled={isGenerating} className="btn w-full py-4 bg-[#1a2233] text-white rounded-lg font-medium shadow-lg flex justify-center items-center gap-2 disabled:opacity-70 transition-transform active:scale-95 hover:bg-[#2a3344]">
                                     <span>{isGenerating ? '생성 중...' : 'A6 레이아웃 생성하기'}</span>
                                 </button>
@@ -1887,226 +1851,296 @@
                         </div>
                     )}
 
-                    {/* STEP 2: RESULT (Preview & Mockup) */}
+                    {/* STEP 2: RESULT */}
                     {step === 'result' && (
-                        <div className="flex flex-col min-h-screen">
-                            {/* HEADER - No background, just transparent */}
-                            <div className="fixed top-0 left-0 right-0 z-50 px-4 py-4 flex items-center justify-between pointer-events-none">
-                                {/* Back Button - Transparent Glass Bead */}
-                                <div className="pointer-events-auto">
-                                    <button onClick={backToEditUI} className="glass-btn">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-                                    </button>
-                                </div>
-
-                                {/* Page Indicator - Glass Pill - Absolute Center */}
-                                <div className="absolute left-1/2 transform -translate-x-1/2 pointer-events-auto">
-                                    <div className="glass-pill font-serif tabular-nums text-slate-700">
-                                        {activeTab === 'mockup' 
-                                            ? `${mockupSpreadIdx + 1} / ${spreads.length}`
-                                            : `${currentPageIdx + 1} / ${pages.length}`
-                                        }
+                        <>
+                            {/* --- MOBILE UI (Glassmorphism) --- */}
+                            <div className="md:hidden flex flex-col min-h-screen">
+                                {/* HEADER - Transparent */}
+                                <div className="fixed top-0 left-0 right-0 z-50 px-4 py-4 pt-safe flex items-center justify-between pointer-events-none">
+                                    <div className="pointer-events-auto">
+                                        <button onClick={backToEditUI} className="glass-btn">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                                        </button>
+                                    </div>
+                                    <div className="absolute left-1/2 transform -translate-x-1/2 pointer-events-auto pt-safe">
+                                        <div className="glass-pill font-serif tabular-nums text-slate-700">
+                                            {activeTab === 'mockup' ? `${mockupSpreadIdx + 1} / ${spreads.length}` : `${currentPageIdx + 1} / ${pages.length}`}
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-3 pointer-events-auto">
+                                        {/* Mobile/iPad: No Full Save Button, Only Single Save */}
+                                        <button onClick={downloadCurrent} className="glass-btn" title="현재 페이지 저장">
+                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
 
-                                {/* Right Buttons */}
-                                <div className="flex gap-3 pointer-events-auto">
-                                    {/* Button 1: Download All (ZIP) - Moved to left spot */}
-                                    <button onClick={downloadAllZIP} className="glass-btn" title="전체 ZIP 저장">
-                                        <span className="text-[11px] font-black font-sans tracking-tight text-slate-600">ZIP</span>
-                                    </button>
-                                    
-                                    {/* Button 2: Download Current - Moved to right spot */}
-                                    <button onClick={downloadCurrent} className="glass-btn" title="현재 페이지 저장">
-                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* MAIN VIEW AREA */}
-                            <div className="flex-1 pt-20 pb-7 flex flex-col items-center justify-center overflow-x-hidden">
-                                {activeTab === 'mockup' ? (
-                                    <div className="mockup-scaler w-full h-full flex items-center justify-center">
-                                         <MockupBookRenderer 
-                                            spreadIdx={mockupSpreadIdx} spreads={spreads} activeTheme={activeTheme} activeFont={activeFont}
-                                            frontFlyleafText={frontFlyleafText} setFrontFlyleafText={setFrontFlyleafText}
-                                            backFlyleafText={backFlyleafText} setBackFlyleafText={setBackFlyleafText}
-                                            pageHighlights={pageHighlights} pages={pages} metadata={metadata}
-                                            onEditFlyleaf={handleFlyleafEdit}
-                                        />
-                                    </div>
-                                ) : (
-                                    <div id="bookViewerWrapper" className="flex justify-center overflow-visible select-text cursor-text" onClick={() => {}}>
-                                        <div ref={viewerRef} id="captureTarget" className={`page-container theme-${activeTheme}`} style={{ fontFamily: FONT_MAP[activeFont].family }}>
-                                            <PageContent 
-                                                pageIdx={currentPageIdx} 
-                                                pages={pages} 
-                                                pageHighlights={pageHighlights} 
-                                                metadata={metadata} 
-                                                activeFont={activeFont} 
-                                                onMouseUp={handleHighlightSelection} 
-                                                onClick={handleContentClick}
-                                                contentRef={contentRef}
+                                {/* MAIN VIEW AREA */}
+                                <div className={`flex-1 flex flex-col items-center justify-center overflow-x-hidden ${activeTab === 'mockup' ? 'pt-0 pb-0' : 'pt-24 pb-20'}`}>
+                                    {activeTab === 'mockup' ? (
+                                        <div className="mockup-scaler w-full h-full flex items-center justify-center">
+                                             <MockupBookRenderer 
+                                                spreadIdx={mockupSpreadIdx} spreads={spreads} activeTheme={activeTheme} activeFont={activeFont}
+                                                frontFlyleafText={frontFlyleafText} setFrontFlyleafText={setFrontFlyleafText}
+                                                backFlyleafText={backFlyleafText} setBackFlyleafText={setBackFlyleafText}
+                                                pageHighlights={pageHighlights} pages={pages} metadata={metadata}
+                                                onEditFlyleaf={handleFlyleafEdit}
                                             />
-                                            <PageFooter pageIdx={currentPageIdx} metadata={metadata} />
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div id="bookViewerWrapper" className="flex justify-center overflow-visible select-text cursor-text" onClick={() => {}}>
+                                            <div ref={viewerRef} id="captureTarget" className={`page-container theme-${activeTheme}`} style={{ fontFamily: FONT_MAP[activeFont].family }}>
+                                                <PageContent 
+                                                    pageIdx={currentPageIdx} pages={pages} pageHighlights={pageHighlights} metadata={metadata} activeFont={activeFont} 
+                                                    onMouseUp={handleHighlightSelection} onClick={handleContentClick} contentRef={mobileContentRef}
+                                                />
+                                                <PageFooter pageIdx={currentPageIdx} metadata={metadata} />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Slim Edge Glass Tab Navigation */}
+                                {activeTab !== 'mockup' && currentPageIdx > 0 && (
+                                    <button onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx - 1); }} className="fixed top-1/2 left-0 -translate-y-1/2 w-7 h-16 bg-white/20 backdrop-blur-sm border-y border-r border-white/40 rounded-r-2xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-white/40 transition-all z-30 group">
+                                        <svg className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                                    </button>
                                 )}
-                            </div>
+                                {activeTab !== 'mockup' && currentPageIdx < pages.length - 1 && (
+                                    <button onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx + 1); }} className="fixed top-1/2 right-0 -translate-y-1/2 w-7 h-16 bg-white/20 backdrop-blur-sm border-y border-l border-white/40 rounded-l-2xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-white/40 transition-all z-30 group">
+                                        <svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                                    </button>
+                                )}
+                                {activeTab === 'mockup' && mockupSpreadIdx > 0 && (
+                                    <button onClick={(e) => { e.stopPropagation(); setMockupSpreadIdx(prev => prev - 1); }} className="fixed top-1/2 left-0 -translate-y-1/2 w-7 h-16 bg-white/20 backdrop-blur-sm border-y border-r border-white/40 rounded-r-2xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-white/40 transition-all z-30 group">
+                                         <svg className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                                    </button>
+                                )}
+                                {activeTab === 'mockup' && mockupSpreadIdx < spreads.length - 1 && (
+                                    <button onClick={(e) => { e.stopPropagation(); setMockupSpreadIdx(prev => prev + 1); }} className="fixed top-1/2 right-0 -translate-y-1/2 w-7 h-16 bg-white/20 backdrop-blur-sm border-y border-l border-white/40 rounded-l-2xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-white/40 transition-all z-30 group">
+                                        <svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                                    </button>
+                                )}
 
-                            {/* Slim Edge Glass Tab Navigation (Center Sides) */}
-                            {activeTab !== 'mockup' && currentPageIdx > 0 && (
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx - 1); }} 
-                                    className="fixed top-1/2 left-0 -translate-y-1/2 w-7 h-16 bg-white/20 backdrop-blur-sm border-y border-r border-white/40 rounded-r-2xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-white/40 transition-all z-30 group"
-                                    title="이전 페이지"
-                                >
-                                    <svg className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-                                </button>
-                            )}
-                            {activeTab !== 'mockup' && currentPageIdx < pages.length - 1 && (
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx + 1); }} 
-                                    className="fixed top-1/2 right-0 -translate-y-1/2 w-7 h-16 bg-white/20 backdrop-blur-sm border-y border-l border-white/40 rounded-l-2xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-white/40 transition-all z-30 group"
-                                    title="다음 페이지"
-                                >
-                                    <svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                                </button>
-                            )}
-                            {activeTab === 'mockup' && mockupSpreadIdx > 0 && (
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); setMockupSpreadIdx(prev => prev - 1); }} 
-                                    className="fixed top-1/2 left-0 -translate-y-1/2 w-7 h-16 bg-white/20 backdrop-blur-sm border-y border-r border-white/40 rounded-r-2xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-white/40 transition-all z-30 group"
-                                    title="이전 스프레드"
-                                >
-                                     <svg className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-                                </button>
-                            )}
-                            {activeTab === 'mockup' && mockupSpreadIdx < spreads.length - 1 && (
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); setMockupSpreadIdx(prev => prev + 1); }} 
-                                    className="fixed top-1/2 right-0 -translate-y-1/2 w-7 h-16 bg-white/20 backdrop-blur-sm border-y border-l border-white/40 rounded-l-2xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-white/40 transition-all z-30 group"
-                                    title="다음 스프레드"
-                                >
-                                    <svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                                </button>
-                            )}
+                                {/* LAYER 2 MENU (Palette) - Floating Pills Style */}
+                                <div className={`fixed bottom-[4.5rem] left-0 right-0 z-40 px-4 pb-safe pointer-events-none layer2-container ${isLayer2Visible ? 'layer2-visible' : 'layer2-hidden'}`}>
+                                    <div className="max-w-lg mx-auto pointer-events-auto flex flex-col items-center">
+                                        
+                                        {startTipVisible && (
+                                            <div className="animate-bounce-slight mb-2 bg-indigo-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-md z-50">
+                                                💡 Tip: 형광펜과 글자색을 칠하기 전에 폰트를 먼저 정하세요!
+                                            </div>
+                                        )}
 
-                            {/* LAYER 2 MENU (Palette) - Floating with Slide Animation */}
-                            <div className={`fixed bottom-[3.5rem] left-0 right-0 z-40 px-4 pb-2 pointer-events-none layer2-container ${isLayer2Visible ? 'layer2-visible' : 'layer2-hidden'}`}>
-                                <div className="max-w-lg mx-auto pointer-events-auto flex flex-col items-center">
-                                    
-                                    {/* TIP TOAST */}
-                                    {toastVisible && (activeTab === 'highlight' || activeTab === 'text') && (
-                                        <div className="animate-bounce-slight mb-2 bg-indigo-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-md z-50">
-                                            💡 Tip: 폰트를 먼저 확정한 후 {activeTab === 'highlight' ? '형광펜을 사용하세요.' : '글자색을 변경하세요.'}
-                                        </div>
-                                    )}
-                                    {/* MOCKUP ERROR TOAST */}
-                                    {mockupToast && (
-                                         <div className="animate-bounce-slight mb-2 bg-slate-800 text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-md z-50">
-                                            {mockupToast}
-                                        </div>
-                                    )}
+                                        {toastVisible && (activeTab === 'highlight' || activeTab === 'text') && (
+                                            <div className="animate-bounce-slight mb-2 bg-indigo-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-md z-50">
+                                                💡 Tip: 폰트를 먼저 확정한 후 {activeTab === 'highlight' ? '형광펜을 사용하세요.' : '글자색을 변경하세요.'}
+                                            </div>
+                                        )}
+                                        {mockupToast && <div className="animate-bounce-slight mb-2 bg-slate-800 text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-md z-50">{mockupToast}</div>}
 
-                                    {/* CONTENT based on renderedTab */}
-                                    {renderedTab === 'theme' && (
-                                        <div className="relative w-full flex justify-center">
-                                            <div className="flex items-center gap-4 px-5 py-2">
-                                                {/* Paper */}
-                                                <div className="flex items-center gap-2">
-                                                    {['white', 'cream', 'kraft', 'dark'].map(theme => (
-                                                        <button key={theme} onClick={() => { setActiveTheme(theme); haptic.tap(); }} className={`circle-btn theme-btn-${theme} shadow-xl border ${activeTheme === theme ? 'active scale-110 border-gray-400 ring-1 ring-gray-400' : 'border-white/50'}`} style={{width:'28px', height:'28px'}}></button>
-                                                    ))}
+                                        {renderedTab === 'theme' && (
+                                            <div className="relative w-full flex justify-center">
+                                                <div className="flex items-center gap-4 px-5 py-2">
+                                                    <div className="flex items-center gap-2">
+                                                        {['white', 'cream', 'kraft', 'dark'].map(theme => (
+                                                            <button key={theme} onClick={() => { setActiveTheme(theme); haptic.tap(); }} className={`circle-btn theme-btn-${theme} shadow-xl border ${activeTheme === theme ? 'active scale-110 border-gray-400 ring-1 ring-gray-400' : 'border-white/50'}`} style={{width:'28px', height:'28px'}}></button>
+                                                        ))}
+                                                    </div>
+                                                    <div className="w-px h-6 bg-slate-400/30"></div>
+                                                    <div className="flex items-center gap-1">
+                                                        {Object.keys(FONT_MAP).map(key => (
+                                                            <button key={key} onClick={() => handleFontChangeRequest(key)} className={`flex flex-col items-center justify-center w-9 h-9 rounded-lg transition-all shadow-xl border ${activeFont === key ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-700 hover:bg-white/90 border-white/50'}`}>
+                                                                <span className="text-[9px] leading-tight text-center font-medium whitespace-pre-line">{FONT_MAP[key].name.replace(' ', '\n')}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
-                                                {/* Divider */}
-                                                <div className="w-px h-6 bg-slate-400/30"></div>
-                                                {/* Font */}
-                                                <div className="flex items-center gap-1">
-                                                    {Object.keys(FONT_MAP).map(key => (
-                                                        <button key={key} onClick={() => handleFontChangeRequest(key)} className={`flex flex-col items-center justify-center w-9 h-9 rounded-lg transition-all shadow-xl border ${activeFont === key ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-700 hover:bg-white/90 border-white/50'}`}>
-                                                            <span className="text-[9px] leading-tight text-center font-medium whitespace-pre-line">{FONT_MAP[key].name.replace(' ', '\n')}</span>
+                                            </div>
+                                        )}
+                                        {renderedTab === 'highlight' && (
+                                            <div className="flex flex-col items-center justify-center w-full p-2">
+                                                <div className="flex items-center justify-center gap-4 p-2">
+                                                    {['highlight-yellow', 'highlight-pink', 'highlight-mint', 'highlight-blue'].map(color => (
+                                                        <button key={color} onClick={() => { setCurrentHighlightColor(color); haptic.tap(); }} className={`w-9 h-9 rounded-full overflow-hidden shadow-xl border-2 transition-transform bg-white ${currentHighlightColor === color ? 'scale-110 border-gray-400' : 'border-white'}`}>
+                                                            <div className={`w-full h-full ${color}`}></div>
                                                         </button>
                                                     ))}
                                                 </div>
+                                                <p className="text-[10px] text-slate-600 font-medium mt-0.5 drop-shadow-sm bg-white/50 px-2 rounded-full backdrop-blur-sm">드래그하여 적용, 터치하여 삭제</p>
                                             </div>
-                                        </div>
-                                    )}
-
-                                    {renderedTab === 'highlight' && (
-                                        <div className="flex flex-col items-center justify-center w-full">
-                                            <div className="flex items-center justify-center gap-4 p-2">
-                                                {['highlight-yellow', 'highlight-pink', 'highlight-mint', 'highlight-blue'].map(color => (
-                                                    <button key={color} onClick={() => { setCurrentHighlightColor(color); haptic.tap(); }} className={`w-9 h-9 rounded-full overflow-hidden shadow-xl border-2 transition-transform bg-white ${currentHighlightColor === color ? 'scale-110 border-gray-400' : 'border-white'}`}>
-                                                        <div className={`w-full h-full ${color}`}></div>
-                                                    </button>
-                                                ))}
+                                        )}
+                                        {renderedTab === 'text' && (
+                                            <div className="flex flex-col items-center justify-center w-full p-2">
+                                                <div className="flex items-center justify-center gap-3 p-2 flex-wrap">
+                                                    {[{ id: 'text-crimson', bg: 'bg-text-crimson' }, { id: 'text-navy', bg: 'bg-text-navy' }, { id: 'text-forest', bg: 'bg-text-forest' }, { id: 'text-purple', bg: 'bg-text-purple' }, { id: 'text-brown', bg: 'bg-text-brown' }, { id: 'text-teal', bg: 'bg-text-teal' }, { id: 'text-gray', bg: 'bg-text-gray' }].map(item => (
+                                                        <button key={item.id} onClick={() => { setCurrentTextColor(item.id); haptic.tap(); }} className={`w-9 h-9 rounded-full overflow-hidden shadow-xl border-2 transition-transform bg-white ${currentTextColor === item.id ? 'scale-110 border-gray-400' : 'border-white'}`}>
+                                                            <div className={`w-full h-full ${item.bg}`}></div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <p className="text-[10px] text-slate-600 font-medium mt-0.5 drop-shadow-sm bg-white/50 px-2 rounded-full backdrop-blur-sm">드래그하여 적용, 터치하여 삭제</p>
                                             </div>
-                                            <p className="text-[10px] text-slate-600 font-light mt-0.5">드래그하여 적용, 터치하여 삭제</p>
-                                        </div>
-                                    )}
-
-                                    {renderedTab === 'text' && (
-                                        <div className="flex flex-col items-center justify-center w-full">
-                                            <div className="flex items-center justify-center gap-3 p-2 flex-wrap">
-                                                {[{ id: 'text-crimson', bg: 'bg-text-crimson' }, { id: 'text-navy', bg: 'bg-text-navy' }, { id: 'text-forest', bg: 'bg-text-forest' }, { id: 'text-purple', bg: 'bg-text-purple' }, { id: 'text-brown', bg: 'bg-text-brown' }, { id: 'text-teal', bg: 'bg-text-teal' }, { id: 'text-gray', bg: 'bg-text-gray' }].map(item => (
-                                                    <button key={item.id} onClick={() => { setCurrentTextColor(item.id); haptic.tap(); }} className={`w-9 h-9 rounded-full overflow-hidden shadow-xl border-2 transition-transform bg-white ${currentTextColor === item.id ? 'scale-110 border-gray-400' : 'border-white'}`}>
-                                                        <div className={`w-full h-full ${item.bg}`}></div>
-                                                    </button>
-                                                ))}
+                                        )}
+                                        {renderedTab === 'mockup' && (
+                                            <div className="flex items-center justify-center gap-3 p-4 w-full">
+                                                <button onClick={() => { setFocusedFlyleaf('front'); haptic.tap(); }} className="flex-1 bg-white border border-slate-200 text-slate-700 text-xs py-2.5 rounded-xl shadow-lg hover:bg-slate-50 transition-colors font-medium">앞 표지 문구 작성</button>
+                                                <button onClick={() => { haptic.tap(); if (pages.length % 2 !== 0) { haptic.error(); setMockupToast('뒷 표지가 없습니다.'); setTimeout(() => setMockupToast(null), 2000); } else { setFocusedFlyleaf('back'); } }} className={`flex-1 text-xs py-2.5 rounded-xl shadow-lg transition-colors font-medium border ${pages.length % 2 !== 0 ? 'bg-slate-100 text-slate-400 border-slate-100 cursor-not-allowed' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>뒷 표지 문구 작성</button>
                                             </div>
-                                            <p className="text-[10px] text-slate-600 font-light mt-0.5">드래그하여 적용, 터치하여 삭제</p>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
+                                </div>
 
-                                    {renderedTab === 'mockup' && (
-                                        <div className="flex items-center justify-center gap-3 p-4 w-full">
-                                            <button onClick={() => { setFocusedFlyleaf('front'); haptic.tap(); }} className="flex-1 bg-white border border-slate-200 text-slate-700 text-xs py-2.5 rounded-xl shadow-sm hover:bg-slate-50 transition-colors font-medium">
-                                                앞 표지 문구 작성
-                                            </button>
-                                            <button 
-                                                onClick={() => {
-                                                    haptic.tap();
-                                                    if (pages.length % 2 !== 0) {
-                                                        haptic.error();
-                                                        setMockupToast('뒷 표지가 없습니다.');
-                                                        setTimeout(() => setMockupToast(null), 2000);
-                                                    } else {
-                                                        setFocusedFlyleaf('back');
-                                                    }
-                                                }}
-                                                className={`flex-1 text-xs py-2.5 rounded-xl shadow-sm transition-colors font-medium border ${
-                                                    pages.length % 2 !== 0 
-                                                    ? 'bg-slate-100 text-slate-400 border-slate-100 cursor-not-allowed' 
-                                                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                                                }`}
-                                            >
-                                                뒷 표지 문구 작성
-                                            </button>
-                                        </div>
-                                    )}
+                                {/* LAYER 1 MENU (Bottom Nav) */}
+                                <div className="fixed bottom-0 left-0 right-0 h-16 bg-[#F9FBFD]/90 backdrop-blur-md rounded-t-[30px] shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-50 flex items-center justify-around px-2 pb-safe border-t border-white/50">
+                                    <button onClick={() => toggleTab('theme', null)} className={`flex-1 flex flex-col items-center justify-center h-full transition-colors ${activeTab === 'theme' ? 'text-slate-900' : 'text-slate-400'}`}><span className="text-sm font-medium">서식</span></button>
+                                    <button onClick={() => toggleTab('highlight', 'highlight')} className={`flex-1 flex flex-col items-center justify-center h-full transition-colors ${activeTab === 'highlight' ? 'text-slate-900' : 'text-slate-400'}`}><span className="text-sm font-medium">형광펜</span></button>
+                                    <button onClick={() => toggleTab('text', 'text')} className={`flex-1 flex flex-col items-center justify-center h-full transition-colors ${activeTab === 'text' ? 'text-slate-900' : 'text-slate-400'}`}><span className="text-sm font-medium">글자색</span></button>
+                                    <button onClick={() => toggleTab('mockup', null)} className={`flex-1 flex flex-col items-center justify-center h-full transition-colors ${activeTab === 'mockup' ? 'text-slate-900' : 'text-slate-400'}`}><span className="text-sm font-medium">목업</span></button>
                                 </div>
                             </div>
 
-                            {/* LAYER 1 MENU (Bottom Nav) - Fixed */}
-                            <div className="fixed bottom-0 left-0 right-0 h-16 bg-[#F9FBFD] rounded-t-[30px] shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-50 flex items-center justify-around px-2 pb-safe">
-                                <button onClick={() => toggleTab('theme', null)} className={`flex-1 flex flex-col items-center justify-center h-full transition-colors ${activeTab === 'theme' ? 'text-slate-900' : 'text-slate-400'}`}>
-                                    <span className="text-sm font-medium">서식</span>
-                                </button>
-                                <button onClick={() => toggleTab('highlight', 'highlight')} className={`flex-1 flex flex-col items-center justify-center h-full transition-colors ${activeTab === 'highlight' ? 'text-slate-900' : 'text-slate-400'}`}>
-                                    <span className="text-sm font-medium">형광펜</span>
-                                </button>
-                                <button onClick={() => toggleTab('text', 'text')} className={`flex-1 flex flex-col items-center justify-center h-full transition-colors ${activeTab === 'text' ? 'text-slate-900' : 'text-slate-400'}`}>
-                                    <span className="text-sm font-medium">글자색</span>
-                                </button>
-                                <button onClick={() => toggleTab('mockup', null)} className={`flex-1 flex flex-col items-center justify-center h-full transition-colors ${activeTab === 'mockup' ? 'text-slate-900' : 'text-slate-400'}`}>
-                                    <span className="text-sm font-medium">목업</span>
-                                </button>
-                            </div>
+                            {/* --- DESKTOP UI (Classic) --- */}
+                            <div className="hidden md:flex flex-col min-h-screen bg-gray-100 pb-20">
+                                <div className="sticky top-0 z-50 bg-white shadow-sm">
+                                    {/* Row 1: Controls */}
+                                    <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 max-w-2xl mx-auto w-full">
+                                        <div className="flex items-center gap-4">
+                                            {/* Reset button removed as per request */}
+                                            <button onClick={backToEditUI} className="flex flex-col items-center justify-center w-10 text-slate-500 hover:text-indigo-600 transition-colors">
+                                                <span className="text-xl leading-none">
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                                                </span>
+                                                <span className="text-[9px] mt-0.5">나가기</span>
+                                            </button>
+                                            <button onClick={() => { setActiveTab(activeTab === 'mockup' ? null : 'mockup'); setToolMode(null); }} className={`flex flex-col items-center justify-center w-10 transition-colors ${activeTab === 'mockup' ? 'text-indigo-600' : 'text-slate-500 hover:text-indigo-600'}`}>
+                                                <span className="text-xl leading-none">
+                                                    {activeTab === 'mockup' ? (
+                                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                    ) : (
+                                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                                                    )}
+                                                </span>
+                                                <span className="text-[9px] mt-0.5 w-14 -ml-2 text-center">{activeTab === 'mockup' ? '목업 나가기' : '목업'}</span>
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                                            <button onClick={() => { if(activeTab==='mockup'){ if(mockupSpreadIdx>0) setMockupSpreadIdx(prev=>prev-1); } else { if(currentPageIdx>0) goToPage(currentPageIdx-1); } }} disabled={activeTab==='mockup' ? mockupSpreadIdx===0 : currentPageIdx===0} className="text-slate-400 hover:text-slate-800 disabled:opacity-20 px-1">‹</button>
+                                            <span className="font-serif tabular-nums text-sm w-12 text-center text-slate-700">{activeTab === 'mockup' ? `${mockupSpreadIdx + 1} / ${spreads.length}` : `${currentPageIdx + 1} / ${pages.length}`}</span>
+                                            <button onClick={() => { if(activeTab==='mockup'){ if(mockupSpreadIdx<spreads.length-1) setMockupSpreadIdx(prev=>prev+1); } else { if(currentPageIdx<pages.length-1) goToPage(currentPageIdx+1); } }} disabled={activeTab==='mockup' ? mockupSpreadIdx===spreads.length-1 : currentPageIdx===pages.length-1} className="text-slate-400 hover:text-slate-800 disabled:opacity-20 px-1">›</button>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {/* Show '전체저장' only on PC (not mobile/iPad) */}
+                                            {!isMobile() && (
+                                                <button onClick={downloadAllSequential} className="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors">전체저장</button>
+                                            )}
+                                            <button onClick={downloadCurrent} className="bg-slate-800 text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-slate-700 shadow-sm flex items-center gap-1.5"><span className="text-sm">📥</span><span>저장</span></button>
+                                        </div>
+                                    </div>
+                                    {/* Row 2: Tabs */}
+                                    {activeTab !== 'mockup' && (
+                                        <div className="flex border-b border-slate-200 max-w-2xl mx-auto w-full">
+                                            <button onClick={() => setActiveTab(activeTab === 'style' ? null : 'style')} className={`flex-1 py-3 text-xs font-medium flex items-center justify-center gap-2 transition-all ${activeTab === 'style' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/30' : 'text-slate-500 hover:bg-slate-50'}`}><span>🎨 스타일 설정</span></button>
+                                            <button onClick={() => setActiveTab(activeTab === 'tool' ? null : 'tool')} className={`flex-1 py-3 text-xs font-medium flex items-center justify-center gap-2 transition-all ${activeTab === 'tool' ? 'text-pink-600 border-b-2 border-pink-600 bg-pink-50/30' : 'text-slate-500 hover:bg-slate-50'}`}><span>🛠 도구</span></button>
+                                        </div>
+                                    )}
+                                    {/* Row 3: Settings Panel */}
+                                    {activeTab === 'style' && activeTab !== 'mockup' && (
+                                        <div className="bg-slate-50/80 backdrop-blur-sm border-b border-slate-200 animate-slide-down">
+                                            <div className="max-w-2xl mx-auto w-full p-4 flex flex-col gap-5">
+                                                <div className="flex items-center justify-center gap-4">
+                                                    <span className="text-[10px] tracking-widest text-slate-400 font-bold">THEME</span>
+                                                    <div className="flex gap-3">
+                                                        {['white', 'cream', 'kraft', 'dark'].map(theme => (
+                                                            <button key={theme} onClick={() => setActiveTheme(theme)} className={`circle-btn theme-btn-${theme} ${activeTheme === theme ? 'active shadow-md' : ''}`} title={theme}></button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div className="h-px bg-slate-200 w-full"></div>
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <div className="flex items-center gap-4">
+                                                        <span className="text-[10px] tracking-widest text-slate-400 font-bold">FONT</span>
+                                                        <div className="flex gap-1 bg-white p-1 rounded-lg border border-slate-200">
+                                                            {Object.keys(FONT_MAP).map(key => (
+                                                                <button key={key} onClick={() => handleFontChangeRequest(key)} className={`px-3 py-1.5 text-xs rounded-md transition-all ${activeFont === key ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}>{FONT_MAP[key].name}</button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-[10px] text-red-400 mt-1">⚠ 폰트 변경 시 형광펜이 초기화됩니다.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {activeTab === 'tool' && activeTab !== 'mockup' && (
+                                        <div className="bg-slate-50/80 backdrop-blur-sm border-b border-slate-200 animate-slide-down">
+                                            <div className="max-w-2xl mx-auto w-full p-4 flex flex-col items-center gap-3">
+                                                <div className="flex bg-slate-200 rounded-lg p-1 mb-1">
+                                                    <button onClick={() => { setActiveTab('tool'); setToolMode('highlight'); }} className={`px-3 py-1 text-xs rounded-md transition-all ${toolMode === 'highlight' ? 'bg-white shadow-sm text-slate-800 font-medium' : 'text-slate-500'}`}>🖍 형광펜</button>
+                                                    <button onClick={() => { setActiveTab('tool'); setToolMode('text'); }} className={`px-3 py-1 text-xs rounded-md transition-all ${toolMode === 'text' ? 'bg-white shadow-sm text-slate-800 font-medium' : 'text-slate-500'}`}>✒️ 글자색</button>
+                                                </div>
+                                                <p className="text-[10px] text-slate-500">💡 Tip: 폰트를 먼저 확정한 후 도구를 사용하세요.</p>
+                                                {toolMode === 'highlight' ? (
+                                                    <div className="flex gap-4">
+                                                        {['highlight-yellow', 'highlight-pink', 'highlight-mint', 'highlight-blue'].map(color => (
+                                                            <button key={color} onClick={() => setCurrentHighlightColor(color)} className={`circle-btn ${color} ${currentHighlightColor === color ? 'border-slate-800 scale-110 shadow-sm' : ''}`}></button>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex gap-4">
+                                                        {[{ id: 'text-crimson', bg: 'bg-text-crimson' }, { id: 'text-navy', bg: 'bg-text-navy' }, { id: 'text-forest', bg: 'bg-text-forest' }, { id: 'text-purple', bg: 'bg-text-purple' }, { id: 'text-brown', bg: 'bg-text-brown' }, { id: 'text-teal', bg: 'bg-text-teal' }, { id: 'text-gray', bg: 'bg-text-gray' }].map(item => (
+                                                            <button key={item.id} onClick={() => setCurrentTextColor(item.id)} className={`circle-btn ${item.bg} ${currentTextColor === item.id ? 'border-slate-800 scale-110 shadow-sm' : ''}`}></button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                <p className="text-[10px] text-slate-400">드래그하여 적용, 터치하여 삭제</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
 
-                        </div>
+                                {/* Viewer Area */}
+                                <div className="flex-1 py-8 overflow-auto flex justify-center">
+                                    {activeTab === 'mockup' ? (
+                                        <div className="mockup-scaler w-full h-full flex items-center justify-center">
+                                             <MockupBookRenderer 
+                                                spreadIdx={mockupSpreadIdx} spreads={spreads} activeTheme={activeTheme} activeFont={activeFont}
+                                                frontFlyleafText={frontFlyleafText} setFrontFlyleafText={setFrontFlyleafText}
+                                                backFlyleafText={backFlyleafText} setBackFlyleafText={setBackFlyleafText}
+                                                pageHighlights={pageHighlights} pages={pages} metadata={metadata}
+                                                onEditFlyleaf={handleFlyleafEdit}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {/* Floating Nav Buttons for Desktop */}
+                                            {currentPageIdx > 0 && (
+                                                <button onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx - 1); }} className="fixed bottom-6 left-6 w-12 h-12 bg-gray-800/30 hover:bg-gray-800/60 rounded-full flex items-center justify-center text-white backdrop-blur-sm shadow-lg z-50 transition-all">
+                                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                                                </button>
+                                            )}
+                                            {currentPageIdx < pages.length - 1 && (
+                                                <button onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx + 1); }} className="fixed bottom-6 right-6 w-12 h-12 bg-gray-800/30 hover:bg-gray-800/60 rounded-full flex items-center justify-center text-white backdrop-blur-sm shadow-lg z-50 transition-all">
+                                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                                                </button>
+                                            )}
+                                            
+                                            <div id="bookViewerWrapper" className="flex justify-center overflow-visible select-text cursor-text" onClick={() => {}}>
+                                                <div ref={viewerRef} id="captureTarget" className={`page-container theme-${activeTheme}`} style={{ fontFamily: FONT_MAP[activeFont].family }}>
+                                                    <PageContent 
+                                                        pageIdx={currentPageIdx} pages={pages} pageHighlights={pageHighlights} metadata={metadata} activeFont={activeFont} 
+                                                        onMouseUp={handleHighlightSelection} onClick={handleContentClick} contentRef={desktopContentRef}
+                                                    />
+                                                    <PageFooter pageIdx={currentPageIdx} metadata={metadata} />
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </>
                     )}
                 </div>
             );
