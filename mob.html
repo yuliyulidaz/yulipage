@@ -785,7 +785,7 @@
             else if (position === 'top-left') posClass = 'top-[60px] left-[20px]'; 
             else if (position === 'bottom-right') posClass = 'bottom-[80px] right-[20px]'; 
             else if (position === 'center-up') posClass = 'top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2';
-            else if (position === 'mobile-bottom') posClass = 'bottom-[110px] left-1/2 -translate-x-1/2';
+            else if (position === 'mobile-bottom') posClass = 'bottom-[100px] left-1/2 -translate-x-1/2';
 
             const isIdle = status === 'idle';
             const baseClass = "transform transition-all duration-300 ease-out";
@@ -796,7 +796,7 @@
             return (
                 <div className="fixed inset-0 z-[100]">
                      <div className="absolute inset-0 bg-transparent" onClick={() => handleAction(() => { if(config.onCancel) config.onCancel(); })}></div>
-                     <div className={`absolute ${posClass} ${baseClass} ${stateClass} pointer-events-auto`}>
+                     <div className={`fixed ${posClass} ${baseClass} ${stateClass} pointer-events-auto`}>
                          <div className="relative bg-[#fffbf0] w-48 min-h-[100px] p-5 pt-8 shadow-[2px_4px_8px_rgba(0,0,0,0.15)] rotate-1 border border-[#e8e4d9]">
                             <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-8 bg-white/40 backdrop-blur-[1px] shadow-sm rotate-[-2deg] border-l border-r border-white/60"></div>
                             <div className="text-center flex flex-col h-full justify-between">
@@ -1286,11 +1286,11 @@
                 if (activeTab === 'highlight' && !tipsShown.highlight) {
                     setToastVisible(true);
                     setTipsShown(prev => ({ ...prev, highlight: true }));
-                    timer = setTimeout(() => setToastVisible(false), 3000);
+                    timer = setTimeout(() => setToastVisible(false), 2000);
                 } else if (activeTab === 'text' && !tipsShown.text) {
                     setToastVisible(true);
                     setTipsShown(prev => ({ ...prev, text: true }));
-                    timer = setTimeout(() => setToastVisible(false), 3000);
+                    timer = setTimeout(() => setToastVisible(false), 2000);
                 } else {
                     setToastVisible(false);
                 }
