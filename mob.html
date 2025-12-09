@@ -223,7 +223,7 @@
         /* MOCKUP STYLES */
         /* ----------------------------------------------------------------- */
         .mockup-book-wrapper {
-            position: absolute;
+            position: relative; /* Changed from absolute to relative for better flexbox centering on PC */
             width: 840px; 
             height: 600px;
             display: flex;
@@ -1765,7 +1765,7 @@
 
                     {/* STEP 1: INPUT */}
                     {step === 'input' && (
-                        <div className="h-[100dvh] flex flex-col bg-white md:max-w-[900px] md:mx-auto md:my-10 md:rounded-2xl md:shadow-sm md:h-auto md:min-h-[92vh] overflow-hidden relative">
+                        <div className="min-h-screen flex flex-col bg-white md:max-w-[900px] md:mx-auto md:my-10 md:rounded-2xl md:shadow-sm relative">
                             <UndoSnackbar visible={showUndo} onUndo={handleUndo} />
                             {/* Input Validation Toast */}
                             {inputToast && (
@@ -1784,8 +1784,8 @@
                                 </button>
                             </div>
                             
-                            {/* Scrollable Content */}
-                            <div className="flex-1 flex flex-col p-4 md:p-6 overflow-hidden pb-0 overflow-y-auto">
+                            {/* Content Area */}
+                            <div className="flex flex-col p-4 md:p-6 pb-0">
                                 {/* Metadata Group - Compact */}
                                 <div className="space-y-3 mb-4">
                                     <div>
@@ -1794,18 +1794,18 @@
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-xs text-slate-500 mb-1">캐릭터</label>
+                                            <label className="block text-xs text-slate-500 mb-1">작품 제목</label>
                                             <input type="text" value={metadata.author} onChange={(e) => setMetadata({...metadata, author: e.target.value})} className="w-full p-2.5 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all text-sm" />
                                         </div>
                                         <div>
-                                            <label className="block text-xs text-slate-500 mb-1">제작자</label>
+                                            <label className="block text-xs text-slate-500 mb-1">작가</label>
                                             <input type="text" value={metadata.producer} onChange={(e) => setMetadata({...metadata, producer: e.target.value})} className="w-full p-2.5 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all text-sm" />
                                         </div>
                                     </div>
                                 </div>
                                 
-                                {/* Body Input - Fills remaining space */}
-                                <div className="flex-1 flex flex-col min-h-0 relative border rounded-lg bg-slate-50 ring-slate-200 focus-within:ring-2 focus-within:bg-white transition-all overflow-hidden min-h-[50vh]">
+                                {/* Body Input - Fixed Height but part of flow */}
+                                <div className="flex flex-col relative border rounded-lg bg-slate-50 ring-slate-200 focus-within:ring-2 focus-within:bg-white transition-all overflow-hidden h-[60vh] md:h-[65vh]">
                                     <div className="flex justify-between items-center px-4 pt-3 pb-1 shrink-0">
                                          <label className="text-xs text-slate-500">본문 <span className="text-red-500 font-light ml-1 text-[10px]">*필수</span></label>
                                          {estimatedPages > 0 && <span className="text-indigo-600 font-bold text-xs">약 {estimatedPages} 페이지</span>}
@@ -1814,7 +1814,7 @@
                                     <div className="relative flex-1">
                                         {!textInput && (
                                             <div className="custom-placeholder top-2 left-4 right-4 text-sm leading-relaxed text-slate-400">
-                                                여기에 본문을 붙여넣으세요.<br/>엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.<br/>*** 를 입력하면 장면 전환(중앙 정렬)이 적용됩니다.
+                                                여기에 소설 본문을 붙여넣으세요.<br/>엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.<br/>*** 를 입력하면 장면 전환(중앙 정렬)이 적용됩니다.
                                             </div>
                                         )}
                                         <textarea 
@@ -1828,11 +1828,17 @@
                                     {/* TOOLBAR */}
                                     <Toolbar textInput={textInput} setTextInput={setTextInput} textAreaRef={textAreaRef} />
                                 </div>
+                            </div>
 
-                                 <button onClick={() => startGeneration(null)} disabled={isGenerating} className="btn w-full py-4 bg-[#1a2233] text-white rounded-lg font-medium shadow-lg flex justify-center items-center gap-2 disabled:opacity-70 transition-transform active:scale-95 hover:bg-[#2a3344]">
+                            {/* Footer Action */}
+                            <div className="p-4 md:p-6 bg-white shrink-0 border-t border-slate-100">
+                                <button onClick={() => startGeneration(null)} disabled={isGenerating} className="btn w-full py-4 bg-[#1a2233] text-white rounded-lg font-medium shadow-lg flex justify-center items-center gap-2 disabled:opacity-70 transition-transform active:scale-95 hover:bg-[#2a3344]">
                                     <span>{isGenerating ? '생성 중...' : 'A6 레이아웃 생성하기'}</span>
                                 </button>
-                                <footer className="bg-white p-4 pb-safe md:rounded-b-2xl text-center text-[10px] text-slate-300">
+                            </div>
+                            
+                            {/* Footer Content - Moved to Bottom */}
+                            <footer className="bg-white p-4 pb-safe md:rounded-b-2xl text-center text-[10px] text-slate-300">
                                 <p>📖 소설 내지 생성기 v1.3.0 : 본 사이트는 어떠한 개인정보도 수집하지 않습니다. 모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
                                 <p>⚠️ 이용 시 주의사항 : 텍스트 인용: 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요. 상업적 이용: 생성된 이미지는 상업적으로 사용할 수 없습니다.</p>
                                 <a
@@ -1853,11 +1859,8 @@
                                   🔗발췌 문구 생성기 바로가기
                                 </a>
                             </footer>
-
-                                
-                            </div>
-
-                            
+                        </div>
+                    )}
 
                     {/* STEP 2: RESULT */}
                     {step === 'result' && (
@@ -2154,4 +2157,3 @@
     </script>
 </body>
 </html>
-
