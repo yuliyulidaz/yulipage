@@ -785,6 +785,7 @@
             else if (position === 'top-left') posClass = 'top-[60px] left-[20px]'; 
             else if (position === 'bottom-right') posClass = 'bottom-[80px] right-[20px]'; 
             else if (position === 'center-up') posClass = 'top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2';
+            else if (position === 'mobile-bottom') posClass = 'bottom-[110px] left-1/2 -translate-x-1/2';
 
             const isIdle = status === 'idle';
             const baseClass = "transform transition-all duration-300 ease-out";
@@ -1159,24 +1160,27 @@
                             toggleTab(activeTab, null); 
                             return;
                         } else {
+                            // If menu closed, check conditions to show exit popup
+                            window.history.pushState({ step: 'result' }, ''); 
+                            
                             const container = mobileContentRef.current || desktopContentRef.current;
                             const hasDecorations = Object.values(pageHighlights).some(html => html.includes('data-group-id')) ||
                                                  (container && container.innerHTML.includes('data-group-id'));
 
+                            let msg = '이 페이지를\n나가시겠어요?';
                             if (hasDecorations) {
-                                window.history.pushState({ step: 'result' }, ''); 
-                                setMemoAlert({
-                                    message: '형광펜과 글자색이\n지워집니다.\n그래도 나가시겠어요?',
-                                    onConfirm: () => {
-                                        executeBackToEdit();
-                                    },
-                                    onCancel: () => {},
-                                    position: 'bottom-right',
-                                    timestamp: Date.now()
-                                });
-                            } else {
-                                executeBackToEdit();
+                                msg = '형광펜과 글자색이\n지워집니다.\n그래도 나가시겠어요?';
                             }
+                            
+                            setMemoAlert({
+                                message: msg,
+                                onConfirm: () => {
+                                    executeBackToEdit();
+                                },
+                                onCancel: () => {},
+                                position: isMobile() ? 'mobile-bottom' : 'center',
+                                timestamp: Date.now()
+                            });
                         }
                     } else if (step === 'input') {
                          if (!exitToast) {
@@ -1331,8 +1335,10 @@
                     }
                     if (!targetFont) {
                         setStep('result');
-                        if (isMobile()) {
+                        // Use window.innerWidth to correctly detect mobile layout even on desktop resize
+                        if (isMobile() || window.innerWidth < 768) {
                             setActiveTab('theme');
+                            setRenderedTab('theme'); // Immediately render for no delay
                             setStartTipVisible(true); // Show start tip
                             setTimeout(() => setStartTipVisible(false), 4000);
                         } else {
@@ -1387,7 +1393,7 @@
                              startGeneration(newFont);
                         },
                         onCancel: () => {},
-                        position: 'center-up',
+                        position: isMobile() ? 'mobile-bottom' : 'center-up',
                         timestamp: Date.now()
                     });
                 } else {
@@ -1536,13 +1542,8 @@
 
             const backToEditUI = () => {
                 haptic.tap();
-                // 1. If Menu is open, always close it first
-                if (activeTab && activeTab !== 'mockup' && isMobile()) {
-                    toggleTab(activeTab, null);
-                    return;
-                }
-
-                // 2. Normal Back Logic
+                // For UI back icon, always check highlights and exit
+                
                 const container = mobileContentRef.current || desktopContentRef.current;
                 const hasDecorations = Object.values(pageHighlights).some(html => html.includes('data-group-id')) ||
                                      (container && container.innerHTML.includes('data-group-id'));
@@ -1552,7 +1553,7 @@
                         message: '형광펜과 글자색이\n지워집니다.\n그래도 나가시겠어요?',
                         onConfirm: () => executeBackToEdit(),
                         onCancel: () => {},
-                        position: 'top-left',
+                        position: isMobile() ? 'mobile-bottom' : 'top-left',
                         timestamp: Date.now()
                     });
                 } else {
