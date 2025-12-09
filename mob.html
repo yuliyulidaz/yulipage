@@ -1184,10 +1184,17 @@
                         }
                     } else if (step === 'input') {
                          if (!exitToast) {
-                             window.history.pushState({ step: 'input' }, '');
-                             setExitToast(true);
-                             haptic.tap();
-                             setTimeout(() => setExitToast(false), 2000);
+                            setMemoAlert({
+                                message: '입력된 내용이 삭제됩니다.\n뒤로 가시겠습니까?',
+                                onConfirm: () => {
+                                     window.history.back();
+                                },
+                                onCancel: () => {},
+                                position: 'center',
+                                timestamp: Date.now()
+                            });
+                            // Push state again so back button doesn't exit immediately if canceled
+                            window.history.pushState({ step: 'input', alert: true }, '');
                          }
                     }
                 };
@@ -1787,37 +1794,14 @@
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-xs text-slate-500 mb-1">작품 제목</label>
+                                            <label className="block text-xs text-slate-500 mb-1">캐릭터</label>
                                             <input type="text" value={metadata.author} onChange={(e) => setMetadata({...metadata, author: e.target.value})} className="w-full p-2.5 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all text-sm" />
                                         </div>
                                         <div>
-                                            <label className="block text-xs text-slate-500 mb-1">작가</label>
+                                            <label className="block text-xs text-slate-500 mb-1">제작자</label>
                                             <input type="text" value={metadata.producer} onChange={(e) => setMetadata({...metadata, producer: e.target.value})} className="w-full p-2.5 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all text-sm" />
                                         </div>
                                     </div>
-                                    
-                                    {/* Moved Footer Content Here */}
-                                    <footer className="mt-6 text-center text-[10px] text-slate-300">
-                                        <p>📖 소설 내지 생성기 v1.3.0 : 본 사이트는 어떠한 개인정보도 수집하지 않습니다. 모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
-                                        <p>⚠️ 이용 시 주의사항 : 텍스트 인용: 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요. 상업적 이용: 생성된 이미지는 상업적으로 사용할 수 없습니다.</p>
-                                            <a
-                                              href="https://yuliyulidaz.github.io/yulilog/"
-                                              target="_blank"
-                                              rel="noreferrer"
-                                              className="
-                                                text-[10px]
-                                                text-indigo-400
-                                                hover:text-indigo-600
-                                                underline
-                                                underline-offset-2
-                                                decoration-indigo-200
-                                                hover:decoration-indigo-400
-                                                transition-colors
-                                              "
-                                            >
-                                              🔗발췌 문구 생성기 바로가기
-                                            </a>
-                                    </footer>
                                 </div>
                                 
                                 {/* Body Input - Fills remaining space */}
@@ -1830,7 +1814,7 @@
                                     <div className="relative flex-1">
                                         {!textInput && (
                                             <div className="custom-placeholder top-2 left-4 right-4 text-sm leading-relaxed text-slate-400">
-                                                여기에 소설 본문을 붙여넣으세요.<br/>엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.<br/>*** 를 입력하면 장면 전환(중앙 정렬)이 적용됩니다.
+                                                여기에 본문을 붙여넣으세요.<br/>엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.<br/>*** 를 입력하면 장면 전환(중앙 정렬)이 적용됩니다.
                                             </div>
                                         )}
                                         <textarea 
@@ -1847,11 +1831,34 @@
                             </div>
 
                             {/* Footer Action */}
-                            <div className="p-4 md:p-6 bg-white z-10 shrink-0 pb-safe border-t border-slate-100">
+                            <div className="p-4 md:p-6 bg-white z-10 shrink-0 border-t border-slate-100">
                                 <button onClick={() => startGeneration(null)} disabled={isGenerating} className="btn w-full py-4 bg-[#1a2233] text-white rounded-lg font-medium shadow-lg flex justify-center items-center gap-2 disabled:opacity-70 transition-transform active:scale-95 hover:bg-[#2a3344]">
                                     <span>{isGenerating ? '생성 중...' : 'A6 레이아웃 생성하기'}</span>
                                 </button>
                             </div>
+                            
+                            {/* Footer Content - Moved to Bottom */}
+                            <footer className="bg-white p-4 pb-safe md:rounded-b-2xl text-center text-[10px] text-slate-300">
+                                <p>📖 소설 내지 생성기 v1.3.0 : 본 사이트는 어떠한 개인정보도 수집하지 않습니다. 모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
+                                <p>⚠️ 이용 시 주의사항 : 텍스트 인용: 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요. 상업적 이용: 생성된 이미지는 상업적으로 사용할 수 없습니다.</p>
+                                <a
+                                  href="https://yuliyulidaz.github.io/yulilog/"
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="
+                                    text-[10px]
+                                    text-indigo-400
+                                    hover:text-indigo-600
+                                    underline
+                                    underline-offset-2
+                                    decoration-indigo-200
+                                    hover:decoration-indigo-400
+                                    transition-colors
+                                  "
+                                >
+                                  🔗발췌 문구 생성기 바로가기
+                                </a>
+                            </footer>
                         </div>
                     )}
 
