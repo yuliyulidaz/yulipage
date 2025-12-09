@@ -785,7 +785,8 @@
             else if (position === 'top-left') posClass = 'top-[60px] left-[20px]'; 
             else if (position === 'bottom-right') posClass = 'bottom-[80px] right-[20px]'; 
             else if (position === 'center-up') posClass = 'top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2';
-            else if (position === 'mobile-bottom') posClass = 'bottom-[100px] left-1/2 -translate-x-1/2';
+            else if (position === 'mobile-bottom') posClass = 'bottom-[110px] left-1/2 -translate-x-1/2';
+            else if (position === 'mobile-top-left') posClass = 'top-[70px] left-[20px]';
 
             const isIdle = status === 'idle';
             const baseClass = "transform transition-all duration-300 ease-out";
@@ -1161,26 +1162,25 @@
                             return;
                         } else {
                             // If menu closed, check conditions to show exit popup
-                            window.history.pushState({ step: 'result' }, ''); 
                             
                             const container = mobileContentRef.current || desktopContentRef.current;
                             const hasDecorations = Object.values(pageHighlights).some(html => html.includes('data-group-id')) ||
                                                  (container && container.innerHTML.includes('data-group-id'));
 
-                            let msg = '이 페이지를\n나가시겠어요?';
                             if (hasDecorations) {
-                                msg = '형광펜과 글자색이\n지워집니다.\n그래도 나가시겠어요?';
+                                window.history.pushState({ step: 'result' }, ''); 
+                                setMemoAlert({
+                                    message: '형광펜과 글자색이\n지워집니다.\n그래도 나가시겠어요?',
+                                    onConfirm: () => {
+                                        executeBackToEdit();
+                                    },
+                                    onCancel: () => {},
+                                    position: 'mobile-bottom',
+                                    timestamp: Date.now()
+                                });
+                            } else {
+                                executeBackToEdit(); // Direct exit if no decorations
                             }
-                            
-                            setMemoAlert({
-                                message: msg,
-                                onConfirm: () => {
-                                    executeBackToEdit();
-                                },
-                                onCancel: () => {},
-                                position: isMobile() ? 'mobile-bottom' : 'center',
-                                timestamp: Date.now()
-                            });
                         }
                     } else if (step === 'input') {
                          if (!exitToast) {
@@ -1280,22 +1280,6 @@
                     setEstimatedPages(0);
                 }
             }, [debouncedText, step, activeFont, metadata.title]);
-
-            useEffect(() => {
-                let timer;
-                if (activeTab === 'highlight' && !tipsShown.highlight) {
-                    setToastVisible(true);
-                    setTipsShown(prev => ({ ...prev, highlight: true }));
-                    timer = setTimeout(() => setToastVisible(false), 2000);
-                } else if (activeTab === 'text' && !tipsShown.text) {
-                    setToastVisible(true);
-                    setTipsShown(prev => ({ ...prev, text: true }));
-                    timer = setTimeout(() => setToastVisible(false), 2000);
-                } else {
-                    setToastVisible(false);
-                }
-                return () => clearTimeout(timer);
-            }, [activeTab]);
 
             useEffect(() => {
                 let timer;
@@ -1542,8 +1526,7 @@
 
             const backToEditUI = () => {
                 haptic.tap();
-                // For UI back icon, always check highlights and exit
-                
+                // For UI back icon
                 const container = mobileContentRef.current || desktopContentRef.current;
                 const hasDecorations = Object.values(pageHighlights).some(html => html.includes('data-group-id')) ||
                                      (container && container.innerHTML.includes('data-group-id'));
@@ -1553,7 +1536,7 @@
                         message: '형광펜과 글자색이\n지워집니다.\n그래도 나가시겠어요?',
                         onConfirm: () => executeBackToEdit(),
                         onCancel: () => {},
-                        position: isMobile() ? 'mobile-bottom' : 'top-left',
+                        position: isMobile() ? 'mobile-top-left' : 'top-left',
                         timestamp: Date.now()
                     });
                 } else {
@@ -1906,22 +1889,22 @@
 
                                 {/* Slim Edge Glass Tab Navigation */}
                                 {activeTab !== 'mockup' && currentPageIdx > 0 && (
-                                    <button onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx - 1); }} className="fixed top-1/2 left-0 -translate-y-1/2 w-7 h-16 bg-white/20 backdrop-blur-sm border-y border-r border-white/40 rounded-r-2xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-white/40 transition-all z-30 group">
+                                    <button onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx - 1); }} className="fixed top-1/2 left-3 -translate-y-1/2 w-8 h-16 bg-white/20 backdrop-blur-sm border border-white/40 rounded-2xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-white/40 transition-all z-30 group">
                                         <svg className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                                     </button>
                                 )}
                                 {activeTab !== 'mockup' && currentPageIdx < pages.length - 1 && (
-                                    <button onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx + 1); }} className="fixed top-1/2 right-0 -translate-y-1/2 w-7 h-16 bg-white/20 backdrop-blur-sm border-y border-l border-white/40 rounded-l-2xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-white/40 transition-all z-30 group">
+                                    <button onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx + 1); }} className="fixed top-1/2 right-3 -translate-y-1/2 w-8 h-16 bg-white/20 backdrop-blur-sm border border-white/40 rounded-2xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-white/40 transition-all z-30 group">
                                         <svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                                     </button>
                                 )}
                                 {activeTab === 'mockup' && mockupSpreadIdx > 0 && (
-                                    <button onClick={(e) => { e.stopPropagation(); setMockupSpreadIdx(prev => prev - 1); }} className="fixed top-1/2 left-0 -translate-y-1/2 w-7 h-16 bg-white/20 backdrop-blur-sm border-y border-r border-white/40 rounded-r-2xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-white/40 transition-all z-30 group">
+                                    <button onClick={(e) => { e.stopPropagation(); setMockupSpreadIdx(prev => prev - 1); }} className="fixed top-1/2 left-3 -translate-y-1/2 w-8 h-16 bg-white/20 backdrop-blur-sm border border-white/40 rounded-2xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-white/40 transition-all z-30 group">
                                          <svg className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                                     </button>
                                 )}
                                 {activeTab === 'mockup' && mockupSpreadIdx < spreads.length - 1 && (
-                                    <button onClick={(e) => { e.stopPropagation(); setMockupSpreadIdx(prev => prev + 1); }} className="fixed top-1/2 right-0 -translate-y-1/2 w-7 h-16 bg-white/20 backdrop-blur-sm border-y border-l border-white/40 rounded-l-2xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-white/40 transition-all z-30 group">
+                                    <button onClick={(e) => { e.stopPropagation(); setMockupSpreadIdx(prev => prev + 1); }} className="fixed top-1/2 right-3 -translate-y-1/2 w-8 h-16 bg-white/20 backdrop-blur-sm border border-white/40 rounded-2xl shadow-lg flex items-center justify-center text-slate-600 hover:bg-white/40 transition-all z-30 group">
                                         <svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                                     </button>
                                 )}
@@ -1936,11 +1919,6 @@
                                             </div>
                                         )}
 
-                                        {toastVisible && (activeTab === 'highlight' || activeTab === 'text') && (
-                                            <div className="animate-bounce-slight mb-2 bg-indigo-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-md z-50">
-                                                💡 Tip: 폰트를 먼저 확정한 후 {activeTab === 'highlight' ? '형광펜을 사용하세요.' : '글자색을 변경하세요.'}
-                                            </div>
-                                        )}
                                         {mockupToast && <div className="animate-bounce-slight mb-2 bg-slate-800 text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-md z-50">{mockupToast}</div>}
 
                                         {renderedTab === 'theme' && (
