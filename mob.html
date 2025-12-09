@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#ffffff">
-    <title>한 장의 소설</title>
+    <title>소설 내지 생성기</title>
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -782,7 +782,7 @@
             const position = config.position || 'center';
             let posClass = '';
             if (position === 'center') posClass = 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2';
-            else if (position === 'top-left') posClass = 'top-[60px] left-[500px]'; 
+            else if (position === 'top-left') posClass = 'top-[60px] left-1/2 -translate-x-[60%]';
             else if (position === 'bottom-right') posClass = 'bottom-[80px] right-[20px]'; 
             else if (position === 'center-up') posClass = 'top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2';
             else if (position === 'mobile-bottom') posClass = 'bottom-[110px] left-1/2 -translate-x-1/2';
@@ -1771,7 +1771,7 @@
 
                             {/* Header */}
                             <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-100 bg-white z-10 pt-safe relative">
-                                <h1 className="text-2xl font-serif font-medium text-slate-800">한 장의 소설</h1>
+                                <h1 className="text-2xl font-serif font-medium text-slate-800">소설 내지 생성기</h1>
                                 <button onClick={handleDelete} className="text-slate-400 hover:text-red-500 transition-colors p-2" title="전체 삭제">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
                                 </button>
@@ -2130,6 +2130,7 @@
     </script>
 </body>
 </html>
+
 
 
 
