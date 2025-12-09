@@ -134,7 +134,7 @@
             line-height: 1.8 !important;
             text-align: justify;
             letter-spacing: -0.02em;
-            word-break: break-all;
+            word-break: normal; /* 단어 단위 줄바꿈 (한글은 글자 단위 유지) */
             overflow-wrap: anywhere;
             font-weight: 300;
             cursor: text;
@@ -170,7 +170,7 @@
             line-height: 1.8 !important;
             text-align: justify;
             letter-spacing: -0.02em;
-            word-break: break-all;
+            word-break: normal; /* 단어 단위 줄바꿈 */
             overflow-wrap: anywhere;
             font-weight: 300;
         }
@@ -1814,7 +1814,7 @@
                                             ref={textAreaRef}
                                             value={textInput} 
                                             onChange={(e) => setTextInput(e.target.value)} 
-                                            className="w-full h-full p-4 pt-2 border-none bg-transparent outline-none resize-none font-serif leading-loose relative z-10 text-sm"
+                                            className="absolute inset-0 w-full h-full p-6 pt-4 border-none bg-transparent outline-none resize-none font-serif leading-loose z-10 text-sm"
                                         ></textarea>
                                     </div>
                                     
@@ -1991,7 +1991,7 @@
                                             {/* Reset button removed as per request */}
                                             <button onClick={backToEditUI} className="flex flex-col items-center justify-center w-10 text-slate-500 hover:text-indigo-600 transition-colors">
                                                 <span className="text-xl leading-none">
-                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
                                                 </span>
                                                 <span className="text-[9px] mt-0.5">나가기</span>
                                             </button>
