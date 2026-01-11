@@ -54,12 +54,18 @@ window.useLayoutEffect = React.useLayoutEffect;
             width: '559px', height: '794px', // 148x210mm
             paddingTop: '76px', paddingBottom: '34px', paddingLeft: '76px', paddingRight: '76px', // 20mm=76px, 9mm=34px
             className: 'size-a5'
+        },
+        'B5': {
+            label: 'B5 (182x257mm)',
+            width: '688px', height: '971px', // 182x257mm
+            paddingTop: '94px', paddingBottom: '76px', paddingLeft: '94px', paddingRight: '94px', // 25mm=94px, 20mm=76px
+            className: 'size-b5'
         }
     };
 
     window.LAYOUT_CONFIG = {
         SAFETY_MARGIN: 10, // Buffer reduced (Logic fixed)
-        TITLE_PLACEHOLDER_HEIGHT: 120, // Reduced from 200px for better compaction
+        TITLE_PLACEHOLDER_HEIGHT: 200, // 200px reserved for title
         TITLE_PADDING_BOTTOM: 15, // Extra spacing
         FOOTER_HEIGHT: 15 // Absolute minimum footer
     };
