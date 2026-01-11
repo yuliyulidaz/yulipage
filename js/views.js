@@ -572,22 +572,22 @@
                         style={{
                             width: activeTab !== 'mockup'
                                 ? `calc(${(window.PAPER_SIZES[pageSize] ? window.PAPER_SIZES[pageSize].width : window.PAPER_SIZES['A6'].width)} + 300px + 24px)`
-                                : '100%'
+                                : `calc(${(window.PAPER_SIZES[pageSize] ? window.PAPER_SIZES[pageSize].width : window.PAPER_SIZES['A6'].width)} * 2)`
                         }}
                     >
                         {/* Left: Back Button Only */}
                         <div className="flex items-center">
                             <button
-                                onClick={onBack}
+                                onClick={activeTab === 'mockup' ? () => onToggleTab('style', 'style') : onBack}
                                 className="flex items-center gap-2 text-[#888888] hover:text-[#1C1C1C] transition-colors font-bold text-xs"
                             >
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                                본문 수정
+                                {activeTab === 'mockup' ? '편집화면' : '본문 수정'}
                             </button>
                         </div>
 
                         {/* Center: Page Count (Absolute Positioned for Paper Centering) */}
-                        <span className="absolute left-1/2 -translate-x-1/2 -ml-[158px] text-[#1C1C1C] font-bold text-sm select-none">
+                        <span className={`absolute left-1/2 -translate-x-1/2 ${activeTab !== 'mockup' ? '-ml-[158px]' : ''} text-[#1C1C1C] font-bold text-sm select-none`}>
                             {activeTab === 'mockup' ? `${mockupSpreadIdx + 1} / ${spreads.length}` : `${currentPageIdx + 1} / ${pages.length}`}
                         </span>
 

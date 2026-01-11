@@ -56,6 +56,8 @@
             measureBox.style.lineHeight = '22px';
             measureBox.style.letterSpacing = '-0.03em';
             measureBox.style.textIndent = '12px';
+            measureBox.style.textAlign = 'justify';
+            measureBox.style.textJustify = 'inter-character';
         } else {
             measureBox.style.lineHeight = '1.8';
             measureBox.style.letterSpacing = '-0.02em';

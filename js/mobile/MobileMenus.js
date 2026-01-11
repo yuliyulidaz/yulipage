@@ -48,6 +48,11 @@ const FontMenu = ({ activeFont, setActiveFont }) => {
                     );
                 })}
             </div>
+
+            {/* Instruction Pill */}
+            <div className="px-3 py-1 rounded-full bg-white/80 backdrop-blur-sm shadow-sm border border-white/40 mt-1">
+                <span className="text-[10px] text-slate-500 font-medium leading-none block pt-px">폰트를 먼저 고른 후에 형광펜 / 글자색을 사용하세요</span>
+            </div>
         </div>
     );
 };
@@ -170,8 +175,33 @@ const ColorMenu = ({ onColor, activeColor }) => {
     );
 };
 
-window.MobileMenus = ({ activeTab, activeFont, setActiveFont, activeTheme, setActiveTheme, onHighlight, activeHighlight, onColor, activeColor }) => {
-    const isMenuVisible = ['style', 'theme', 'highlight', 'text'].includes(activeTab);
+// [NEW] Mockup Menu: Flyleaf Edit Buttons
+const MockupMenu = ({ onEditFlyleaf, pagesLength }) => {
+    // Show back flyleaf button only if pages are odd (meaning back cover is available)
+    const showBackFlyleaf = pagesLength % 2 === 0;
+
+    return (
+        <div className="flex gap-3 px-4 py-1 justify-center w-full">
+            <button
+                onClick={(e) => { e.stopPropagation(); onEditFlyleaf('front'); }}
+                className="flex-1 py-3 bg-white hover:bg-white/90 text-slate-700 text-xs font-bold rounded-xl shadow-md border border-white/50 transition-transform active:scale-95"
+            >
+                앞 표지 문구 작성
+            </button>
+            {showBackFlyleaf && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); onEditFlyleaf('back'); }}
+                    className="flex-1 py-3 bg-white hover:bg-white/90 text-slate-700 text-xs font-bold rounded-xl shadow-md border border-white/50 transition-transform active:scale-95"
+                >
+                    뒷 표지 문구 작성
+                </button>
+            )}
+        </div>
+    );
+};
+
+window.MobileMenus = ({ activeTab, activeFont, setActiveFont, activeTheme, setActiveTheme, onHighlight, activeHighlight, onColor, activeColor, onEditFlyleaf, pagesLength }) => {
+    const isMenuVisible = ['style', 'theme', 'highlight', 'text', 'mockup'].includes(activeTab);
 
     return (
         <div className={`fixed bottom-[4.5rem] left-0 right-0 z-40 px-4 pb-safe pointer-events-none layer2-container ${isMenuVisible ? 'layer2-visible' : 'layer2-hidden'}`}>
@@ -180,6 +210,7 @@ window.MobileMenus = ({ activeTab, activeFont, setActiveFont, activeTheme, setAc
                 {activeTab === 'theme' && <ThemeMenu activeTheme={activeTheme} setActiveTheme={setActiveTheme} />}
                 {activeTab === 'highlight' && <HighlightMenu onHighlight={onHighlight} activeHighlight={activeHighlight} />}
                 {activeTab === 'text' && <ColorMenu onColor={onColor} activeColor={activeColor} />}
+                {activeTab === 'mockup' && <MockupMenu onEditFlyleaf={onEditFlyleaf} pagesLength={pagesLength} />}
             </div>
         </div>
     );

@@ -57,6 +57,26 @@ window.MobileLayout = (props) => {
 
     console.log("MobileLayout Render:", { activeTab, pagesLen: pages ? pages.length : 0, currentPageIdx, isMockup: activeTab === 'mockup' });
 
+    // Flyleaf Edit Modal State
+    const [flyleafModalConfig, setFlyleafModalConfig] = React.useState({ isOpen: false, type: 'front', initialText: '' });
+
+    const handleOpenFlyleafModal = (type) => {
+        const initialText = type === 'front' ? props.frontFlyleafText : props.backFlyleafText;
+        setFlyleafModalConfig({ isOpen: true, type, initialText });
+    };
+
+    const handleSaveFlyleaf = (text) => {
+        if (flyleafModalConfig.type === 'front') {
+            if (props.setFrontFlyleafText) props.setFrontFlyleafText(text);
+        } else {
+            if (props.setBackFlyleafText) props.setBackFlyleafText(text);
+        }
+    };
+
+    const handleCloseFlyleafModal = () => {
+        setFlyleafModalConfig({ ...flyleafModalConfig, isOpen: false });
+    };
+
     // Highlight Handler
     const handleHighlight = (color) => {
         setHighlightColor(color);
@@ -90,6 +110,25 @@ window.MobileLayout = (props) => {
         return () => window.removeEventListener('resize', handleResize);
     }, [activeTab]); // Re-run on tab change (mockup vs normal)
 
+    // Scale Logic for Mockup
+    const mockupViewerRef = React.useRef(null);
+    React.useEffect(() => {
+        const handleMockupResize = () => {
+            if (mockupViewerRef.current) {
+                const screenWidth = window.innerWidth;
+                // Mockup Spread Width is approx 397 * 2 + margins = 800~900px
+                // Let's assume 880px safe width
+                const scale = Math.min(1, screenWidth / 880);
+                mockupViewerRef.current.style.transform = `scale(${scale})`;
+            }
+        };
+        if (activeTab === 'mockup') {
+            handleMockupResize();
+            window.addEventListener('resize', handleMockupResize);
+        }
+        return () => window.removeEventListener('resize', handleMockupResize);
+    }, [activeTab]);
+
     const isMockup = activeTab === 'mockup';
 
     return (
@@ -109,27 +148,29 @@ window.MobileLayout = (props) => {
             <div className="flex-1 flex items-center justify-center overflow-hidden pb-20 pt-16">
                 {isMockup ? (
                     // Mockup View
-                    <div className="w-full flex items-center justify-center p-4">
-                        {window.MockupBookRenderer && (
-                            <window.MockupBookRenderer
-                                spreadIdx={mockupSpreadIdx}
-                                spreads={spreads}
-                                activeTheme={activeTheme}
-                                activeFont={activeFont}
-                                frontFlyleafText={props.frontFlyleafText}
-                                setFrontFlyleafText={props.setFrontFlyleafText}
-                                backFlyleafText={props.backFlyleafText}
-                                setBackFlyleafText={props.setBackFlyleafText}
-                                pageHighlights={pageHighlights}
-                                pages={pages}
-                                metadata={metadata}
-                                onEditFlyleaf={props.onEditFlyleaf}
-                            />
-                        )}
+                    <div key="mockup-view" className="w-full flex items-center justify-center p-4">
+                        <div ref={mockupViewerRef} className="origin-center transition-transform duration-200">
+                            {window.MockupBookRenderer && (
+                                <window.MockupBookRenderer
+                                    spreadIdx={mockupSpreadIdx}
+                                    spreads={spreads}
+                                    activeTheme={activeTheme}
+                                    activeFont={activeFont}
+                                    frontFlyleafText={props.frontFlyleafText}
+                                    setFrontFlyleafText={props.setFrontFlyleafText}
+                                    backFlyleafText={props.backFlyleafText}
+                                    setBackFlyleafText={props.setBackFlyleafText}
+                                    pageHighlights={pageHighlights}
+                                    pages={pages}
+                                    metadata={metadata}
+                                    onEditFlyleaf={props.onEditFlyleaf}
+                                />
+                            )}
+                        </div>
                     </div>
                 ) : (
                     // Page Content View (Scaled)
-                    <div id="bookViewerWrapper" ref={viewerRef} className="origin-top transition-transform duration-200">
+                    <div key="normal-view" id="bookViewerWrapper" ref={viewerRef} className="origin-top transition-transform duration-200">
                         <div
 
                             id="captureTarget"
@@ -168,23 +209,23 @@ window.MobileLayout = (props) => {
 
             {/* 3. Navigation Arrows (Floating) */}
             {!isMockup && currentPageIdx > 0 && (
-                <button onClick={(e) => { e.stopPropagation(); setCurrentPageIdx(currentPageIdx - 1); }} className="fixed top-1/2 left-2 -translate-y-1/2 w-8 h-12 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg shadow-sm flex items-center justify-center text-slate-400 hover:text-slate-600 z-30">
+                <button onClick={(e) => { e.stopPropagation(); setCurrentPageIdx(currentPageIdx - 1); }} className="fixed top-1/2 left-2 -translate-y-1/2 w-8 h-12 bg-gray-200/50 backdrop-blur-sm border border-gray-300 rounded-lg shadow-sm flex items-center justify-center text-gray-600 hover:text-gray-800 z-30">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                 </button>
             )}
             {!isMockup && currentPageIdx < pages.length - 1 && (
-                <button onClick={(e) => { e.stopPropagation(); setCurrentPageIdx(currentPageIdx + 1); }} className="fixed top-1/2 right-2 -translate-y-1/2 w-8 h-12 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg shadow-sm flex items-center justify-center text-slate-400 hover:text-slate-600 z-30">
+                <button onClick={(e) => { e.stopPropagation(); setCurrentPageIdx(currentPageIdx + 1); }} className="fixed top-1/2 right-2 -translate-y-1/2 w-8 h-12 bg-gray-200/50 backdrop-blur-sm border border-gray-300 rounded-lg shadow-sm flex items-center justify-center text-gray-600 hover:text-gray-800 z-30">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                 </button>
             )}
             {/* Mockup Arrows */}
             {isMockup && mockupSpreadIdx > 0 && (
-                <button onClick={(e) => { e.stopPropagation(); setMockupSpreadIdx(mockupSpreadIdx - 1); }} className="fixed top-1/2 left-2 -translate-y-1/2 w-8 h-12 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg shadow-sm flex items-center justify-center text-slate-400 hover:text-slate-600 z-30">
+                <button onClick={(e) => { e.stopPropagation(); setMockupSpreadIdx(mockupSpreadIdx - 1); }} className="fixed top-1/2 left-2 -translate-y-1/2 w-8 h-12 bg-gray-200/50 backdrop-blur-sm border border-gray-300 rounded-lg shadow-sm flex items-center justify-center text-gray-600 hover:text-gray-800 z-30">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                 </button>
             )}
             {isMockup && spreads && mockupSpreadIdx < spreads.length - 1 && (
-                <button onClick={(e) => { e.stopPropagation(); setMockupSpreadIdx(mockupSpreadIdx + 1); }} className="fixed top-1/2 right-2 -translate-y-1/2 w-8 h-12 bg-white/20 backdrop-blur-sm border border-white/40 rounded-lg shadow-sm flex items-center justify-center text-slate-400 hover:text-slate-600 z-30">
+                <button onClick={(e) => { e.stopPropagation(); setMockupSpreadIdx(mockupSpreadIdx + 1); }} className="fixed top-1/2 right-2 -translate-y-1/2 w-8 h-12 bg-gray-200/50 backdrop-blur-sm border border-gray-300 rounded-lg shadow-sm flex items-center justify-center text-gray-600 hover:text-gray-800 z-30">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                 </button>
             )}
@@ -201,6 +242,8 @@ window.MobileLayout = (props) => {
                 activeHighlight={highlightColor}
                 onColor={handleTextColor}
                 activeColor={textColor}
+                onEditFlyleaf={handleOpenFlyleafModal}
+                pagesLength={pages.length}
             />
 
             {/* 5. Bottom Navigation (Fixed) */}
@@ -208,6 +251,15 @@ window.MobileLayout = (props) => {
                 activeTab={activeTab}
                 onTabChange={(tabId) => onToggleTab(tabId, tabId)} // Sync tab selection
             />
+            {/* 6. Flyleaf Modal */}
+            <window.MobileFlyleafModal
+                isOpen={flyleafModalConfig.isOpen}
+                type={flyleafModalConfig.type}
+                initialText={flyleafModalConfig.initialText}
+                onSave={handleSaveFlyleaf}
+                onClose={handleCloseFlyleafModal}
+            />
+
         </div>
     );
 };
