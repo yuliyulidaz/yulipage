@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>소설 내지 생성기 (A6 문고판)</title>
+    
+    <!-- 1. Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Noto Serif KR (본문 명조) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=swap" rel="stylesheet">
+    <!-- Gowun Batang (고운 바탕) -->
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Nanum Myeongjo (나눔 명조) -->
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet">
+    <!-- Hahmlet (함렛) -->
+    <link href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@100;200;300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Noto Sans KR (속지용 고딕) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100;300;400&display=swap" rel="stylesheet">
+    
+    <!-- 2. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 3. Libraries (React, ReactDOM, Babel, html-to-image, jspdf) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* 폰트 강제 적용 */
+        * {
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            font-family: 'Noto Serif KR', serif;
+            background: #f0f2f5;
+            color: #1a1a1a;
+            overscroll-behavior: none; /* 스크롤 튕김 방지 */
+        }
+
+        /* 하이라이트 스타일 - 그룹 ID 속성 활용 */
+        .highlight {
+            display: inline;
+            background: rgba(255, 235, 59, 0.4);
+            padding: 0;
+            margin: 0;
+            line-height: inherit;
+            letter-spacing: inherit;
+            vertical-align: baseline;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+        }
+        
+        .highlight-yellow { background: rgba(255, 235, 59, 0.4); }
+        .highlight-pink { background: rgba(255, 182, 193, 0.4); }
+        .highlight-mint { background: rgba(178, 255, 222, 0.4); }
+        .highlight-blue { background: rgba(173, 216, 230, 0.4); }
+
+        /* 글자 색 스타일 */
+        .colored-text {
+            display: inline;
+            cursor: pointer;
+            line-height: inherit;
+            letter-spacing: inherit;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+        }
+        .text-crimson { color: #be123c; } 
+        .text-navy { color: #1e3a8a; }    
+        .text-forest { color: #15803d; }
+        .text-purple { color: #6b21a8; }
+        .text-brown { color: #78350f; }
+        .text-teal { color: #0f766e; }
+        .text-gray { color: #9ca3af; }    
+        
+        /* 글자 색 선택 버튼 (배경색) */
+        .bg-text-crimson { background-color: #be123c; }
+        .bg-text-navy { background-color: #1e3a8a; }
+        .bg-text-forest { background-color: #15803d; }
+        .bg-text-purple { background-color: #6b21a8; }
+        .bg-text-brown { background-color: #78350f; }
+        .bg-text-teal { background-color: #0f766e; }
+        .bg-text-gray { background-color: #9ca3af; }
+
+        /* 화면용 스타일 - A6 비율 (105:148) */
+        .page-container {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            background: white;
+            margin: 0 auto;
+            width: 420px;  
+            min-width: 420px; 
+            flex-shrink: 0;
+            height: 600px; 
+            padding: 60px 60px 50px 60px; 
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            transform-origin: top center;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        /* 테마별 스타일 */
+        .theme-white.page-container { background: #ffffff; color: #1a1a1a; }
+        .theme-cream.page-container { background: #fdfbf7; color: #2c241b; }
+        .theme-kraft.page-container { 
+            background: #e6dac3; 
+            color: #3e2723; 
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+        .theme-dark.page-container { background: #1a1a1a; color: #e5e5e5; }
+
+        .page-content {
+            height: 460px; 
+            overflow: hidden;
+            font-size: 12px;
+            line-height: 1.8 !important;
+            text-align: justify;
+            letter-spacing: -0.02em;
+            word-break: break-all;
+            overflow-wrap: anywhere;
+            font-weight: 300;
+            cursor: text;
+        }
+
+        .page-content p {
+            margin-bottom: 0;
+            padding: 0;
+            text-indent: 1em;
+            line-height: 1.8 !important;
+        }
+
+        .page-content p.continued {
+            text-indent: 0 !important;
+        }
+        
+        .page-footer-area {
+            height: 30px;
+            margin-top: auto;
+            display: flex;
+            align-items: flex-end;
+            padding-bottom: 0px;
+        }
+
+        /* 입력 화면 */
+        .input-area {
+            max-width: 900px;
+            margin: 40px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .hidden-measure {
+            position: absolute;
+            visibility: hidden;
+            top: -9999px;
+            left: -9999px;
+            width: 300px;
+            font-size: 12px;
+            line-height: 1.8 !important;
+            text-align: justify;
+            letter-spacing: -0.02em;
+            word-break: break-all;
+            overflow-wrap: anywhere;
+            font-weight: 300;
+        }
+        
+        .hidden-measure p {
+            margin-bottom: 0;
+            line-height: 1.8 !important;
+        }
+
+        .circle-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .circle-btn:hover { transform: scale(1.1); }
+        .circle-btn.active { border-color: #333; transform: scale(1.1); }
+        
+        .theme-btn-white { background: #ffffff; border: 1px solid #ddd; }
+        .theme-btn-cream { background: #fdfbf7; border: 1px solid #e6e0d4; }
+        .theme-btn-kraft { background: #e6dac3; border: 1px solid #cbbba0; }
+        .theme-btn-dark { background: #1a1a1a; border: 1px solid #444; }
+
+        .btn { transition: all 0.2s; }
+        .btn:active { transform: scale(0.98); }
+        
+        .custom-placeholder {
+            position: absolute;
+            top: 24px; left: 24px; right: 24px; bottom: 24px;
+            pointer-events: none;
+            color: #94a3b8;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        
+        @media (max-width: 450px) {
+            #bookViewerWrapper {
+                transform: scale(0.85);
+                transform-origin: top center;
+                height: 520px; 
+            }
+        }
+
+        /* ----------------------------------------------------------------- */
+        /* MOCKUP STYLES */
+        /* ----------------------------------------------------------------- */
+        .mockup-container {
+            background-color: #F2F0E9; /* Warm Beige */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 80px;
+            padding-bottom: 80px;
+            overflow-x: hidden;
+            overflow-y: auto; 
+        }
+
+        .mockup-book-wrapper {
+            position: relative;
+            width: 840px; 
+            height: 600px;
+            /* Outer shadow REMOVED to fix iOS overflow/clipping issues */
+            display: flex;
+            transition: transform 0.3s ease;
+        }
+
+        .mockup-page {
+            width: 420px;
+            height: 600px;
+            position: relative;
+            z-index: 10;
+            overflow: hidden;
+            /* iOS Safari Rendering Fixes */
+            transform: translateZ(0); /* Force hardware acceleration context */
+            -webkit-mask-image: -webkit-radial-gradient(white, black); /* Force strict clipping */
+            isolation: isolate; /* Create new stacking context for mix-blend-mode */
+        }
+
+        /* Gutter Shadows - Lighter Non-linear Gradient (Max 0.15 opacity) */
+        .effect-gutter-left {
+            position: absolute; top: 0; bottom: 0; right: 0; width: 80px;
+            background: linear-gradient(to right, 
+                transparent 0%, 
+                rgba(0,0,0,0.01) 30%, 
+                rgba(0,0,0,0.03) 60%, 
+                rgba(0,0,0,0.08) 85%, 
+                rgba(0,0,0,0.15) 100%
+            );
+            pointer-events: none; z-index: 20; mix-blend-mode: multiply;
+        }
+        .effect-gutter-right {
+            position: absolute; top: 0; bottom: 0; left: 0; width: 80px;
+            background: linear-gradient(to left, 
+                transparent 0%, 
+                rgba(0,0,0,0.01) 30%, 
+                rgba(0,0,0,0.03) 60%, 
+                rgba(0,0,0,0.08) 85%, 
+                rgba(0,0,0,0.15) 100%
+            );
+            pointer-events: none; z-index: 20; mix-blend-mode: multiply;
+        }
+
+        /* Flyleaf Styles (Colophon) */
+        .flyleaf {
+            width: 100%; height: 100%;
+            background-color: #1a2233; /* Deep Navy */
+            padding: 60px;
+            display: flex; flex-direction: column;
+            justify-content: flex-end;
+            position: relative;
+            cursor: pointer; /* Change cursor to pointer for clickable effect */
+        }
+        .flyleaf.front { align-items: flex-start; text-align: left; }
+        .flyleaf.back { align-items: flex-end; text-align: right; }
+
+        .flyleaf textarea {
+            font-family: 'Noto Sans KR', sans-serif;
+            font-weight: 300;
+        }
+
+        /* Animation for blinking hint */
+        @keyframes blink {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        .flyleaf-hint {
+            position: absolute; top: 24px; 
+            color: rgba(255,255,255,0.6); font-size: 11px;
+            pointer-events: none; white-space: nowrap;
+            /* New Hint Styles */
+            border: 1px dashed rgba(255,255,255,0.3);
+            background-color: rgba(255,255,255,0.05);
+            padding: 6px 10px;
+            border-radius: 6px;
+            animation: blink 2s infinite ease-in-out;
+        }
+        .flyleaf.front .flyleaf-hint { left: 0; }
+        .flyleaf.back .flyleaf-hint { right: 0; }
+
+        .mockup-scaler { transform-origin: top center; }
+        @media (max-width: 900px) {
+            .mockup-scaler { transform: scale(0.45); margin-bottom: -300px; }
+            .mockup-container { padding-top: 40px; }
+        }
+        
+        /* Hide scrollbar for toolbar */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="react,typescript">
+        const { useState, useRef, useEffect, useCallback } = React;
+
+        // ----------------------------------------------------------------------
+        // 1. Utils & Helpers
+        // ----------------------------------------------------------------------
+
+        function isIOS() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
+        
+        function isIPad() {
+            return /iPad/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
+        
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
+
+        async function ensureFontsLoaded() {
+            try { await document.fonts.ready; } catch (e) { console.warn('폰트 API 확인 실패', e); }
+        }
+
+        const fontCache = new Map();
+        
+        const FONT_MAP = {
+            'noto': { name: '본문 명조', family: "'Noto Serif KR', serif", url: 'https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=swap' },
+            'nanum': { name: '나눔 명조', family: "'Nanum Myeongjo', serif", url: 'https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap' },
+            'hahmlet': { name: '함렛', family: "'Hahmlet', serif", url: 'https://fonts.googleapis.com/css2?family=Hahmlet:wght@100;200;300;400;500;600&display=swap' },
+            'gowun': { name: '고운 바탕', family: "'Gowun Batang', serif", url: 'https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap' }
+        };
+
+        async function prepareFontEmbedCSS(activeFontKey) {
+            if (fontCache.has(activeFontKey)) return fontCache.get(activeFontKey);
+            try {
+                const fontInfo = FONT_MAP[activeFontKey];
+                if (!fontInfo) return null;
+                const cssRes = await fetch(fontInfo.url);
+                let cssText = await cssRes.text();
+                const urlRegex = /url\(([^)]+)\)/g;
+                let match;
+                const replacements = [];
+                while ((match = urlRegex.exec(cssText)) !== null) {
+                    const fullUrl = match[1].replace(/['"]/g, ''); 
+                    replacements.push({ original: match[0], url: fullUrl });
+                }
+                await Promise.all(replacements.map(async (item) => {
+                    try {
+                        const fontRes = await fetch(item.url);
+                        const fontBlob = await fontRes.blob();
+                        return new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                                cssText = cssText.replace(item.url, reader.result);
+                                resolve();
+                            };
+                            reader.onerror = reject;
+                            reader.readAsDataURL(fontBlob);
+                        });
+                    } catch (e) {}
+                }));
+                fontCache.set(activeFontKey, cssText);
+                return cssText;
+            } catch (e) { return null; }
+        }
+
+        function useDebounce(value, delay) {
+            const [debouncedValue, setDebouncedValue] = useState(value);
+            useEffect(() => {
+                const handler = setTimeout(() => { setDebouncedValue(value); }, delay);
+                return () => clearTimeout(handler);
+            }, [value, delay]);
+            return debouncedValue;
+        }
+
+        // Generic Capture Function
+        async function captureNode(node, fileName, width, height, fontEmbedCSS = null) {
+            await ensureFontsLoaded();
+            // Wait for font load
+            if(isIOS()) await new Promise(r => setTimeout(r, 800));
+
+            const options = {
+                quality: 1.0, pixelRatio: 3, cacheBust: false,
+                width: width, height: height,
+                style: { transform: 'none', margin: '0' },
+                filter: (node) => {
+                    // Filter out elements with 'no-capture' class
+                    return !node.classList || !node.classList.contains('no-capture');
+                }
+            };
+
+            if (fontEmbedCSS) {
+                options.fontEmbedCSS = fontEmbedCSS;
+            }
+
+            // Warm-up Shot for Mobile
+            if (isMobile()) {
+                try { await htmlToImage.toBlob(node, options); } catch(e){}
+                await new Promise(r => setTimeout(r, 200));
+            }
+
+            const blob = await htmlToImage.toBlob(node, options);
+            if (!blob) throw new Error('Blob creation failed');
+
+            if (isIOS() && navigator.share && navigator.canShare) {
+                const file = new File([blob], fileName, { type: 'image/png' });
+                if (navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: fileName });
+                    return;
+                }
+            }
+            
+            // Fallback / PC / Android
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // ----------------------------------------------------------------------
+        // 2. Extracted Components (For Mockup & Preview)
+        // ----------------------------------------------------------------------
+        
+        const PageContent = ({ pageIdx, pages, pageHighlights, metadata, activeFont, onMouseUp, onClick, contentRef }) => {
+            const page = pages[pageIdx];
+            if (!page) return null;
+
+            if (pageHighlights && pageHighlights[pageIdx]) {
+                return (
+                    <div 
+                        ref={contentRef}
+                        className="page-content"
+                        onMouseUp={onMouseUp}
+                        onClick={onClick}
+                        dangerouslySetInnerHTML={{ __html: pageHighlights[pageIdx] }}
+                    />
+                );
+            }
+
+            return (
+                <div ref={contentRef} className="page-content" onMouseUp={onMouseUp} onClick={onClick}>
+                    {pageIdx === 0 && metadata.title && (
+                        <div style={{height: '200px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginBottom: 0}}>
+                            <h1 className="text-base tracking-[0.1em] font-normal text-center px-4" style={{lineHeight: 1.8, maxHeight: '70px', overflow: 'hidden', opacity: 0.8}}>
+                                {metadata.title}
+                            </h1>
+                            <div className="w-8 h-[1px] bg-current opacity-30 mx-auto mt-14"></div>
+                        </div>
+                    )}
+                    {page.paragraphs.map((p, i) => (
+                        <p key={i} className={p.isContinued ? 'continued' : ''} style={{ lineHeight: 1.8, textAlign: p.isSceneBreak ? 'center' : undefined, textIndent: p.isSceneBreak ? '0' : undefined }}>
+                            {p.text}
+                        </p>
+                    ))}
+                </div>
+            );
+        };
+
+        const PageFooter = ({ pageIdx, isRight, metadata }) => {
+            const isOdd = (pageIdx + 1) % 2 !== 0;
+            const alignRight = isRight !== undefined ? isRight : isOdd;
+
+            return (
+                <div className={`page-footer-area text-[9px] opacity-50 ${alignRight ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`flex items-center gap-2 ${alignRight ? 'flex-row' : 'flex-row-reverse'}`}>
+                        {(metadata.producer || metadata.author) && (
+                            <span>{[metadata.producer, metadata.author].filter(Boolean).join(' · ')}</span>
+                        )}
+                        <span className="font-normal opacity-70">{pageIdx + 1}</span>
+                    </div>
+                </div>
+            );
+        };
+
+        const Flyleaf = ({ isFront, isHidden, text, setText, onEdit }) => {
+            const hasContent = text && text.trim().length > 0;
+            const mobile = isMobile();
+            
+            if (isHidden && !hasContent) {
+                return <div className={`flyleaf ${isFront ? 'front' : 'back'}`}></div>;
+            }
+
+            const handleChange = (e) => {
+                const val = e.target.value;
+                const lines = val.split('\n');
+                if (lines.length > 6) {
+                    setText(lines.slice(0, 6).join('\n'));
+                } else {
+                    setText(val);
+                }
+            };
+
+            return (
+                <div 
+                    className={`flyleaf ${isFront ? 'front' : 'back'}`} 
+                    onClick={!isHidden && mobile ? onEdit : undefined}
+                >
+                    <div className="w-1/2 relative z-10 flex flex-col" style={{ maxWidth: '50%' }}>
+                        <div className={`w-[30px] h-px bg-white/50 mb-4 ${!isFront ? 'ml-auto' : ''}`}></div>
+                        {!isHidden && !hasContent && (
+                            <div className={`flyleaf-hint ${isFront ? 'text-left' : 'text-right'}`}>
+                                클릭하여 문구 입력
+                            </div>
+                        )}
+                        {(!isHidden || hasContent) && (
+                            <textarea
+                                value={text}
+                                onChange={!isHidden && !mobile ? handleChange : undefined}
+                                readOnly={isHidden || mobile} 
+                                className={`w-full bg-transparent border-none text-white/70 text-[10px] p-0 focus:outline-none placeholder:text-transparent resize-none overflow-hidden ${isFront ? 'text-left' : 'text-right'} ${mobile && !isHidden ? 'cursor-pointer' : ''}`}
+                                rows={6}
+                                spellCheck={false}
+                                disabled={isHidden} 
+                                style={{ lineHeight: '1.6', maxHeight: '96px', pointerEvents: isHidden ? 'none' : 'auto' }}
+                            />
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const MockupBookRenderer = ({ spreadIdx, spreads, isCaptureMode = false, activeTheme, activeFont, frontFlyleafText, setFrontFlyleafText, backFlyleafText, setBackFlyleafText, pageHighlights, pages, metadata, onEditFlyleaf }) => {
+            const spread = spreads[spreadIdx];
+            if (!spread) return null;
+
+            const renderSide = (sideData, isRight) => {
+                if (!sideData) return <div className="mockup-page bg-transparent"></div>;
+
+                if (sideData.type === 'flyleaf-front') {
+                    return (
+                        <div className="mockup-page">
+                            <Flyleaf 
+                                isFront={true} 
+                                isHidden={isCaptureMode} 
+                                text={frontFlyleafText} 
+                                setText={setFrontFlyleafText} 
+                                onEdit={() => onEditFlyleaf && onEditFlyleaf('front')}
+                            />
+                            <div className="effect-gutter-left"></div>
+                        </div>
+                    );
+                }
+                if (sideData.type === 'flyleaf-back') {
+                    return (
+                        <div className="mockup-page">
+                            <Flyleaf 
+                                isFront={false} 
+                                isHidden={isCaptureMode} 
+                                text={backFlyleafText} 
+                                setText={setBackFlyleafText} 
+                                onEdit={() => onEditFlyleaf && onEditFlyleaf('back')}
+                            />
+                            <div className="effect-gutter-right"></div>
+                        </div>
+                    );
+                }
+                if (sideData.type === 'page') {
+                    return (
+                        <div className={`mockup-page page-container theme-${activeTheme}`} style={{ fontFamily: FONT_MAP[activeFont].family }}>
+                            <PageContent pageIdx={sideData.index} pages={pages} pageHighlights={pageHighlights} metadata={metadata} activeFont={activeFont} />
+                            <PageFooter pageIdx={sideData.index} isRight={isRight} metadata={metadata} />
+                            {isRight ? <div className="effect-gutter-right"></div> : <div className="effect-gutter-left"></div>}
+                        </div>
+                    );
+                }
+                return null;
+            };
+
+            return (
+                <div className="mockup-book-wrapper">
+                    {renderSide(spread.left, false)}
+                    {renderSide(spread.right, true)}
+                </div>
+            );
+        };
+
+        // ----------------------------------------------------------------------
+        // 3. Main Application Component
+        // ----------------------------------------------------------------------
+
+        const PAGE_CONTENT_HEIGHT = 460;
+        const BOTTOM_BUFFER_P1 = 15;
+
+        function App() {
+            const [step, setStep] = useState('input');
+            const [textInput, setTextInput] = useState('');
+            const [metadata, setMetadata] = useState({ title: '', author: '', producer: '' });
+            
+            const [activeTheme, setActiveTheme] = useState('white'); 
+            const [activeFont, setActiveFont] = useState('noto'); 
+            
+            const [isCurlyMode, setIsCurlyMode] = useState(false);
+            const [isAutoSpaceMode, setIsAutoSpaceMode] = useState(false);
+
+            const [activeTab, setActiveTab] = useState(null); 
+            const [toolMode, setToolMode] = useState('highlight'); 
+            
+            const [pages, setPages] = useState([]);
+            const [currentPageIdx, setCurrentPageIdx] = useState(0);
+            const [pageHighlights, setPageHighlights] = useState({});
+            
+            const [currentHighlightColor, setCurrentHighlightColor] = useState('highlight-yellow');
+            const [currentTextColor, setCurrentTextColor] = useState('text-crimson');
+            
+            const [isGenerating, setIsGenerating] = useState(false);
+            const [loadingMessage, setLoadingMessage] = useState('');
+            const [loadingProgress, setLoadingProgress] = useState(0);
+            
+            const debouncedText = useDebounce(textInput, 500);
+            const [estimatedPages, setEstimatedPages] = useState(0);
+
+            const [mockupSpreadIdx, setMockupSpreadIdx] = useState(0);
+            const [frontFlyleafText, setFrontFlyleafText] = useState('');
+            const [backFlyleafText, setBackFlyleafText] = useState('');
+            
+            const [focusedFlyleaf, setFocusedFlyleaf] = useState(null);
+
+            const measureContainerRef = useRef(null);
+            const viewerRef = useRef(null);
+            const contentRef = useRef(null);
+            const textareaRef = useRef(null);
+
+            // History API Logic for Android Back Button
+            useEffect(() => {
+                const pushState = (s) => window.history.pushState({ step: s }, '');
+                
+                // Initial state
+                window.history.replaceState({ step: 'input' }, '');
+
+                const onPopState = (e) => {
+                    if (step === 'mockup') {
+                        setStep('preview');
+                    } else if (step === 'preview') {
+                        if (window.confirm("형광펜/글자색이 모두 지워집니다. 수정 화면으로 가시겠습니까?")) {
+                             setStep('input');
+                             setPages([]); setPageHighlights({}); setCurrentPageIdx(0); setActiveTab(null);
+                        } else {
+                            pushState('preview');
+                        }
+                    } else if (step === 'input') {
+                        if (textInput.length > 0) {
+                            if (!window.confirm("입력된 내용이 삭제됩니다. 뒤로 가시겠습니까?")) {
+                                pushState('input');
+                            }
+                        }
+                    }
+                };
+                window.addEventListener('popstate', onPopState);
+                return () => window.removeEventListener('popstate', onPopState);
+            }, [step, textInput]);
+
+            // Helper to update history when changing steps manually
+            const updateStep = (newStep) => {
+                window.history.pushState({ step: newStep }, '');
+                setStep(newStep);
+            };
+
+            const insertTextAtCursor = (text, moveCursorBack = 0, keepFocus = true) => {
+                const textarea = textareaRef.current;
+                if (!textarea) return;
+                
+                const scrollTop = textarea.scrollTop;
+                const windowScroll = window.scrollY; // Capture window scroll
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const prevValue = textInput;
+                
+                const newValue = prevValue.substring(0, start) + text + prevValue.substring(end);
+                setTextInput(newValue);
+                
+                setTimeout(() => {
+                    if (keepFocus || !isMobile()) {
+                        textarea.focus({ preventScroll: true });
+                        const newPos = start + text.length - moveCursorBack;
+                        textarea.setSelectionRange(newPos, newPos);
+                    } else {
+                        textarea.blur();
+                    }
+                    textarea.scrollTop = scrollTop;
+                    window.scrollTo(window.scrollX, windowScroll); // Restore window scroll
+                }, 0);
+            };
+
+            const handleSmartQuoteToggle = () => {
+                const textarea = textareaRef.current;
+                const scrollTop = textarea ? textarea.scrollTop : 0;
+                const windowScroll = window.scrollY; // Capture window scroll
+
+                if (isCurlyMode) {
+                    setTextInput(prev => prev.replace(/[“”]/g, '"').replace(/[‘’]/g, "'"));
+                    setIsCurlyMode(false);
+                } else {
+                    let newText = textInput.replace(/"([^"]*)"/g, "“$1”").replace(/'([^']*)'/g, "‘$1’");
+                    setTextInput(newText);
+                    setIsCurlyMode(true);
+                }
+
+                setTimeout(() => {
+                    if(textarea) {
+                        if (isMobile()) textarea.blur(); 
+                        else textarea.focus({ preventScroll: true });
+                        textarea.scrollTop = scrollTop;
+                        window.scrollTo(window.scrollX, windowScroll); // Restore window scroll
+                    }
+                }, 0);
+            };
+
+            const handleSmartSpacingToggle = () => {
+                const textarea = textareaRef.current;
+                const scrollTop = textarea ? textarea.scrollTop : 0;
+                const windowScroll = window.scrollY; // Capture window scroll
+
+                if (isAutoSpaceMode) {
+                    const lines = textInput.split('\n');
+                    const compact = lines.filter(line => line.trim() !== '').join('\n');
+                    setTextInput(compact);
+                    setIsAutoSpaceMode(false);
+                } else {
+                    const lines = textInput.split('\n').filter(line => line.trim() !== '');
+                    let result = [];
+                    const isDialogue = (s) => s.trim().match(/^[“"‘'|❘]/);
+                    
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i];
+                        const prev = lines[i-1];
+                        if (i > 0) {
+                            const currIsDiag = isDialogue(line);
+                            const prevIsDiag = isDialogue(prev);
+                            if (!!currIsDiag !== !!prevIsDiag) {
+                                result.push('');
+                            }
+                        }
+                        result.push(line);
+                    }
+                    setTextInput(result.join('\n'));
+                    setIsAutoSpaceMode(true);
+                }
+
+                setTimeout(() => {
+                    if(textarea) {
+                        if (isMobile()) textarea.blur();
+                        else textarea.focus({ preventScroll: true });
+                        textarea.scrollTop = scrollTop;
+                        window.scrollTo(window.scrollX, windowScroll); // Restore window scroll
+                    }
+                }, 0);
+            };
+
+            const calculatePages = (text, fontKey) => {
+                const measureBox = measureContainerRef.current;
+                if (!measureBox) return [];
+                measureBox.style.fontFamily = FONT_MAP[fontKey].family;
+                const rawParagraphs = text.split('\n');
+                let currentParagraphs = [];
+                let pageNum = 1;
+                let resultPages = [];
+                let queue = rawParagraphs.map(text => {
+                    const trimmed = text.trim();
+                    if (trimmed === '***') return { text: '*\u00A0\u00A0\u00A0\u00A0\u00A0*\u00A0\u00A0\u00A0\u00A0\u00A0*', isContinued: false, isSceneBreak: true };
+                    return { text: text, isContinued: false, isSceneBreak: false };
+                });
+                measureBox.innerHTML = ''; 
+                if (metadata.title && pageNum === 1) {
+                    const titlePlaceholder = document.createElement('div');
+                    titlePlaceholder.style.height = "200px"; titlePlaceholder.style.width = "100%"; titlePlaceholder.style.marginBottom = "0"; 
+                    measureBox.appendChild(titlePlaceholder);
+                }
+                const findSplitIndex = (text, maxHeight, isContinued) => {
+                    const tempP = document.createElement('p');
+                    tempP.style.lineHeight = "1.8"; tempP.style.marginBottom = "0"; tempP.style.fontFamily = FONT_MAP[fontKey].family;
+                    if (isContinued) tempP.classList.add('continued'); else tempP.style.textIndent = '1em';
+                    measureBox.appendChild(tempP);
+                    let low = 0; let high = text.length; let bestIdx = 0;
+                    while (low <= high) {
+                        const mid = Math.floor((low + high) / 2);
+                        const subText = text.substring(0, mid);
+                        tempP.textContent = subText;
+                        if (tempP.offsetHeight <= maxHeight) { bestIdx = mid; low = mid + 1; } else { high = mid - 1; }
+                    }
+                    measureBox.removeChild(tempP);
+                    return bestIdx;
+                };
+                while (queue.length > 0) {
+                    const item = queue.shift();
+                    const effectiveText = (!item.isSceneBreak && item.text.trim().length === 0) ? '\u00A0' : item.text;
+                    const p = document.createElement('p');
+                    p.textContent = effectiveText;
+                    p.style.lineHeight = "1.8"; p.style.marginBottom = "0"; p.style.fontFamily = FONT_MAP[fontKey].family;
+                    if (item.isSceneBreak) { p.style.textAlign = 'center'; p.style.textIndent = '0'; } else if (item.isContinued) { p.classList.add('continued'); } else { p.style.textIndent = '1em'; }
+                    measureBox.appendChild(p);
+                    const currentHeight = measureBox.scrollHeight;
+                    const currentBuffer = (pageNum === 1) ? BOTTOM_BUFFER_P1 : 0;
+                    const limitHeight = PAGE_CONTENT_HEIGHT - currentBuffer;
+                    if (currentHeight <= limitHeight) {
+                        currentParagraphs.push({ text: effectiveText, isContinued: item.isContinued, isSceneBreak: item.isSceneBreak });
+                    } else {
+                        measureBox.removeChild(p); 
+                        const currentBaseHeight = measureBox.scrollHeight;
+                        const availableHeight = limitHeight - currentBaseHeight;
+                        if (availableHeight < 18) {
+                            queue.unshift(item);
+                        } else {
+                            const splitIdx = findSplitIndex(effectiveText, availableHeight, item.isContinued);
+                            if (splitIdx > 0) {
+                                const partA = effectiveText.substring(0, splitIdx);
+                                const partB = effectiveText.substring(splitIdx);
+                                currentParagraphs.push({ text: partA, isContinued: item.isContinued, isSceneBreak: item.isSceneBreak });
+                                if (partB.length > 0) queue.unshift({ text: partB, isContinued: true, isSceneBreak: item.isSceneBreak });
+                            } else {
+                                queue.unshift(item);
+                            }
+                        }
+                        resultPages.push({ paragraphs: currentParagraphs });
+                        currentParagraphs = [];
+                        pageNum++;
+                        measureBox.innerHTML = '';
+                    }
+                }
+                if (currentParagraphs.length > 0) resultPages.push({ paragraphs: currentParagraphs });
+                return resultPages;
+            };
+
+            useEffect(() => {
+                if (step === 'input' && debouncedText) {
+                    const p = calculatePages(debouncedText, activeFont);
+                    setEstimatedPages(p.length);
+                } else {
+                    setEstimatedPages(0);
+                }
+            }, [debouncedText, step, activeFont, metadata.title]);
+
+            const startGeneration = async (targetFont = null) => {
+                const fontToUse = targetFont || activeFont;
+                const txt = textInput;
+                if (!txt.trim()) { if(!targetFont) alert("본문 내용을 입력해주세요."); return; }
+                if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+                setIsGenerating(true);
+                setTimeout(() => {
+                    const resultPages = calculatePages(txt, fontToUse);
+                    setPages(resultPages);
+                    if (targetFont) {
+                        setCurrentPageIdx(prev => Math.min(prev, resultPages.length - 1));
+                        setActiveTab('style');
+                    } else {
+                        setCurrentPageIdx(0);
+                        setPageHighlights({});
+                        setActiveTab('style'); 
+                    }
+                    updateStep('preview');
+                    setIsGenerating(false);
+                    if (!targetFont) setTimeout(() => window.scrollTo(0, 0), 100);
+                }, 400);
+            };
+
+            const handleFontChange = (newFont) => {
+                if (activeFont === newFont) return;
+                if (window.confirm("폰트를 변경하면 페이지 레이아웃이 다시 계산됩니다.\n형광펜 및 수정 내용이 초기화됩니다. 계속하시겠습니까?")) {
+                    setActiveFont(newFont);
+                    setPageHighlights({});
+                    startGeneration(newFont);
+                }
+            };
+
+            const saveCurrentPageState = () => {
+                if (contentRef.current) {
+                     setPageHighlights(prev => ({ ...prev, [currentPageIdx]: contentRef.current.innerHTML }));
+                }
+            };
+
+            const handleHighlightSelection = () => {
+                if (activeTab !== 'tool') return;
+                const selection = window.getSelection();
+                if (!selection || selection.rangeCount === 0 || selection.toString().trim() === '') return;
+                const range = selection.getRangeAt(0);
+                const container = contentRef.current;
+                if (!container || !container.contains(range.commonAncestorContainer)) return;
+                const highlightId = 'hl-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                try {
+                    const treeWalker = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT, { acceptNode: function(node) { if (!range.intersectsNode(node)) return NodeFilter.FILTER_REJECT; return NodeFilter.FILTER_ACCEPT; } });
+                    const nodesToHighlight = [];
+                    if (range.commonAncestorContainer.nodeType === Node.TEXT_NODE) { if (range.intersectsNode(range.commonAncestorContainer)) nodesToHighlight.push(range.commonAncestorContainer); }
+                    else { let currentNode = treeWalker.nextNode(); while (currentNode) { nodesToHighlight.push(currentNode); currentNode = treeWalker.nextNode(); } }
+                    nodesToHighlight.forEach(node => {
+                        const nodeRange = document.createRange(); nodeRange.selectNodeContents(node);
+                        if (node === range.startContainer) nodeRange.setStart(node, range.startOffset);
+                        if (node === range.endContainer) nodeRange.setEnd(node, range.endOffset);
+                        const text = nodeRange.toString();
+                        if (text.trim().length > 0) {
+                            const span = document.createElement('span');
+                            if (toolMode === 'highlight') span.className = `highlight ${currentHighlightColor}`;
+                            else span.className = `colored-text ${currentTextColor}`;
+                            span.setAttribute('data-group-id', highlightId);
+                            nodeRange.surroundContents(span);
+                        }
+                    });
+                    selection.removeAllRanges();
+                    saveCurrentPageState();
+                } catch (e) { console.log("Highlight failed", e); }
+            };
+
+            const handleContentClick = (e) => {
+                if (activeTab !== 'tool') return;
+                const target = e.target;
+                let shouldRemove = false;
+                if (toolMode === 'highlight' && target.classList.contains('highlight')) shouldRemove = true;
+                else if (toolMode === 'text' && target.classList.contains('colored-text')) shouldRemove = true;
+                if (shouldRemove) {
+                    const groupId = target.getAttribute('data-group-id');
+                    if (groupId) {
+                        const allSpans = contentRef.current.querySelectorAll(`span[data-group-id="${groupId}"]`);
+                        allSpans.forEach(span => {
+                            const text = span.textContent;
+                            const textNode = document.createTextNode(text);
+                            span.parentNode.replaceChild(textNode, span);
+                        });
+                        saveCurrentPageState();
+                    }
+                }
+            };
+
+            const goToPage = (idx) => {
+                saveCurrentPageState();
+                setCurrentPageIdx(idx);
+                window.scrollTo(0, 0);
+            };
+
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (step === 'preview') {
+                        if (e.key === 'ArrowLeft' && currentPageIdx > 0) goToPage(currentPageIdx - 1);
+                        else if (e.key === 'ArrowRight' && currentPageIdx < pages.length - 1) goToPage(currentPageIdx + 1);
+                    } else if (step === 'mockup' && !focusedFlyleaf) {
+                        if (e.key === 'ArrowLeft' && mockupSpreadIdx > 0) setMockupSpreadIdx(prev => prev - 1);
+                        else if (e.key === 'ArrowRight' && mockupSpreadIdx < spreads.length - 1) setMockupSpreadIdx(prev => prev + 1);
+                    }
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [step, currentPageIdx, pages.length, mockupSpreadIdx, focusedFlyleaf]);
+
+            const touchStartRef = useRef(null);
+            const touchEndRef = useRef(null);
+            const minSwipeDistance = 50;
+            const onTouchStart = (e) => { touchEndRef.current = null; touchStartRef.current = e.targetTouches[0].clientX; };
+            const onTouchMove = (e) => { touchEndRef.current = e.targetTouches[0].clientX; };
+            const onTouchEnd = () => {
+                if (activeTab === 'tool') {
+                    handleHighlightSelection();
+                    return; 
+                }
+                if (!touchStartRef.current || !touchEndRef.current) return;
+                const distance = touchStartRef.current - touchEndRef.current;
+                const isLeftSwipe = distance > minSwipeDistance;
+                const isRightSwipe = distance < -minSwipeDistance;
+                if (step === 'preview') {
+                    if (isLeftSwipe && currentPageIdx < pages.length - 1) goToPage(currentPageIdx + 1);
+                    if (isRightSwipe && currentPageIdx > 0) goToPage(currentPageIdx - 1);
+                } else if (step === 'mockup' && !focusedFlyleaf) {
+                    if (isLeftSwipe && mockupSpreadIdx < spreads.length - 1) setMockupSpreadIdx(prev => prev + 1);
+                    if (isRightSwipe && mockupSpreadIdx > 0) setMockupSpreadIdx(prev => prev - 1);
+                }
+            };
+
+            const backToEdit = () => {
+                if (window.confirm('형광펜/글자색이 모두 지워집니다. 수정 화면으로 가시겠습니까?')) {
+                    setStep('input'); setPages([]); setPageHighlights({}); setCurrentPageIdx(0); setActiveTab(null); window.scrollTo(0, 0);
+                    // Correct history
+                    window.history.pushState({ step: 'input' }, '');
+                }
+            };
+            const resetApp = () => {
+                if (window.confirm('작업 내용을 지우고 처음으로 돌아가시겠습니까?')) {
+                    setStep('input'); setPages([]); setPageHighlights({}); setTextInput(''); setMetadata({ ...metadata, title: '', author: '', producer: '' }); setActiveTab(null); window.scrollTo(0, 0);
+                    window.history.pushState({ step: 'input' }, '');
+                }
+            };
+
+            const downloadCurrentPage = async () => {
+                const target = document.getElementById('captureTarget');
+                if (!target) return;
+                const title = metadata.title || 'novel';
+                const fileName = `${title}_${currentPageIdx + 1}p.png`;
+                setLoadingMessage('저장 중...');
+                if(isMobile()) await new Promise(r => setTimeout(r, 300));
+
+                try {
+                    const fontCss = await prepareFontEmbedCSS(activeFont);
+                    await captureNode(target, fileName, 420, 600, fontCss);
+                } catch (error) {
+                    console.error('[다운로드] 실패:', error);
+                    alert('이미지 생성에 실패했습니다. 다시 시도해주세요.');
+                } finally {
+                    setLoadingMessage('');
+                }
+            };
+
+            const downloadAllPages = async () => {
+                if (isMobile()) return; 
+                if (!window.confirm(`총 ${pages.length}장의 이미지를 저장합니다.`)) return;
+                saveCurrentPageState();
+                const originalPageIdx = currentPageIdx;
+                window.scrollTo(0, 0);
+                try {
+                    await ensureFontsLoaded();
+                    const fontCss = await prepareFontEmbedCSS(activeFont);
+                    for (let i = 0; i < pages.length; i++) {
+                        setCurrentPageIdx(i);
+                        setLoadingMessage(`저장 중... (${i + 1}/${pages.length})`);
+                        setLoadingProgress(Math.floor(((i + 1) / pages.length) * 100));
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        const target = document.getElementById('captureTarget');
+                        if (target) {
+                            const fileName = `${metadata.title || 'novel'}_${String(i+1).padStart(3, '0')}p.png`;
+                            await captureNode(target, fileName, 420, 600, fontCss);
+                        }
+                    }
+                    alert("완료되었습니다.");
+                } catch (e) { console.error(e); alert("오류가 발생했습니다."); } finally { setLoadingMessage(''); setLoadingProgress(0); setCurrentPageIdx(originalPageIdx); }
+            };
+            
+            const downloadPDF = async () => {
+                if (!window.confirm(`총 ${pages.length}페이지를 PDF로 변환합니다.\n시간이 다소 소요될 수 있습니다.`)) return;
+                saveCurrentPageState();
+                const originalPageIdx = currentPageIdx;
+                try {
+                    setLoadingMessage('PDF 생성 준비 중...');
+                    await ensureFontsLoaded();
+                    const fontCss = await prepareFontEmbedCSS(activeFont);
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: [105, 148] });
+
+                    for (let i = 0; i < pages.length; i++) {
+                        setCurrentPageIdx(i);
+                        setLoadingMessage(`페이지 렌더링 중... (${i + 1}/${pages.length})`);
+                        setLoadingProgress(Math.floor(((i + 1) / pages.length) * 100));
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        const target = document.getElementById('captureTarget');
+                        if (target) {
+                           const options = {
+                                quality: 1.0, pixelRatio: 2, cacheBust: false,
+                                width: 420, height: 600,
+                                style: { transform: 'none', margin: '0' },
+                                fontEmbedCSS: fontCss,
+                                filter: (node) => !node.classList || !node.classList.contains('no-capture')
+                            };
+                            const dataUrl = await htmlToImage.toPng(target, options);
+                            if (i > 0) doc.addPage();
+                            doc.addImage(dataUrl, 'PNG', 0, 0, 105, 148);
+                        }
+                    }
+                    doc.save(`${metadata.title || 'novel'}.pdf`);
+                    alert("PDF 저장이 완료되었습니다.");
+                } catch (e) { console.error(e); alert("PDF 생성 중 오류가 발생했습니다."); }
+                finally { setLoadingMessage(''); setLoadingProgress(0); setCurrentPageIdx(originalPageIdx); window.scrollTo(0,0); }
+            };
+
+            const getSpreads = useCallback(() => {
+                const spreadList = [];
+                spreadList.push({ left: { type: 'flyleaf-front' }, right: { type: 'page', index: 0 } });
+                let i = 1;
+                while (i < pages.length) {
+                    const left = { type: 'page', index: i };
+                    const right = (i + 1 < pages.length) ? { type: 'page', index: i + 1 } : null;
+                    if (!right) { spreadList.push({ left, right: { type: 'flyleaf-back' } }); } 
+                    else { spreadList.push({ left, right }); }
+                    i += 2;
+                }
+                return spreadList;
+            }, [pages.length]);
+
+            const spreads = getSpreads();
+
+            const goToMockup = () => {
+                saveCurrentPageState();
+                setMockupSpreadIdx(0);
+                updateStep('mockup');
+                setFocusedFlyleaf(null);
+                window.scrollTo(0,0);
+            };
+
+            const backToPreview = () => {
+                updateStep('preview');
+                window.scrollTo(0,0);
+            };
+
+            const downloadCurrentMockup = async () => {
+                const target = document.getElementById('mockupCaptureHidden'); 
+                if(!target) return;
+                const fileName = `${metadata.title || 'novel'}_mockup_${mockupSpreadIdx + 1}.png`;
+                setLoadingMessage('목업 저장 중...');
+                const fontCss = await prepareFontEmbedCSS(activeFont);
+                captureNode(target, fileName, 840, 600, fontCss).catch(e => { console.error(e); alert('실패'); }).finally(() => setLoadingMessage(''));
+            };
+
+            const downloadAllMockups = async () => {
+                if (isMobile()) return;
+                if (!window.confirm(`총 ${spreads.length}장의 목업 이미지를 저장합니다.`)) return;
+                const originalSpreadIdx = mockupSpreadIdx;
+                try {
+                    const fontCss = await prepareFontEmbedCSS(activeFont);
+                    for(let i=0; i<spreads.length; i++){
+                        setMockupSpreadIdx(i);
+                        setLoadingMessage(`목업 저장 중... (${i+1}/${spreads.length})`);
+                        await new Promise(r => setTimeout(r, 500));
+                        const target = document.getElementById('mockupCaptureHidden');
+                        if(target){
+                            const fileName = `${metadata.title || 'novel'}_mockup_${String(i+1).padStart(2,'0')}.png`;
+                            await captureNode(target, fileName, 840, 600, fontCss);
+                        }
+                    }
+                    alert("완료되었습니다.");
+                } catch(e) { console.error(e); alert("실패"); }
+                finally { setLoadingMessage(''); setMockupSpreadIdx(originalSpreadIdx); }
+            };
+
+            const handleFlyleafEdit = (type) => {
+                setFocusedFlyleaf(type);
+            };
+
+            const handleFlyleafModalChange = (e) => {
+                const val = e.target.value;
+                const lines = val.split('\n');
+                let text = val;
+                if (lines.length > 6) {
+                    text = lines.slice(0, 6).join('\n');
+                }
+                if (focusedFlyleaf === 'front') setFrontFlyleafText(text);
+                else if (focusedFlyleaf === 'back') setBackFlyleafText(text);
+            };
+
+            return (
+                <div className="min-h-screen font-serif" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+                    <div ref={measureContainerRef} className="hidden-measure"></div>
+
+                    {step === 'mockup' && (
+                        <div style={{ position: 'fixed', top: '-10000px', left: '-10000px' }}>
+                            <div id="mockupCaptureHidden" style={{ width: '840px', height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' }}>
+                                <MockupBookRenderer 
+                                    spreadIdx={mockupSpreadIdx} spreads={spreads} isCaptureMode={true} activeTheme={activeTheme} activeFont={activeFont}
+                                    frontFlyleafText={frontFlyleafText} setFrontFlyleafText={setFrontFlyleafText}
+                                    backFlyleafText={backFlyleafText} setBackFlyleafText={setBackFlyleafText}
+                                    pageHighlights={pageHighlights} pages={pages} metadata={metadata}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {focusedFlyleaf && (
+                        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setFocusedFlyleaf(null)}>
+                            <div className="bg-[#1a2233] p-8 rounded-lg shadow-2xl relative flex flex-col" onClick={e => e.stopPropagation()}>
+                                <div className="text-white/50 text-xs mb-4 text-center">
+                                    {focusedFlyleaf === 'front' ? '앞표지' : '뒤표지'} 속지 문구 입력 (최대 6줄)
+                                </div>
+                                <div className={`flex flex-col ${focusedFlyleaf === 'front' ? 'items-start text-left' : 'items-end text-right'}`}>
+                                    <div className={`w-[30px] h-px bg-white/50 mb-4`}></div>
+                                    <textarea
+                                        value={focusedFlyleaf === 'front' ? frontFlyleafText : backFlyleafText}
+                                        onChange={handleFlyleafModalChange}
+                                        className={`bg-transparent border-none text-white/90 focus:outline-none placeholder:text-white/20 resize-none ${focusedFlyleaf === 'front' ? 'text-left' : 'text-right'}`}
+                                        rows={6}
+                                        placeholder="문구를 입력하세요..."
+                                        autoFocus
+                                        style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 300, lineHeight: 1.6, fontSize: '16px', width: '240px' }}
+                                    />
+                                </div>
+                                <button onClick={() => setFocusedFlyleaf(null)} className="mt-8 w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded text-sm transition-colors">
+                                    완료
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {loadingMessage && (
+                        <div className="fixed inset-0 bg-black/70 text-white flex flex-col items-center justify-center z-[9999]">
+                            <div className="text-xl mb-4 font-light">{loadingMessage}</div>
+                            {loadingProgress > 0 && <div className="text-sm opacity-80">잠시만 기다려주세요 ({loadingProgress}%)</div>}
+                        </div>
+                    )}
+
+                    {step === 'input' && (
+                        <div className="max-w-[900px] mx-auto my-10 bg-white p-6 md:p-10 rounded-2xl shadow-sm">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 pb-2 gap-2">
+                                <div className="flex items-center gap-3">
+                                    <h1 className="text-2xl font-serif font-medium text-slate-800">소설 내지 생성기</h1>
+                                    <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-bold">v1.2.1</span>
+                                </div>
+                                
+                            </div>
+                            <div className="mb-4">
+                                <label className="block text-sm text-slate-500 mb-1">제목 (필요시 입력)</label>
+                                <input type="text" value={metadata.title} onChange={(e) => setMetadata({...metadata, title: e.target.value})} className="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all" placeholder="제목을 입력하세요" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label className="block text-sm text-slate-500 mb-1">캐릭터</label>
+                                    <input type="text" value={metadata.author} onChange={(e) => setMetadata({...metadata, author: e.target.value})} className="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-slate-500 mb-1">제작자</label>
+                                    <input type="text" value={metadata.producer} onChange={(e) => setMetadata({...metadata, producer: e.target.value})} className="w-full p-3 border rounded-lg bg-slate-50 focus:bg-white focus:ring-2 ring-slate-200 outline-none transition-all" />
+                                </div>
+                            </div>
+                            <div className="mb-4 relative group">
+                                <label className="block text-sm text-slate-500 mb-1 flex justify-between">
+                                    <span>본문 내용</span>
+                                    {estimatedPages > 0 && <span className="text-indigo-600 font-bold">예상 분량: 약 {estimatedPages} 페이지</span>}
+                                </label>
+                                <div className="relative">
+                                    {!textInput && (
+                                        <div className="custom-placeholder">
+                                            <p className="mb-4">여기에 소설 본문을 붙여넣으세요.<br/>엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.<br/>*** 를 입력하면 장면 전환(중앙 정렬)이 적용됩니다.</p>
+                                            <div className="mt-6 border-t border-slate-100 pt-4">
+                                                <strong className="block mb-2 text-indigo-400 text-xs">📢 2025.12.06 업데이트 안내 (v1.2.1)</strong>
+                                                <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-400">
+                                                    <strong className="block mb-2 text-xs">⬇️본문 입력창 하단 새 기능 추가</strong>
+                                                    <li><strong>특수기호 툴바:</strong> 까다로운 특수 기호를 한 번에 입력</li>
+                                                    <li><strong>따옴표 자동 변환</strong> 클릭 한 번으로 둥근따옴표 ↔️ 직선따옴표 한 번에 편리하게 오가며 변환</li>
+                                                    <li><strong>대사 자동 띄우기</strong> 클릭 한 번으로 대사 줄 띄우기</li>
+                                                    
+                                                    <strong className="block mb-2 text-xs">📱안드로이드 수정사항</strong>
+                                                    <li><strong>뒤로가기</strong> 물리 버튼에 팝업 경고문 추가</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <textarea 
+                                        ref={textareaRef}
+                                        value={textInput} 
+                                        onChange={(e) => setTextInput(e.target.value)} 
+                                        className="w-full h-[350px] md:h-[400px] p-6 border border-slate-200 rounded-t-lg focus:ring-2 focus:ring-indigo-100 outline-none transition-all resize-none font-serif leading-loose relative z-10 bg-transparent rounded-b-none border-b-0"
+                                    ></textarea>
+                                </div>
+                                
+                                <div className="flex items-center gap-12 px-6 py-2.5 bg-slate-100 border border-slate-200 border-t-0 rounded-b-lg w-full overflow-x-auto scrollbar-hide justify-center">
+                                    {[
+                                        { label: '“ ”', open: '“', close: '”', keepFocus: true },
+                                        { label: '‘ ’', open: '‘', close: '’', keepFocus: true },
+                                        { label: '…', val: '…', keepFocus: true },
+                                        { label: '―', val: '―', keepFocus: true },
+                                        { label: '***', val: '***', keepFocus: true }
+                                    ].map((item, idx) => (
+                                        <button 
+                                            key={idx}
+                                            onClick={() => item.open ? insertTextAtCursor(item.open + item.close, 1, item.keepFocus) : insertTextAtCursor(item.val, 0, item.keepFocus)}
+                                            className="text-slate-600 hover:text-indigo-600 text-sm font-serif font-medium transition-colors min-w-fit"
+                                        >
+                                            {item.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-2 mt-4 justify-center">
+                                     <button 
+                                        onClick={handleSmartQuoteToggle}
+                                        className={`px-4 py-2 rounded-full text-xs font-medium transition-all border shadow-sm ${isCurlyMode ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                                     >
+                                        {isCurlyMode ? '✨ 직선따옴표로 변환' : '🪄 둥근따옴표로 변환'}
+                                     </button>
+                                     <button 
+                                        onClick={handleSmartSpacingToggle}
+                                        className={`px-4 py-2 rounded-full text-xs font-medium transition-all border shadow-sm ${isAutoSpaceMode ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                                     >
+                                        {isAutoSpaceMode ? '📝 대사 간격 좁히기' : '📄 대사 자동 띄우기'}
+                                     </button>
+                                </div>
+                            </div>
+                            <button onClick={() => startGeneration(null)} disabled={isGenerating} className="btn w-full py-4 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-700 shadow-lg flex justify-center items-center gap-2 disabled:opacity-70">
+                                <span>{isGenerating ? '생성 중...' : 'A6 레이아웃 생성하기'}</span>
+                            </button>
+                              <footer className="max-w-4xl mx-auto px-6 py-8 text-slate-500 text-xs text-center leading-relaxed mt-12 border-t border-slate-200">
+                                <a 
+                                    href="https://yuliyulidaz.github.io/yulilog/" 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="inline-block px-4 py-1.5 rounded-full text-xs font-medium transition-all border shadow-sm bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+                                >
+                                    발췌 문구 생성기 바로가기
+                                </a>
+                                
+                                <div className="mt-8 space-y-4">
+                                    <p className="font-bold text-sm text-slate-700">📖 소설 내지 생성기 v1.2.1</p>
+                                    <p className="text-slate-500">본 사이트는 어떠한 개인정보도 수집하지 않습니다.<br/>모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
+                                    
+                                    <div className="pt-3 border-t border-slate-100 max-w-xl mx-auto">
+                                        <p className="font-semibold mb-2 text-slate-600">⚠️ 이용 시 주의사항</p>
+                                        <p className="text-slate-500 leading-relaxed">
+                                            <strong className="text-slate-600">텍스트 인용:</strong> 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요. · 
+                                            <strong className="text-slate-600">상업적 이용:</strong> 생성된 이미지는 상업적으로 사용할 수 없습니다.
+                                        </p>
+                                    </div>
+                                </div>
+                            </footer>
+                        </div>
+                    )}
+
+                    {step === 'preview' && (
+                        <div className="pb-20 bg-gray-100 min-h-screen">
+                            <div className="sticky top-0 z-50 bg-white shadow-sm">
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 max-w-2xl mx-auto w-full">
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={resetApp} className="flex flex-col items-center justify-center w-10 text-slate-500 hover:text-red-600 transition-colors">
+                                            <span className="text-xl leading-none">↺</span><span className="text-[9px] mt-0.5">초기화</span>
+                                        </button>
+                                        <button onClick={backToEdit} className="flex flex-col items-center justify-center w-10 text-slate-500 hover:text-indigo-600 transition-colors">
+                                            <span className="text-xl leading-none">✎</span><span className="text-[9px] mt-0.5">수정</span>
+                                        </button>
+                                        
+                                    </div>
+                                    <div className="flex items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                                        <button onClick={() => { if(currentPageIdx > 0) goToPage(currentPageIdx - 1) }} disabled={currentPageIdx === 0} className="text-slate-400 hover:text-slate-800 disabled:opacity-20 px-1">‹</button>
+                                        <span className="font-serif tabular-nums text-sm w-12 text-center text-slate-700">{currentPageIdx + 1} / {pages.length}</span>
+                                        <button onClick={() => { if(currentPageIdx < pages.length - 1) goToPage(currentPageIdx + 1) }} disabled={currentPageIdx === pages.length - 1} className="text-slate-400 hover:text-slate-800 disabled:opacity-20 px-1">›</button>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {/* <button onClick={downloadPDF} className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded text-xs font-medium hover:bg-slate-200 transition-colors">PDF</button> */}
+                                        <button onClick={goToMockup} className="flex flex-col items-center justify-center w-10 text-slate-500 hover:text-indigo-600 transition-colors">
+                                            <span className="text-xl leading-none">📖</span><span className="text-[9px] mt-0.5">목업</span>
+                                        </button>
+                                        {!isMobile() && (
+                                            <button onClick={downloadAllPages} className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded text-xs font-medium hover:bg-slate-200 transition-colors">
+                                                전체 이미지
+                                            </button>
+                                        )}
+                                        <button onClick={downloadCurrentPage} className="bg-slate-800 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-slate-700 shadow-sm">
+                                            {isIOS() ? '저장' : '저장'}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex border-b border-slate-200 max-w-2xl mx-auto w-full">
+                                    <button onClick={() => setActiveTab(activeTab === 'style' ? null : 'style')} className={`flex-1 py-3 text-xs font-medium flex items-center justify-center gap-2 transition-all ${activeTab === 'style' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/30' : 'text-slate-500 hover:bg-slate-50'}`}>
+                                        <span>🎨 스타일 설정</span>
+                                    </button>
+                                    <button onClick={() => setActiveTab(activeTab === 'tool' ? null : 'tool')} className={`flex-1 py-3 text-xs font-medium flex items-center justify-center gap-2 transition-all ${activeTab === 'tool' ? 'text-pink-600 border-b-2 border-pink-600 bg-pink-50/30' : 'text-slate-500 hover:bg-slate-50'}`}>
+                                        <span>🛠 도구</span>
+                                    </button>
+                                </div>
+                                {activeTab && (
+                                    <div className="bg-slate-50/80 backdrop-blur-sm border-b border-slate-200 animate-fade-in">
+                                        <div className="max-w-2xl mx-auto w-full p-4">
+                                            {activeTab === 'style' && (
+                                                <div className="flex flex-col gap-5 animate-slide-down">
+                                                    <div className="flex items-center justify-center gap-4">
+                                                        <span className="text-[10px] tracking-widest text-slate-400 font-bold">THEME</span>
+                                                        <div className="flex gap-3">
+                                                            {['white', 'cream', 'kraft', 'dark'].map(theme => (
+                                                                <button key={theme} onClick={() => setActiveTheme(theme)} className={`circle-btn theme-btn-${theme} ${activeTheme === theme ? 'active shadow-md' : ''}`} title={theme}></button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <div className="h-px bg-slate-200 w-full"></div>
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <div className="flex items-center gap-4">
+                                                            <span className="text-[10px] tracking-widest text-slate-400 font-bold">FONT</span>
+                                                            <div className="flex gap-1 bg-white p-1 rounded-lg border border-slate-200">
+                                                                {Object.keys(FONT_MAP).map(key => (
+                                                                    <button key={key} onClick={() => handleFontChange(key)} className={`px-3 py-1.5 text-xs rounded-md transition-all ${activeFont === key ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}>
+                                                                        {FONT_MAP[key].name}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-[10px] text-red-400 mt-1">⚠ 폰트 변경 시 형광펜이 초기화됩니다.</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {activeTab === 'tool' && (
+                                                <div className="flex flex-col items-center gap-3 animate-slide-down">
+                                                    <div className="flex bg-slate-200 rounded-lg p-1 mb-1">
+                                                       <button onClick={() => setToolMode('highlight')} className={`px-3 py-1 text-xs rounded-md transition-all ${toolMode === 'highlight' ? 'bg-white shadow-sm text-slate-800 font-medium' : 'text-slate-500'}`}>🖍 형광펜</button>
+                                                       <button onClick={() => setToolMode('text')} className={`px-3 py-1 text-xs rounded-md transition-all ${toolMode === 'text' ? 'bg-white shadow-sm text-slate-800 font-medium' : 'text-slate-500'}`}>✒️ 글자색</button>
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-500">💡 Tip: 폰트를 먼저 확정한 후 도구를 사용하세요.</p>
+                                                    {toolMode === 'highlight' ? (
+                                                        <div className="flex gap-4">
+                                                            {['highlight-yellow', 'highlight-pink', 'highlight-mint', 'highlight-blue'].map(color => (
+                                                                <button key={color} onClick={() => setCurrentHighlightColor(color)} className={`circle-btn ${color} ${currentHighlightColor === color ? 'border-slate-800 scale-110 shadow-sm' : ''}`}></button>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex gap-4">
+                                                            {[{ id: 'text-crimson', bg: 'bg-text-crimson' }, { id: 'text-navy', bg: 'bg-text-navy' }, { id: 'text-forest', bg: 'bg-text-forest' }, { id: 'text-purple', bg: 'bg-text-purple' }, { id: 'text-brown', bg: 'bg-text-brown' }, { id: 'text-teal', bg: 'bg-text-teal' }, { id: 'text-gray', bg: 'bg-text-gray' }].map(item => (
+                                                                <button key={item.id} onClick={() => setCurrentTextColor(item.id)} className={`circle-btn ${item.bg} ${currentTextColor === item.id ? 'border-slate-800 scale-110 shadow-sm' : ''}`}></button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    <p className="text-[10px] text-slate-400">드래그하여 적용, 터치하여 삭제</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div id="bookViewerWrapper" className="flex justify-center overflow-visible px-4 py-8 select-text cursor-text" onClick={() => {}}>
+                                <div ref={viewerRef} id="captureTarget" className={`page-container theme-${activeTheme}`} style={{ fontFamily: FONT_MAP[activeFont].family }}>
+                                    <PageContent 
+                                        pageIdx={currentPageIdx} 
+                                        pages={pages} 
+                                        pageHighlights={pageHighlights} 
+                                        metadata={metadata} 
+                                        activeFont={activeFont} 
+                                        onMouseUp={handleHighlightSelection} 
+                                        onClick={handleContentClick}
+                                        contentRef={contentRef}
+                                    />
+                                    <PageFooter pageIdx={currentPageIdx} metadata={metadata} />
+                                </div>
+                            </div>
+
+                            {currentPageIdx > 0 && (
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx - 1); }} 
+                                    className="fixed bottom-6 left-6 w-12 h-12 flex items-center justify-center bg-gray-800/30 hover:bg-gray-800/60 backdrop-blur-sm rounded-full text-white transition-all z-50 shadow-lg no-capture"
+                                    title="이전 페이지"
+                                >
+                                    <span className="text-2xl font-bold pb-1">‹</span>
+                                </button>
+                            )}
+                            {currentPageIdx < pages.length - 1 && (
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); goToPage(currentPageIdx + 1); }} 
+                                    className="fixed bottom-6 right-6 w-12 h-12 flex items-center justify-center bg-gray-800/30 hover:bg-gray-800/60 backdrop-blur-sm rounded-full text-white transition-all z-50 shadow-lg no-capture"
+                                    title="다음 페이지"
+                                >
+                                    <span className="text-2xl font-bold pb-1">›</span>
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+

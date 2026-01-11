@@ -1,0 +1,116 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#ffffff">
+    <title>소설 내지 이미지 생성기</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- 1. Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Noto Serif KR (본문 명조) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500&display=swap"
+        rel="stylesheet">
+    <!-- Gowun Batang (고운 바탕) -->
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Nanum Myeongjo (나눔 명조) -->
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet">
+    <!-- Hahmlet (함렛) -->
+    <link href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@100;200;300;400;500;600&display=swap"
+        rel="stylesheet">
+    <!-- Noto Sans KR (속지용 고딕) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100;300;400&display=swap" rel="stylesheet">
+
+    <!-- New Fonts Phase 2 -->
+    <!-- Ridibatang (리디바탕) via WebFontWorld -->
+    <link rel="stylesheet" href="https://webfontworld.github.io/ridibatang/Ridibatang.css">
+    <!-- Maru Buri (마루 부리) -->
+    <link rel="stylesheet" href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css">
+    <!-- Jeju Myeongjo (제주명조) -->
+    <link rel="stylesheet" href="//fonts.googleapis.com/earlyaccess/jejumyeongjo.css">
+
+    <!-- Mapo Flower Island (마포꽃섬) -->
+    <style>
+        @font-face {
+            font-family: 'MapoFlowerIslandA';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/MapoFlowerIslandA.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+    </style>
+
+    <!-- Kyobo Handwriting 2020 Park Doyeon (교보 손글씨 2020 박도연) -->
+    <style>
+        @font-face {
+            font-family: 'KyoboHandwriting2020A';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2112@1.0/KyoboHandwriting2020A.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+    </style>
+
+    <!-- 2. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 3. Libraries (React, ReactDOM, Babel, html-to-image) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.js"></script>
+
+    <link rel="stylesheet" href="css/style.css?v=2">
+
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script>
+        // Service Worker Disabled for Debugging
+        /*
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('SW registered');
+                        registration.update();
+                    })
+                    .catch(err => console.log('SW registration failed: ', err));
+            });
+        }
+        */
+        // Force unregister if exists
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                for (let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+    </script>
+
+    <!-- 4. Custom Scripts & Styles (Force Cache Clean) -->
+    <link rel="stylesheet" href="css/style.css?v=162">
+    <link rel="stylesheet" href="css/mobile.css?v=162">
+    <script type="text/babel" src="js/utils.js?v=162"></script>
+    <script type="text/babel" src="js/core.js?v=162"> </script>
+    <script type="text/babel" src="js/components.js?v=162"></script>
+
+    <!-- Mobile UI Modules -->
+    <script type="text/babel" src="js/mobile/MobileHeader.js?v=162"></script>
+    <script type="text/babel" src="js/mobile/MobileBottomNav.js?v=162"></script>
+    <script type="text/babel" src="js/mobile/MobileMenus.js?v=162"></script>
+    <script type="text/babel" src="js/mobile/MobileFlyleafModal.js?v=162"></script>
+    <script type="text/babel" src="js/mobile/MobileLayout.js?v=162"></script>
+
+    <script type="text/babel" src="js/views.js?v=162"></script>
+    <script type="text/babel" src="js/app.js?v=162"></script>
+</body>
+
+</html>
