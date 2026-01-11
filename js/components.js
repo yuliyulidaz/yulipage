@@ -224,23 +224,23 @@ window.MemoAlert = ({ config, onClose }) => {
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
             {/* Backdrop */}
-            <div className={`absolute inset-0 bg-black/5 transition-opacity duration-300 pointer-events-auto ${isIdle ? 'opacity-100' : 'opacity-0'}`} onClick={() => handleAction(() => { if (config.onCancel) config.onCancel(); })}></div>
+            <div className={`absolute inset-0 bg-white/50 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto ${isIdle ? 'opacity-100' : 'opacity-0'}`} onClick={() => handleAction(() => { if (config.onCancel) config.onCancel(); })}></div>
 
-            {/* Minimal Popup Card */}
-            <div className={`relative bg-white w-[280px] p-6 rounded-xl shadow-2xl border border-slate-100 pointer-events-auto flex flex-col items-center gap-4 ${baseClass} ${stateClass}`}>
-                <p className="text-center text-sm font-bold text-slate-700 leading-relaxed whitespace-pre-line">
+            {/* Mono Chic Popup Card */}
+            <div className={`relative bg-white w-[280px] p-6 rounded-xl shadow-2xl border border-[#1C1C1C] pointer-events-auto flex flex-col items-center gap-6 ${baseClass} ${stateClass}`}>
+                <p className="text-center text-sm font-bold text-[#1C1C1C] leading-relaxed whitespace-pre-line selection:bg-gray-200">
                     {config.message}
                 </p>
-                <div className="flex gap-4 w-full justify-center">
+                <div className="flex gap-3 w-full justify-center">
                     <button
                         onClick={(e) => { e.stopPropagation(); handleAction(() => config.onConfirm()); }}
-                        className="flex-1 py-2 bg-[#A47764] hover:bg-[#8D6655] text-white text-xs font-bold rounded-lg transition-all active:scale-95 shadow-sm"
+                        className="flex-1 py-2.5 bg-[#1C1C1C] hover:bg-black text-white text-xs font-bold rounded-lg transition-all active:scale-95 shadow-sm"
                     >
-                        불러오기
+                        확인
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); handleAction(() => { if (config.onCancel) config.onCancel(); }); }}
-                        className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-500 text-xs font-bold rounded-lg transition-all active:scale-95"
+                        className="flex-1 py-2.5 bg-white hover:bg-gray-50 text-[#1C1C1C] border border-[#1C1C1C] text-xs font-bold rounded-lg transition-all active:scale-95"
                     >
                         취소
                     </button>
@@ -253,9 +253,9 @@ window.MemoAlert = ({ config, onClose }) => {
 window.UndoSnackbar = ({ visible, onUndo }) => {
     if (!visible) return null;
     return (
-        <div className="absolute top-[70px] right-6 z-[70] bg-slate-900 text-white px-4 py-3 rounded shadow-lg flex items-center gap-4 text-xs animate-slide-down">
+        <div className="absolute top-[80px] left-1/2 -translate-x-1/2 z-[70] bg-white text-[#1C1C1C] border border-[#1C1C1C] px-6 py-3 rounded-full shadow-xl flex items-center gap-4 text-xs font-medium animate-slide-down">
             <span>삭제되었습니다.</span>
-            <button onClick={onUndo} className="font-bold text-yellow-400 hover:text-yellow-300 underline">실행 취소</button>
+            <button onClick={onUndo} className="font-bold text-[#1C1C1C] hover:underline">실행 취소</button>
         </div>
     );
 };
