@@ -47,11 +47,15 @@
 
         measureBox.style.fontWeight = '300';
 
-        // Typography Logic: A6 uses specific adjustments
+        // Typography Logic: Determine correct line height for P tags
+        const targetLineHeight = (pageSize === 'A6') ? '22px' : '1.8';
+        const targetTextIndent = (pageSize === 'A6') ? '12px' : '1em';
+        const targetLetterSpacing = (pageSize === 'A6') ? '-0.03em' : '-0.02em';
+
         if (pageSize === 'A6') {
             measureBox.style.lineHeight = '22px';
             measureBox.style.letterSpacing = '-0.03em';
-            measureBox.style.textIndent = '12px'; // Sync with CSS
+            measureBox.style.textIndent = '12px';
         } else {
             measureBox.style.lineHeight = '1.8';
             measureBox.style.letterSpacing = '-0.02em';
@@ -105,12 +109,14 @@
 
         const findSplitIndex = (text, availableHeight, isContinued) => {
             const tempP = document.createElement('p');
-            tempP.style.lineHeight = "1.8";
+            tempP.style.lineHeight = targetLineHeight; // Use synced value
             tempP.style.marginBottom = "0";
+            tempP.style.marginTop = "0"; // Explicit reset
+            tempP.style.letterSpacing = targetLetterSpacing; // Synced spacing
             tempP.style.fontFamily = fontConfig.family;
 
             if (isContinued) tempP.classList.add('continued');
-            else tempP.style.textIndent = '1em';
+            else tempP.style.textIndent = targetTextIndent; // Use synced value
 
             measureBox.appendChild(tempP);
 
@@ -153,9 +159,13 @@
 
             const item = queue.shift();
             const p = document.createElement('p');
-            p.style.lineHeight = "1.8";
-            p.style.marginBottom = "0"; // Critical match with renderer
+            p.style.lineHeight = targetLineHeight; // Use synced value
+            p.style.marginBottom = "0";
+            p.style.marginTop = "0"; // Explicit reset
+            p.style.letterSpacing = targetLetterSpacing; // Synced spacing
             p.style.fontFamily = fontConfig.family;
+
+            if (!item.isContinued) p.style.textIndent = targetTextIndent; // Synced indent
 
             const effectiveText = item.text === '' ? '\u00A0' : item.text;
             p.textContent = effectiveText;
@@ -166,7 +176,7 @@
             } else if (item.isContinued) {
                 p.classList.add('continued');
             } else {
-                p.style.textIndent = '1em';
+                // Indent logic handled above
             }
 
             measureBox.appendChild(p);

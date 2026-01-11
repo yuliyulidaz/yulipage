@@ -4,7 +4,7 @@
 // 2. Extracted Components (For Mockup & Preview)
 // ----------------------------------------------------------------------
 
-window.PageContent = ({ pageIdx, pages, pageHighlights, metadata, activeFont, onMouseUp, onClick, contentRef }) => {
+window.PageContent = ({ pageIdx, pages, pageHighlights, metadata, activeFont, onMouseUp, onClick, contentRef, pageSize = 'A6' }) => {
     const page = pages[pageIdx];
     if (!page) return null;
 
@@ -14,6 +14,7 @@ window.PageContent = ({ pageIdx, pages, pageHighlights, metadata, activeFont, on
                 ref={contentRef}
                 className="page-content"
                 onMouseUp={onMouseUp}
+                onTouchEnd={onMouseUp}
                 onClick={onClick}
                 dangerouslySetInnerHTML={{ __html: pageHighlights[pageIdx] }}
             />
@@ -22,8 +23,22 @@ window.PageContent = ({ pageIdx, pages, pageHighlights, metadata, activeFont, on
 
     const fontFamily = window.FONT_MAP[activeFont] ? window.FONT_MAP[activeFont].family : 'serif';
 
+    // STRICT TYPOGRAPHY ENFORCEMENT (Must match core.js calculator)
+    const isA6 = pageSize === 'A6';
+    const typography = isA6 ? {
+        fontSize: '12px',
+        lineHeight: '22px',
+        letterSpacing: '-0.03em',
+        textIndent: '12px'
+    } : {
+        fontSize: '11.5px', // Default/A5
+        lineHeight: '1.8',
+        letterSpacing: '-0.02em',
+        textIndent: '1em'
+    };
+
     return (
-        <div ref={contentRef} className="page-content" onMouseUp={onMouseUp} onClick={onClick} style={{ fontFamily }}>
+        <div ref={contentRef} className="page-content" onMouseUp={onMouseUp} onTouchEnd={onMouseUp} onClick={onClick} style={{ fontFamily, ...typography }}>
             {pageIdx === 0 && metadata.title && metadata.title.trim().length > 0 && (
                 <div style={{ height: `${window.LAYOUT_CONFIG.TITLE_PLACEHOLDER_HEIGHT}px`, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginBottom: `${window.LAYOUT_CONFIG.TITLE_PADDING_BOTTOM}px` }}>
                     <h1 className="text-2xl tracking-[0.1em] font-normal text-center px-4" style={{ fontFamily, lineHeight: 1.8, maxHeight: '80px', overflow: 'hidden', opacity: 0.8 }}>
@@ -33,7 +48,15 @@ window.PageContent = ({ pageIdx, pages, pageHighlights, metadata, activeFont, on
                 </div>
             )}
             {page.paragraphs.map((p, i) => (
-                <p key={i} className={p.isContinued ? 'continued' : ''} style={{ fontFamily, lineHeight: 1.8, marginBottom: 0, textAlign: p.isSceneBreak ? 'center' : undefined, textIndent: p.isSceneBreak ? '0' : undefined }}>
+                <p key={i}
+                    className={p.isContinued ? 'continued' : ''}
+                    style={{
+                        fontFamily,
+                        lineHeight: typography.lineHeight, // Enforce strict line height on P
+                        marginBottom: 0,
+                        textAlign: p.isSceneBreak ? 'center' : undefined,
+                        textIndent: p.isSceneBreak ? '0' : (p.isContinued ? 0 : typography.textIndent)
+                    }}>
                     {p.text}
                 </p>
             ))}

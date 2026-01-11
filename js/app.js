@@ -287,7 +287,25 @@
 
             if (!targetFont) window.history.pushState({ step: 'result' }, '');
 
-            setTimeout(() => {
+            if (!targetFont) window.history.pushState({ step: 'result' }, '');
+
+            // Ensure font is loaded before calculating
+            const runCalculation = async () => {
+                // Wait for Fonts
+                if (window.FONT_MAP[fontToUse]) {
+                    const fontStr = `12px ${window.FONT_MAP[fontToUse].family}`;
+                    try {
+                        await document.fonts.load(fontStr);
+                        // Also await general ready state just in case
+                        await document.fonts.ready;
+                    } catch (e) {
+                        console.warn("Font load wait failed", e);
+                    }
+                }
+
+                // Short delay to ensure browser layout update
+                await new Promise(r => setTimeout(r, 100));
+
                 const resultPages = window.calculatePages(txt, fontToUse, measureContainerRef.current, metadata, pageSize);
                 setPages(resultPages);
 
@@ -301,8 +319,8 @@
                 if (!targetFont) {
                     setStep('result');
                     if (window.isMobile() || window.innerWidth < 768) {
-                        setActiveTab('theme');
-                        setRenderedTab('theme');
+                        setActiveTab('style');
+                        setRenderedTab('style');
                         setStartTipVisible(true);
                         setTimeout(() => setStartTipVisible(false), 4000);
                     } else {
@@ -312,7 +330,9 @@
                 }
                 setIsGenerating(false);
                 if (!targetFont) setTimeout(() => window.scrollTo(0, 0), 100);
-            }, 400);
+            };
+
+            runCalculation();
         };
 
         const toggleTab = (tab, mode) => {
@@ -523,7 +543,7 @@
                     }
                 }
                 window.haptic.success();
-                setTimeout(() => setSaveToast(true), 500);
+                // setTimeout(() => setSaveToast(true), 500);
                 window.haptic.success();
                 // Success (No toast as requested)
             } catch (e) {
@@ -565,7 +585,7 @@
                     }
                 }
                 window.haptic.success();
-                setTimeout(() => setSaveToast(true), 500);
+                // setTimeout(() => setSaveToast(true), 500);
                 window.haptic.success();
                 // Success (No toast as requested)
             } catch (e) {

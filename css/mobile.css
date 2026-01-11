@@ -1,0 +1,94 @@
+/* ----------------------------------------------------------------- */
+/* MOBILE GLASSMORPHISM UI - New Modular CSS */
+/* ----------------------------------------------------------------- */
+.pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.pt-safe {
+    padding-top: env(safe-area-inset-top);
+}
+
+/* Transparent Glass Button (Header) */
+.glass-btn {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4b5563;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    cursor: pointer;
+}
+
+.glass-btn:active {
+    transform: scale(0.92);
+    background: rgba(255, 255, 255, 0.4);
+}
+
+/* Transparent Glass Pill (Page Indicator) */
+.glass-pill {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-radius: 9999px;
+    color: #334155;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Layer 2 Transition */
+.layer2-container {
+    transition: transform 0.3s cubic-bezier(0.33, 1, 0.68, 1), opacity 0.3s ease;
+}
+
+.layer2-visible {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.layer2-hidden {
+    transform: translateY(100%);
+    /* Completely slide down */
+    opacity: 0;
+    pointer-events: none;
+}
+
+@keyframes bounceSlight {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+.animate-bounce-slight {
+    animation: bounceSlight 1.5s infinite;
+}
+
+/* Slim Scrollbar hiding */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

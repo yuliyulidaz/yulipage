@@ -191,12 +191,13 @@ body {
     line-height: 22px !important;
     letter-spacing: -0.03em;
     text-align: justify;
-    text-justify: inter-character;
 }
 
 .size-a6 .page-content p {
     line-height: 22px !important;
     text-indent: 12px;
+    margin-bottom: 0 !important;
+    font-size: 12px !important;
 }
 
 .size-a6 .page-footer-area {

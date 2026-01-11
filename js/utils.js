@@ -64,7 +64,7 @@ window.useLayoutEffect = React.useLayoutEffect;
     };
 
     window.LAYOUT_CONFIG = {
-        SAFETY_MARGIN: 0, // Zero tolerance
+        SAFETY_MARGIN: 10, // Buffer reduced (Logic fixed)
         TITLE_PLACEHOLDER_HEIGHT: 200, // 200px reserved for title
         TITLE_PADDING_BOTTOM: 15, // Extra spacing
         FOOTER_HEIGHT: 15 // Absolute minimum footer

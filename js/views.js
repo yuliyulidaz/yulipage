@@ -454,20 +454,45 @@
     // ----------------------------------------------------------------------
     // ResultView Component (MONO CHIC THEME)
     // ----------------------------------------------------------------------
-    window.ResultView = ({
-        activeTab, renderedTab, onToggleTab, isLayer2Visible,
-        toolMode, setToolMode, // Props for desktop tools
-        highlightColor, setHighlightColor, textColor, setTextColor, // Colors
-        tipsShown, startTipVisible, metadata, pages, currentPageIdx, setCurrentPageIdx,
-        activeFont, onFontChange, activeTheme, onThemeChange,
-        pageSize, pageHighlights, mockupSpreadIdx, setMockupSpreadIdx, spreads,
-        frontFlyleafText, setFrontFlyleafText, backFlyleafText, setBackFlyleafText,
-        focusedFlyleaf, setFocusedFlyleaf, onEditFlyleaf,
-        onDownloadAll, onDownloadCurrent, onBack,
-        mobileContentRef, desktopContentRef, onContentClick, onMouseUp
-    }) => {
-        const isMobile = window.innerWidth < 1024;
+    window.ResultView = (props) => {
+        const {
+            activeTab, renderedTab, onToggleTab, isLayer2Visible,
+            toolMode, setToolMode, // Props for desktop tools
+            highlightColor, setHighlightColor, textColor, setTextColor, // Colors
+            tipsShown, startTipVisible, metadata, pages, currentPageIdx, setCurrentPageIdx,
+            activeFont, onFontChange, activeTheme, onThemeChange,
+            pageSize, pageHighlights, mockupSpreadIdx, setMockupSpreadIdx, spreads,
+            frontFlyleafText, setFrontFlyleafText, backFlyleafText, setBackFlyleafText,
+            focusedFlyleaf, setFocusedFlyleaf, onEditFlyleaf,
+            onDownloadAll, onDownloadCurrent, onBack,
+            mobileContentRef, desktopContentRef, onContentClick, onMouseUp
+        } = props;
+
+        const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+        useEffect(() => {
+            const handleResize = () => {
+                setIsMobile(window.innerWidth < 1024);
+            };
+            window.addEventListener('resize', handleResize);
+            return () => window.removeEventListener('resize', handleResize);
+        }, []);
+
+        // ----------------------------------------------------------------------
+        // [NEW] Mobile Layout Integration
+        // ----------------------------------------------------------------------
         const [pcTab, setPcTab] = useState('font'); // Default to Font
+
+        // Hooks must be unconditional
+        // ... (other hooks are fine if they are at top level)
+
+        // ----------------------------------------------------------------------
+        // [NEW] Mobile Layout Integration (Render Logic)
+        // ----------------------------------------------------------------------
+        if (isMobile && window.MobileLayout) {
+            return <window.MobileLayout {...props} />;
+        }
+
 
         const navItems = [
             { id: 'theme', icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>, label: '테마' },
@@ -609,7 +634,7 @@
                                     />
                                 ) : (
                                     <div id="captureTarget"
-                                        className={`page-container theme-${activeTheme} ${window.PAPER_SIZES[pageSize]?.className || ''} transition-all duration-300 shadow-sm border border-[#E5E5E5]`}
+                                        className={`page-container theme-${activeTheme} ${window.PAPER_SIZES[pageSize]?.className || ''} transition-all duration-300 shadow-sm`}
                                         style={{
                                             width: window.PAPER_SIZES[pageSize] ? window.PAPER_SIZES[pageSize].width : window.PAPER_SIZES['A6'].width,
                                             height: window.PAPER_SIZES[pageSize] ? window.PAPER_SIZES[pageSize].height : window.PAPER_SIZES['A6'].height,
@@ -622,6 +647,7 @@
                                         onClick={onContentClick}
                                     >
                                         <window.PageContent
+                                            pageSize={pageSize}
                                             pageIdx={currentPageIdx}
                                             pages={pages}
                                             pageHighlights={pageHighlights}
