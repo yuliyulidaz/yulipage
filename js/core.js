@@ -48,20 +48,39 @@
         measureBox.style.fontWeight = '300';
 
         // Typography Logic: Determine correct line height for P tags
-        const targetLineHeight = (pageSize === 'A6') ? '22px' : '1.8';
-        const targetTextIndent = (pageSize === 'A6') ? '12px' : '1em';
-        const targetLetterSpacing = (pageSize === 'A6') ? '-0.03em' : '-0.02em';
+        let targetLineHeight = '1.8';
+        let targetTextIndent = '1em';
+        let targetLetterSpacing = '-0.02em';
+        let targetFontSize = '11.5px';
 
         if (pageSize === 'A6') {
-            measureBox.style.lineHeight = '22px';
-            measureBox.style.letterSpacing = '-0.03em';
-            measureBox.style.textIndent = '12px';
+            targetFontSize = '12px';
+            targetLineHeight = '22px';
+            targetTextIndent = '12px';
+            targetLetterSpacing = '-0.03em';
+        } else if (pageSize === 'A5') {
+            targetFontSize = '14px';
+            targetLineHeight = '25px';
+            targetTextIndent = '14px';
+            targetLetterSpacing = '-0.02em';
+        } else if (pageSize === 'SHIN') {
+            targetFontSize = '13px';
+            targetLineHeight = '23px';
+            targetTextIndent = '13px';
+            targetLetterSpacing = '-0.03em';
+        }
+
+        measureBox.style.fontSize = targetFontSize;
+        measureBox.style.lineHeight = targetLineHeight;
+        measureBox.style.letterSpacing = targetLetterSpacing;
+        measureBox.style.textIndent = targetTextIndent;
+
+        if (pageSize === 'A6') {
             measureBox.style.textAlign = 'justify';
             measureBox.style.textJustify = 'inter-character';
         } else {
-            measureBox.style.lineHeight = '1.8';
-            measureBox.style.letterSpacing = '-0.02em';
-            measureBox.style.textIndent = '1em';
+            // For A5 and others, use standard justify if needed, or default
+            // measureBox.style.textAlign = 'justify'; 
         }
 
         measureBox.style.wordBreak = 'break-all'; // Maximize density
