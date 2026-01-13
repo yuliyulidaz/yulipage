@@ -138,8 +138,102 @@
     window.EditorPanel = EditorPanel;
 
     // ----------------------------------------------------------------------
+    // InfoModal Component [NEW]
+    // ----------------------------------------------------------------------
+    const InfoModal = ({ isOpen, onClose }) => {
+        const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+        useEffect(() => {
+            const handleResize = () => setIsMobile(window.innerWidth < 768);
+            window.addEventListener('resize', handleResize);
+            return () => window.removeEventListener('resize', handleResize);
+        }, []);
+
+        if (!isOpen) return null;
+
+        return (
+            <div className="fixed inset-0 z-[9999] flex items-end justify-center md:items-center px-4 md:px-0 pb-4 md:pb-0">
+                {/* Backdrop */}
+                <div
+                    className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+                    onClick={onClose}
+                ></div>
+
+                {/* Content Container */}
+                <div
+                    className={`
+                        bg-white relative flex flex-col overflow-hidden transition-all shadow-2xl
+                        ${isMobile
+                            ? 'w-full rounded-3xl animate-slide-up max-h-[85vh]'
+                            : 'w-[420px] rounded-2xl animate-fade-in'
+                        }
+                    `}
+                >
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-white sticky top-0 z-10">
+                        <h2 className="text-lg font-bold text-slate-800">소설 내지 이미지 생성기 v2.0.0</h2>
+                        <button onClick={onClose} className="p-2 -mr-2 text-slate-400 hover:text-slate-800 rounded-full hover:bg-slate-50 transition-colors">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    {/* Body */}
+                    <div className="p-6 overflow-y-auto text-sm text-slate-600 leading-relaxed custom-scrollbar">
+
+                        {/* 1. Intro */}
+                        <div className="mb-3">
+                            <p className="pb-1 mb-1">본 사이트는 어떠한 개인정보도 수집하지 않습니다. 모든 작업은 귀하의 브라우저에서만 이루어집니다.</p>
+                        </div>
+
+                        {/* 2. Warning */}
+                        <div className="mb-4">
+                            <p className="font-bold mb-2 flex items-center gap-1.5 text-slate-800">
+                                <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                이용 시 주의사항
+                            </p>
+                            <ul className="list-disc list-inside space-y-1.5 ml-1 text-slate-600">
+                                <li><span className="font-bold text-slate-700">텍스트 인용</span>: 저작권법상 허용 범위 내에서 사용하고 출처를 명시하세요.</li>
+                                <li><span className="font-bold text-slate-700">상업적 이용</span>: 생성된 이미지는 상업적으로 사용할 수 없습니다.</li>
+                            </ul>
+                        </div>
+
+                        {/* 3. Links */}
+                        <div className="flex gap-3">
+                            <a href="https://yuliyulidaz.github.io/yulilog/" target="_blank"
+                                className="flex items-center justify-between p-3 rounded-md border border-slate-300 hover:border-[#A47764] hover:text-[#A47764] transition-all group flex-1"
+                                style={{
+                                    backgroundImage: 'radial-gradient(#d1d5db 0.5px, transparent 0.5px)',
+                                    backgroundSize: '4px 4px',
+                                    backgroundColor: '#fff'
+                                }}
+                            >
+                                <span className="font-bold block text-sm bg-white/80 px-1 rounded backdrop-blur-[2px]">발췌 문구 생성기</span>
+                                <svg className="w-4 h-4 text-slate-400 group-hover:text-[#A47764] bg-white rounded-full" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                            </a>
+                            <a href="https://yulipomo.vercel.app/" target="_blank"
+                                className="flex items-center justify-between p-3 rounded-md border border-slate-300 hover:border-[#A47764] hover:text-[#A47764] transition-all group flex-1"
+                                style={{
+                                    backgroundImage: 'radial-gradient(#d1d5db 0.5px, transparent 0.5px)',
+                                    backgroundSize: '4px 4px',
+                                    backgroundColor: '#fff'
+                                }}
+                            >
+                                <span className="font-bold block text-sm bg-white/80 px-1 rounded backdrop-blur-[2px]">최애 뽀모도로</span>
+                                <svg className="w-4 h-4 text-slate-400 group-hover:text-[#A47764] bg-white rounded-full" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // ----------------------------------------------------------------------
     // InputView Component
     // ----------------------------------------------------------------------
+
     window.InputView = ({
         showUndo, onUndo, inputToast, onDelete,
         textInput, setTextInput, metadata, setMetadata,
@@ -147,13 +241,14 @@
         pageSize, setPageSize, onStartGeneration, textAreaRef
     }) => {
         const ghostRef = React.useRef(null);
-        const [isCurlyQuotes, setIsCurlyQuotes] = React.useState(false);
-        const [isSpacedDialogue, setIsSpacedDialogue] = React.useState(false);
-        const [estimatedPages, setEstimatedPages] = React.useState(0);
+        const [isCurlyQuotes, setIsCurlyQuotes] = useState(false);
+        const [isSpacedDialogue, setIsSpacedDialogue] = useState(false);
+        const [estimatedPages, setEstimatedPages] = useState(0);
+        const [showInfoModal, setShowInfoModal] = useState(false);
 
         // History Stack
-        const [history, setHistory] = React.useState([textInput]);
-        const [historyIndex, setHistoryIndex] = React.useState(0);
+        const [history, setHistory] = useState([textInput]);
+        const [historyIndex, setHistoryIndex] = useState(0);
 
         // Update history when text changes
         const addToHistory = (newText) => {
@@ -166,7 +261,7 @@
         };
 
         // Capture initial state for history
-        React.useEffect(() => {
+        useEffect(() => {
             if (history.length === 1 && history[0] === '' && textInput !== '') {
                 setHistory([textInput]);
             }
@@ -311,7 +406,7 @@
         };
 
         // Estimate pages debounced
-        React.useEffect(() => {
+        useEffect(() => {
             const timer = setTimeout(() => {
                 if (!window.calculatePages) return;
                 let measureBox = document.getElementById('measure-box');
@@ -357,7 +452,18 @@
                 {/* 1. Header (Fixed, Full Width Background, Constrained Content) */}
                 <div className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-100 z-[60]">
                     <div className="w-full max-w-3xl mx-auto h-full px-8 md:px-12 flex items-center justify-between">
-                        <h1 className="text-sm md:text-xl font-serif font-bold text-slate-800 truncate mr-2">소설 내지 이미지 생성기</h1>
+                        <div className="flex items-center gap-2 truncate mr-2">
+                            <h1 className="text-sm md:text-xl font-serif font-bold text-slate-800 truncate">소설 내지 이미지 생성기</h1>
+                            <button
+                                onClick={() => setShowInfoModal(true)}
+                                className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-100 flex-shrink-0"
+                                aria-label="정보"
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </button>
+                        </div>
                         <div className="flex items-center gap-3 flex-shrink-0">
                             {estimatedPages > 0 && <span className="text-xs font-bold text-slate-400">약 {estimatedPages}페이지 예상</span>}
                             <button
@@ -369,6 +475,9 @@
                         </div>
                     </div>
                 </div>
+
+                {/* Info Modal */}
+                <InfoModal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} />
 
                 {/* 2. Toolbar (Fixed, Full Width Background, Constrained Content) */}
                 <div className="fixed top-16 left-0 right-0 bg-white/95 backdrop-blur border-b border-slate-100 z-50 shadow-sm py-2 md:py-0 md:h-14">
@@ -426,19 +535,39 @@
                     </div>
                     <hr className="border-slate-100 mb-4 w-full" />
 
-                    {/* Real Textarea */}
-                    <textarea
-                        ref={textAreaRef}
-                        value={textInput}
-                        onChange={handleTextChange}
-                        onBlur={() => addToHistory(textInput)}
-                        placeholder="이곳에 소설 내용을 입력하세요..."
-                        className="w-full min-h-[500px] text-base leading-[1.8] text-slate-700 placeholder:text-slate-300 border-none p-0 focus:ring-0 bg-transparent resize-none font-serif outline-none overflow-hidden"
-                        spellCheck={false}
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                    ></textarea>
+                    {/* Wrapper for Relative Positioning */}
+                    <div className="relative w-full">
+                        {/* Rich Placeholder Overlay */}
+                        {!textInput && (
+                            <div className="absolute top-0 left-0 w-full z-0 pointer-events-none select-none">
+                                <div className="text-slate-300 leading-[1.8] font-serif text-base">
+                                    <p>여기에 소설 본문을 붙여넣으세요.</p>
+                                    <p>엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.</p>
+                                    <p>*** 를 입력하면 장면 전환 기호로 (중앙 정렬)이 적용됩니다.</p>
+                                </div>
+                                <strong className="block mb-2 text-indigo-400 text-base">📢 2026.01.15 업데이트 안내 (v2.0.0)</strong>
+                                <div className="text-slate-300 leading-[2.0] font-serif text-base">
+                                    <p><strong>· 입력창 전면 개편</strong> 기존 기능이 상단에 모두 고정, 텍스트 편집에 보다 더 집중할 수 있게 되었습니다.</p>
+                                    <p><strong>· A5 추가</strong> 조금 더 많은 텍스트를 넣을 수 있습니다.</p>
+                                    <p><strong>· 폰트 추가</strong> 제주명조, 산수국이 추가 되었습니다.</p>
+                                    <p><strong>· 형광펜, 글자색 추가</strong> 더 다양한 색으로 당신의 문장을 강조하세요.</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Real Textarea */}
+                        <textarea
+                            ref={textAreaRef}
+                            value={textInput}
+                            onChange={handleTextChange}
+                            onBlur={() => addToHistory(textInput)}
+                            className="w-full min-h-[500px] text-base leading-[1.8] text-slate-700 border-none p-0 focus:ring-0 bg-transparent resize-none font-serif outline-none overflow-hidden relative z-10"
+                            spellCheck={false}
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                        ></textarea>
+                    </div>
 
                     {/* Shadow (Ghost) Textarea for Height Verification */}
                     <textarea
@@ -565,7 +694,7 @@
 
 
                 {/* Main Body: Centered Layout */}
-                <div className="flex-1 flex flex-col items-center justify-center bg-[#FAFAFA] overflow-y-auto relative min-h-0 py-10">
+                <div className="flex-1 flex flex-col items-center justify-center bg-[#EAE8E3] overflow-y-auto relative min-h-0 py-10">
 
                     {/* Header: White (No Border) */}
                     {/* Header: Transparent, Minimal Buttons, Centered Page Count */}
@@ -720,7 +849,12 @@
                                         {['font', 'theme', 'highlight', 'text'].map(tab => (
                                             <button
                                                 key={tab}
-                                                onClick={() => setPcTab(tab)}
+                                                onClick={() => {
+                                                    setPcTab(tab);
+                                                    if (tab === 'highlight') setToolMode('highlight');
+                                                    else if (tab === 'text') setToolMode('text');
+                                                    else setToolMode(null);
+                                                }}
                                                 className={`flex-1 h-14 flex flex-col items-center justify-end pb-3 text-xs font-bold transition-all uppercase tracking-wider ${pcTab === tab ? 'text-[#1C1C1C]' : 'bg-white text-[#888888] hover:text-[#1C1C1C] hover:bg-gray-50'}`}
                                             >
                                                 {pcTab === tab && <div className="w-1 h-1 bg-[#1C1C1C] rounded-full mb-1"></div>}

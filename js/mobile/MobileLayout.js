@@ -136,7 +136,7 @@ window.MobileLayout = (props) => {
     const isMockup = activeTab === 'mockup';
 
     return (
-        <div className="flex flex-col h-screen bg-[#FDFBF7] overflow-hidden relative">
+        <div className="flex flex-col h-screen bg-[#EAE8E3] overflow-hidden relative">
             {/* 1. Header (Fixed) */}
             <window.MobileHeader
                 activeTab={activeTab}
