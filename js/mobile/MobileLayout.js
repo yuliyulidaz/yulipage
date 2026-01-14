@@ -150,7 +150,11 @@ window.MobileLayout = (props) => {
 
             {/* 2. Main Content (Centered & Scaled) */}
             {/* Dynamic Padding: Mockup needs standard pt-16. Tall pages (A5/Shin) in Preview need pt-60 to avoid header overlap. */}
-            <div className={`flex-1 flex items-center justify-center overflow-hidden pb-20 ${isMockup ? 'pt-16' : (pageSize === 'A5' || pageSize === 'SHIN' ? 'pt-60' : 'pt-16')}`}>
+            {/* User requested pb-35 (approx 140px). Using arbitrary value pb-[140px] */}
+            {/* Fix: Switch to flex-col items-center to ensure robust horizontal centering even with overflow. justify-start handles vertical top alignment. */}
+            {/* Updated Top Padding: pt-[70px] as requested. */}
+            {/* Fix: Mockup needs justify-center (vertical center). Normal pages need justify-start (top aligned). */}
+            <div className={`flex-1 flex flex-col items-center ${isMockup ? 'justify-center pt-0' : 'justify-start pt-[70px]'} overflow-y-auto overflow-x-hidden pb-[140px] ${!isMockup && pageSize !== 'A5' && pageSize !== 'SHIN' ? 'pt-16' : ''}`}>
                 {isMockup ? (
                     // Mockup View
                     <div key="mockup-view" className="w-full flex items-center justify-center p-4">

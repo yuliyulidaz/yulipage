@@ -530,9 +530,9 @@
                         <div className="hidden md:block w-px h-6 bg-slate-200 mx-1"></div>
 
                         {/* Group 2: Symbols, Quote Change, Spacing */}
-                        <div className="flex w-full md:w-auto items-center justify-start md:justify-end gap-1 md:gap-2">
+                        <div className="flex w-full md:w-auto items-center justify-start md:justify-end gap-1 md:gap-2 overflow-x-auto md:overflow-visible no-scrollbar px-1 md:px-0">
                             {/* Symbols */}
-                            <div className="flex items-center gap-1 font-serif text-slate-500">
+                            <div className="flex items-center gap-1 font-serif text-slate-500 flex-shrink-0">
                                 <button onClick={() => insertText('“ ”', -2)} className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded text-lg font-bold pb-1">“ ”</button>
                                 <button onClick={() => insertText('‘ ’', -2)} className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded text-lg font-bold pb-1">‘ ’</button>
                                 <button onClick={() => insertText('……')} className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded text-sm font-bold">…</button>
@@ -540,10 +540,10 @@
                                 <button onClick={() => insertText('***')} className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded text-sm font-bold">***</button>
                             </div>
 
-                            <div className="w-px h-4 bg-slate-200"></div>
+                            <div className="w-px h-4 bg-slate-200 flex-shrink-0"></div>
 
                             {/* Text Actions */}
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 flex-shrink-0 pr-4 md:pr-0">
                                 <button onClick={handleQuoteToggle} className={`flex items-center gap-1.5 text-xs font-bold transition-all whitespace-nowrap ${isCurlyQuotes ? 'text-[#1C1C1C]' : 'text-slate-500 hover:text-slate-800'}`}>따옴표변경</button>
                                 <button onClick={handleSpacingToggle} className={`flex items-center gap-1.5 text-xs font-bold transition-all whitespace-nowrap ${isSpacedDialogue ? 'text-[#1C1C1C]' : 'text-slate-500 hover:text-slate-800'}`}><svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" /></svg>대사간격</button>
                             </div>
