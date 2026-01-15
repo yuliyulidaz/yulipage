@@ -17,7 +17,7 @@ const FontMenu = ({ activeFont, setActiveFont }) => {
         { id: 'nanum', label: '나눔\n명조', family: 'Nanum Myeongjo' },
         { id: 'jeju', label: '제주\n명조', family: 'Jeju Myeongjo' },
         { id: 'gowun', label: '고운\n바탕', family: 'Gowun Batang' },
-        { id: 'ridi', label: '리디\n바탕', family: 'Ridibatang' },
+
         { id: 'maru', label: '마루\n부리', family: 'MaruBuri' },
         { id: 'hahmlet', label: '함렛', family: 'Hahmlet' },
         { id: 'diphylleia', label: '산수국', family: 'Diphylleia' }

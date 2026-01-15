@@ -99,16 +99,17 @@ window.MobileLayout = (props) => {
         const handleResize = () => {
             if (viewerRef.current) {
                 const screenWidth = window.innerWidth;
-                // Base width 420px (from mob.html) + some margin
-                // mob.html logic: scale = screenWidth / 460
-                const scale = Math.min(1, screenWidth / 440);
+                const paperWidth = parseInt(paperConfig.width, 10);
+                // Dynamic Scale: Screen Width / (Paper Width + Margins)
+                // Use a safe buffer (e.g. 30px) for left/right screen padding
+                const scale = Math.min(1, (screenWidth - 30) / paperWidth);
                 viewerRef.current.style.transform = `scale(${scale})`;
             }
         };
         handleResize();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, [activeTab]); // Re-run on tab change (mockup vs normal)
+    }, [activeTab, pageSize]); // Re-run on size change
 
     // Scale Logic for Mockup
     const mockupViewerRef = React.useRef(null);
@@ -116,9 +117,12 @@ window.MobileLayout = (props) => {
         const handleMockupResize = () => {
             if (mockupViewerRef.current) {
                 const screenWidth = window.innerWidth;
-                // Mockup Spread Width is approx 397 * 2 + margins = 800~900px
-                // Let's assume 880px safe width
-                const scale = Math.min(1, screenWidth / 880);
+                const paperWidth = parseInt(paperConfig.width, 10) || 397;
+                // Mockup Spread Width = (PaperWidth * 2) + Margins (~80px total approx)
+                // A6: 397*2 + 80 = 874
+                // A5: 559*2 + 80 = 1198
+                const spreadWidth = (paperWidth * 2) + 120; // Add generous buffer for shadows/padding
+                const scale = Math.min(1, screenWidth / spreadWidth);
                 mockupViewerRef.current.style.transform = `scale(${scale})`;
             }
         };
@@ -127,12 +131,12 @@ window.MobileLayout = (props) => {
             window.addEventListener('resize', handleMockupResize);
         }
         return () => window.removeEventListener('resize', handleMockupResize);
-    }, [activeTab]);
+    }, [activeTab, pageSize]); // Add pageSize dependency
 
     const isMockup = activeTab === 'mockup';
 
     return (
-        <div className="flex flex-col h-screen bg-[#FDFBF7] overflow-hidden relative">
+        <div className="flex flex-col h-screen bg-[#EAE8E3] overflow-hidden relative">
             {/* 1. Header (Fixed) */}
             <window.MobileHeader
                 activeTab={activeTab}
@@ -145,7 +149,12 @@ window.MobileLayout = (props) => {
             />
 
             {/* 2. Main Content (Centered & Scaled) */}
-            <div className="flex-1 flex items-center justify-center overflow-hidden pb-20 pt-16">
+            {/* Dynamic Padding: Mockup needs standard pt-16. Tall pages (A5/Shin) in Preview need pt-60 to avoid header overlap. */}
+            {/* User requested pb-35 (approx 140px). Using arbitrary value pb-[140px] */}
+            {/* Fix: Switch to flex-col items-center to ensure robust horizontal centering even with overflow. justify-start handles vertical top alignment. */}
+            {/* Updated Top Padding: pt-[70px] as requested. */}
+            {/* Fix: Mockup needs justify-center (vertical center). Normal pages need justify-start (top aligned). */}
+            <div className={`flex-1 flex flex-col items-center ${isMockup ? 'justify-center pt-0' : 'justify-start pt-[70px]'} overflow-y-auto overflow-x-hidden pb-[140px] ${!isMockup && pageSize !== 'A5' && pageSize !== 'SHIN' ? 'pt-16' : ''}`}>
                 {isMockup ? (
                     // Mockup View
                     <div key="mockup-view" className="w-full flex items-center justify-center p-4">
@@ -164,6 +173,7 @@ window.MobileLayout = (props) => {
                                     pages={pages}
                                     metadata={metadata}
                                     onEditFlyleaf={props.onEditFlyleaf}
+                                    pageSize={pageSize}
                                 />
                             )}
                         </div>
@@ -201,7 +211,7 @@ window.MobileLayout = (props) => {
                                 contentRef={mobileContentRef} // Redundant if ref attached to container, but PageContent uses it?
                             // check PageContent definition: it accepts contentRef?
                             />
-                            <window.PageFooter pageIdx={currentPageIdx} metadata={metadata} />
+                            <window.PageFooter pageIdx={currentPageIdx} metadata={metadata} pageSize={pageSize} />
                         </div>
                     </div>
                 )}

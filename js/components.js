@@ -8,6 +8,43 @@ window.PageContent = ({ pageIdx, pages, pageHighlights, metadata, activeFont, on
     const page = pages[pageIdx];
     if (!page) return null;
 
+    const fontFamily = window.FONT_MAP[activeFont] ? window.FONT_MAP[activeFont].family : 'serif';
+
+    // STRICT TYPOGRAPHY ENFORCEMENT (Must match core.js calculator)
+    const isA6 = pageSize === 'A6';
+    const isA5 = pageSize === 'A5';
+
+    let typography;
+    if (isA6) {
+        typography = {
+            fontSize: '12px',
+            lineHeight: '22px',
+            letterSpacing: '-0.03em',
+            textIndent: '12px'
+        };
+    } else if (isA5) {
+        typography = {
+            fontSize: '14px',
+            lineHeight: '25px',
+            letterSpacing: '-0.02em',
+            textIndent: '14px'
+        };
+    } else if (pageSize === 'SHIN') {
+        typography = {
+            fontSize: '13px',
+            lineHeight: '23px',
+            letterSpacing: '-0.03em',
+            textIndent: '13px'
+        };
+    } else {
+        typography = {
+            fontSize: '11.5px', // Default/Other
+            lineHeight: '1.8',
+            letterSpacing: '-0.02em',
+            textIndent: '1em'
+        };
+    }
+
     if (pageHighlights && pageHighlights[pageIdx]) {
         return (
             <div
@@ -16,35 +53,25 @@ window.PageContent = ({ pageIdx, pages, pageHighlights, metadata, activeFont, on
                 onMouseUp={onMouseUp}
                 onTouchEnd={onMouseUp}
                 onClick={onClick}
+                style={{ fontFamily, ...typography }}
                 dangerouslySetInnerHTML={{ __html: pageHighlights[pageIdx] }}
             />
         );
     }
 
-    const fontFamily = window.FONT_MAP[activeFont] ? window.FONT_MAP[activeFont].family : 'serif';
-
-    // STRICT TYPOGRAPHY ENFORCEMENT (Must match core.js calculator)
-    const isA6 = pageSize === 'A6';
-    const typography = isA6 ? {
-        fontSize: '12px',
-        lineHeight: '22px',
-        letterSpacing: '-0.03em',
-        textIndent: '12px'
-    } : {
-        fontSize: '11.5px', // Default/A5
-        lineHeight: '1.8',
-        letterSpacing: '-0.02em',
-        textIndent: '1em'
-    };
+    // Title Size Logic: Maintain hierarchy with body text
+    // A6 (12px body) -> 16px title (~1.33x)
+    // A5/SHIN (13-14px body) -> 19px title (~1.35x)
+    const titleFontSize = (pageSize === 'A5' || pageSize === 'SHIN') ? '19px' : '16px';
 
     return (
         <div ref={contentRef} className="page-content" onMouseUp={onMouseUp} onTouchEnd={onMouseUp} onClick={onClick} style={{ fontFamily, ...typography }}>
             {pageIdx === 0 && metadata.title && metadata.title.trim().length > 0 && (
                 <div style={{ height: `${window.LAYOUT_CONFIG.TITLE_PLACEHOLDER_HEIGHT}px`, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginBottom: `${window.LAYOUT_CONFIG.TITLE_PADDING_BOTTOM}px` }}>
-                    <h1 className="text-2xl tracking-[0.1em] font-normal text-center px-4" style={{ fontFamily, lineHeight: 1.8, maxHeight: '80px', overflow: 'hidden', opacity: 0.8 }}>
+                    <h1 className="font-normal text-center px-4" style={{ fontFamily, fontSize: titleFontSize, letterSpacing: '0.1em', lineHeight: 1.8, maxHeight: '70px', overflow: 'hidden', opacity: 0.8, textIndent: '0' }}>
                         {metadata.title}
                     </h1>
-                    <div className="w-8 h-[1px] bg-current opacity-30 mx-auto mt-6 mb-10"></div>
+                    <div className="w-8 h-[1px] bg-current opacity-30 mx-auto mt-14"></div>
                 </div>
             )}
             {page.paragraphs.map((p, i) => (
@@ -64,13 +91,60 @@ window.PageContent = ({ pageIdx, pages, pageHighlights, metadata, activeFont, on
     );
 };
 
-window.PageFooter = ({ pageIdx, isRight, metadata, activeFont }) => {
+window.PageFooter = ({ pageIdx, isRight, metadata, activeFont, pageSize }) => {
     const isOdd = (pageIdx + 1) % 2 !== 0;
     const alignRight = isRight !== undefined ? isRight : isOdd;
     const fontFamily = window.FONT_MAP[activeFont] ? window.FONT_MAP[activeFont].family : 'inherit';
 
+    // A5: 11px font size, 50px offset from bottom (absolute positioning handled via style props or flex logic)
+    // Actually, A5 footer needs specific styles. If A6 uses absolute, A5 should too for precision.
+    // However, the user request says "Inside bottom margin (50px)". 
+    // If we use absolute positioning here, we can enforce it.
+
+    const isA5 = pageSize === 'A5';
+    const isShin = pageSize === 'SHIN';
+
+    let footerStyle;
+
+    if (isA5) {
+        footerStyle = {
+            fontSize: '11px',
+            letterSpacing: '0.05em',
+            opacity: 0.5,
+            fontFamily,
+            position: 'absolute',
+            bottom: '60px',
+            left: '70px',
+            right: '70px',
+            display: 'flex',
+            alignItems: 'flex-end',
+            height: 'auto',
+            padding: '0',
+            margin: '0'
+        };
+    } else if (isShin) {
+        footerStyle = {
+            fontSize: '10px',
+            letterSpacing: '0.05em',
+            opacity: 0.5,
+            fontFamily,
+            position: 'absolute',
+            bottom: '45px',
+            left: '65px',
+            right: '65px',
+            display: 'flex',
+            alignItems: 'flex-end',
+            height: 'auto',
+            padding: '0',
+            margin: '0'
+        };
+    } else {
+        // Default (A6)
+        footerStyle = { fontSize: '9.5px', letterSpacing: '0.05em', opacity: 0.5, fontFamily };
+    }
+
     return (
-        <div className={`page-footer-area ${alignRight ? 'justify-end' : 'justify-start'}`} style={{ fontSize: '9.5px', letterSpacing: '0.05em', opacity: 0.5, fontFamily }}>
+        <div className={`page-footer-area ${alignRight ? 'justify-end' : 'justify-start'}`} style={footerStyle}>
             <div className={`flex items-center gap-2 ${alignRight ? 'flex-row' : 'flex-row-reverse'}`}>
                 {(metadata.producer || metadata.author) && (
                     <span>{[metadata.author, metadata.producer].filter(Boolean).join(' · ')}</span>
@@ -186,8 +260,8 @@ window.MockupBookRenderer = ({ spreadIdx, spreads, isCaptureMode = false, active
 
             return (
                 <div className={`mockup-page page-container theme-${activeTheme} ${sizeConfig.className}`} style={pageStyle}>
-                    <window.PageContent pageIdx={sideData.index} pages={pages} pageHighlights={pageHighlights} metadata={metadata} activeFont={activeFont} />
-                    <window.PageFooter pageIdx={sideData.index} isRight={isRight} metadata={metadata} />
+                    <window.PageContent pageIdx={sideData.index} pages={pages} pageHighlights={pageHighlights} metadata={metadata} activeFont={activeFont} pageSize={pageSize} />
+                    <window.PageFooter pageIdx={sideData.index} isRight={isRight} metadata={metadata} activeFont={activeFont} pageSize={pageSize} />
                     {isRight ? <div className="effect-gutter-right"></div> : <div className="effect-gutter-left"></div>}
                 </div>
             );

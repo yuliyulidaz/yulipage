@@ -45,28 +45,29 @@ window.useLayoutEffect = React.useLayoutEffect;
             label: 'A6 (105x148mm)',
             // Geometry (Styles) - Converted to PX (1mm = ~3.78px)
             width: '397px', height: '559px', // 105x148mm
-            paddingTop: '50px', paddingBottom: '70px', paddingLeft: '50px', paddingRight: '50px',
+            paddingTop: '50px', paddingBottom: '60px', paddingLeft: '50px', paddingRight: '50px',
             // Render Props
             className: 'size-a6'
         },
         'A5': {
             label: 'A5 (148x210mm)',
             width: '559px', height: '794px', // 148x210mm
-            paddingTop: '76px', paddingBottom: '34px', paddingLeft: '76px', paddingRight: '76px', // 20mm=76px, 9mm=34px
+            paddingTop: '70px', paddingBottom: '80px', paddingLeft: '70px', paddingRight: '70px',
             className: 'size-a5'
         },
-        'B5': {
-            label: 'B5 (182x257mm)',
-            width: '688px', height: '971px', // 182x257mm
-            paddingTop: '94px', paddingBottom: '76px', paddingLeft: '94px', paddingRight: '94px', // 25mm=94px, 20mm=76px
-            className: 'size-b5'
+        'SHIN': {
+            label: '신국판 (152x225mm)',
+            width: '575px', height: '850px', // 152x225mm
+            paddingTop: '65px', paddingBottom: '85px', paddingLeft: '65px', paddingRight: '65px',
+            className: 'size-shin',
+            hidden: true
         }
     };
 
     window.LAYOUT_CONFIG = {
         SAFETY_MARGIN: 10, // Buffer reduced (Logic fixed)
         TITLE_PLACEHOLDER_HEIGHT: 200, // 200px reserved for title
-        TITLE_PADDING_BOTTOM: 15, // Extra spacing
+        TITLE_PADDING_BOTTOM: 0, // Extra spacing removed
         FOOTER_HEIGHT: 15 // Absolute minimum footer
     };
 
@@ -75,7 +76,7 @@ window.useLayoutEffect = React.useLayoutEffect;
         'nanum': { name: '나눔명조', family: "'Nanum Myeongjo', serif", url: 'https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap' },
         'jeju': { name: '제주명조', family: "'Jeju Myeongjo', serif", url: '//fonts.googleapis.com/earlyaccess/jejumyeongjo.css' },
         'gowun': { name: '고운바탕', family: "'Gowun Batang', serif", url: 'https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap' },
-        'ridi': { name: '리디바탕', family: "'Ridibatang', serif", url: 'https://webfontworld.github.io/ridibatang/Ridibatang.css' },
+
         'maru': { name: '마루부리', family: "'MaruBuri', serif", url: 'https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css' },
         'hahmlet': { name: '함렛', family: "'Hahmlet', serif", url: 'https://fonts.googleapis.com/css2?family=Hahmlet:wght@100;200;300;400;500;600&display=swap' },
         'diphylleia': { name: '산수국', family: "'Diphylleia', serif", url: 'https://fonts.googleapis.com/css2?family=Diphylleia&display=swap' }
@@ -163,18 +164,25 @@ window.useLayoutEffect = React.useLayoutEffect;
         }
 
         if (window.isMobile()) {
+            // Warmup (Reduced delay to prevent gesture expiration on iOS)
             try { await htmlToImage.toBlob(node, options); } catch (e) { }
-            await new Promise(r => setTimeout(r, 200));
+            await new Promise(r => setTimeout(r, 50));
         }
 
         const blob = await htmlToImage.toBlob(node, options);
         if (!blob) throw new Error('Blob creation failed');
 
-        if (window.isIOS() && navigator.share && navigator.canShare) {
+        // iOS Share Logic (Web Share API Level 2)
+        // Force attempt: Some browsers return false for canShare but still work, or we want to know why it fails.
+        if (window.isIOS() && navigator.share) {
             const file = new File([blob], fileName, { type: 'image/png' });
-            if (navigator.canShare({ files: [file] })) {
+            try {
                 await navigator.share({ files: [file], title: fileName });
-                return;
+                return; // Success
+            } catch (err) {
+                if (err.name === 'AbortError') return; // User cancelled
+                console.warn('Share failed, falling back to download:', err);
+                // Continue to download fallback
             }
         }
 

@@ -173,9 +173,11 @@ body {
     line-height: 1.8 !important;
     text-align: justify;
     letter-spacing: -0.02em;
-    word-break: break-all;
-    /* 단어 단위 줄바꿈 (한글은 글자 단위 유지) -> break-all로 변경 */
+    letter-spacing: -0.02em;
+    word-break: normal;
+    /* 기본 언어 규칙에 따른 줄바꿈 */
     overflow-wrap: anywhere;
+    font-weight: 300;
     font-weight: 300;
     cursor: text;
 }
