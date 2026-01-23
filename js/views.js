@@ -171,7 +171,7 @@
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-white sticky top-0 z-10">
-                        <h2 className="text-lg font-bold text-slate-800">소설 내지 이미지 생성기 v2.0.0</h2>
+                        <h2 className="text-lg font-bold text-slate-800">소설 내지 이미지 생성기 v2.0.1</h2>
                         <button onClick={onClose} className="p-2 -mr-2 text-slate-400 hover:text-slate-800 rounded-full hover:bg-slate-50 transition-colors">
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -573,12 +573,10 @@
                                     <p>엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.</p>
                                     <p>*** 를 입력하면 장면 전환 기호로 (중앙 정렬)이 적용됩니다.</p>
                                 </div>
-                                <strong className="block mb-2 text-indigo-400 text-base">📢 2026.01.15 업데이트 안내 (v2.0.0)</strong>
+                                <strong className="block mb-2 text-indigo-400 text-base">📢 2026.01.23 업데이트 안내 (v2.0.1)</strong>
                                 <div className="text-slate-300 leading-[2.0] font-serif text-base">
-                                    <p><strong>· 입력창 전면 개편</strong> 기존 기능이 상단에 모두 고정, 텍스트 편집에 보다 더 집중할 수 있게 되었습니다.</p>
-                                    <p><strong>· A5 추가</strong> 조금 더 많은 텍스트를 넣을 수 있습니다.</p>
-                                    <p><strong>· 폰트 추가</strong> 제주명조, 산수국이 추가 되었습니다.</p>
-                                    <p><strong>· 형광펜, 글자색 추가</strong> 더 다양한 색으로 당신의 문장을 강조하세요.</p>
+                                    <p><strong>· PC 모바일 편집 스크롤 개선</strong> PC에서 모바일 버전으로 편집 시, 글자색이 스크롤 되지 않던 오류를 해결했습니다.<br />마우스로 드래그하여 스크롤을 할 수 있습니다.</p>
+                                    <p><strong>· PDF 저장 추가</strong> PC버전에서 모든 페이지를 하나의 PDF 파일로 다운 받을 수 있습니다.</p>
                                 </div>
                             </div>
                         )}
