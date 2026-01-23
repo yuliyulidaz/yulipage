@@ -333,10 +333,24 @@
 
             if (newState) {
                 // To Curly
-                formatted = formatted.replace(/(")([^"]+)(")/g, "“$2”");
-                formatted = formatted.replace(/(')([^']+)(')/g, "‘$2’");
-                formatted = formatted.replace(/(^|[\s\(\[\{])"/g, '$1“');
-                formatted = formatted.replace(/'/g, '’');
+
+                // 1. English Apostrophe Pre-processing (Don't, I'm, 90's)
+                // Convert straight single quote between alphanumeric chars to closing curly quote
+                formatted = formatted.replace(/([a-zA-Z0-9])'([a-zA-Z0-9])/g, '$1’$2');
+
+                // 2. Sequential Double Quote Toggling
+                let openDouble = false;
+                formatted = formatted.replace(/"/g, () => {
+                    openDouble = !openDouble;
+                    return openDouble ? "“" : "”";
+                });
+
+                // 3. Sequential Single Quote Toggling (for remaining quotes)
+                let openSingle = false;
+                formatted = formatted.replace(/'/g, () => {
+                    openSingle = !openSingle;
+                    return openSingle ? "‘" : "’";
+                });
             } else {
                 // To Straight
                 formatted = formatted.replace(/[“”]/g, '"');
