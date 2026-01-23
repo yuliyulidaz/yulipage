@@ -759,6 +759,18 @@
                                 {activeTab === 'mockup' ? '편집 화면' : '목업'}
                             </button>
                             <div className="w-px h-3 bg-[#E5E5E5]"></div>
+                            {/* [NEW] PDF Download Button (PC Only) */}
+                            {activeTab !== 'mockup' && (
+                                <>
+                                    <button
+                                        onClick={onDownloadPDF}
+                                        className="text-xs font-bold text-[#888888] hover:text-[#1C1C1C] transition-colors"
+                                    >
+                                        PDF 저장
+                                    </button>
+                                    <div className="w-px h-3 bg-[#E5E5E5]"></div>
+                                </>
+                            )}
                             <button
                                 onClick={onDownloadCurrent}
                                 className="text-xs font-bold text-[#888888] hover:text-[#1C1C1C] transition-colors"

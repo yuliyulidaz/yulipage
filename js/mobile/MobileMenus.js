@@ -9,8 +9,70 @@ const GlassContainer = ({ children, className = "" }) => (
     </div>
 );
 
+// [NEW] Hook: Drag to Scroll (Mock Touch on PC)
+const useDragScroll = () => {
+    const ref = React.useRef(null);
+
+    React.useEffect(() => {
+        const slider = ref.current;
+        if (!slider) return;
+
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        const onMouseDown = (e) => {
+            isDown = true;
+            slider.classList.add('active');
+            startX = e.pageX - slider.offsetLeft;
+            scrollLeft = slider.scrollLeft;
+            slider.style.cursor = 'grabbing';
+        };
+
+        const onMouseLeave = () => {
+            isDown = false;
+            slider.classList.remove('active');
+            slider.style.cursor = 'grab';
+        };
+
+        const onMouseUp = () => {
+            isDown = false;
+            slider.classList.remove('active');
+            slider.style.cursor = 'grab';
+        };
+
+        const onMouseMove = (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - slider.offsetLeft;
+            const walk = (x - startX) * 2; // Scroll-fast
+            slider.scrollLeft = scrollLeft - walk;
+        };
+
+        // Attach events
+        slider.addEventListener('mousedown', onMouseDown);
+        slider.addEventListener('mouseleave', onMouseLeave);
+        slider.addEventListener('mouseup', onMouseUp);
+        slider.addEventListener('mousemove', onMouseMove);
+
+        // Accessability Initial Cursor
+        slider.style.cursor = 'grab';
+
+        return () => {
+            slider.removeEventListener('mousedown', onMouseDown);
+            slider.removeEventListener('mouseleave', onMouseLeave);
+            slider.removeEventListener('mouseup', onMouseUp);
+            slider.removeEventListener('mousemove', onMouseMove);
+        };
+    }, []);
+
+    return ref;
+};
+
 // [REDESIGNED] Font Menu: Floating Rounded Squares, Full List
 const FontMenu = ({ activeFont, setActiveFont }) => {
+    const scrollRef = useDragScroll();
+
     // Full PC Font List (Updated Sequence & Labels)
     const fonts = [
         { id: 'noto', label: '본문\n명조', family: 'Noto Serif KR' },
@@ -25,7 +87,7 @@ const FontMenu = ({ activeFont, setActiveFont }) => {
 
     return (
         <div className="flex flex-col items-center gap-1.5 w-full">
-            <div className="flex gap-2.5 px-4 py-1 justify-start overflow-x-auto no-scrollbar w-full max-w-sm mx-auto">
+            <div ref={scrollRef} className="flex gap-2.5 px-4 py-1 justify-start overflow-x-auto no-scrollbar w-full max-w-sm mx-auto cursor-grab active:cursor-grabbing">
                 {fonts.map(font => {
                     const isSelected = activeFont === font.id;
                     return (
@@ -130,6 +192,8 @@ const HighlightMenu = ({ onHighlight, activeHighlight }) => {
 };
 
 const ColorMenu = ({ onColor, activeColor }) => {
+    const scrollRef = useDragScroll();
+
     // 12 Colors from CSS
     const colors = [
         { id: 'text-crimson', color: '#be123c' },
@@ -149,7 +213,7 @@ const ColorMenu = ({ onColor, activeColor }) => {
     return (
         <div className="flex flex-col items-center gap-1.5 w-full">
             {/* Scrollable Floating Colors (Full 12) */}
-            <div className="flex gap-3 px-4 py-1 justify-start overflow-x-auto no-scrollbar w-full max-w-sm mx-auto">
+            <div ref={scrollRef} className="flex gap-3 px-4 py-1 justify-start overflow-x-auto no-scrollbar w-full max-w-sm mx-auto cursor-grab active:cursor-grabbing">
                 {colors.map(col => {
                     const isSelected = activeColor === col.id;
                     return (

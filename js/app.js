@@ -602,6 +602,99 @@
         };
 
 
+        const downloadAllAsPDF = async () => {
+            // Confirmation
+            if (!confirm('전체 페이지를 PDF로 저장하시겠습니까?')) return;
+
+            window.haptic.tap();
+            const originalPageIdx = currentPageIdx;
+            const originalSpreadIdx = mockupSpreadIdx;
+
+            // Initial Loading State
+            setLoadingMessage('PDF 생성 준비 중...');
+
+            try {
+                // Initialize jsPDF
+                const { jsPDF } = window.jspdf;
+                // Determine orientation based on paper size
+                // A6: 105 x 148, A5: 148 x 210
+                // Default portrait.
+                // We use pixel units for consistency with html-to-image or point units?
+                // jsPDF default is mm.
+
+                // Get Current Size Config
+                const sizeKey = pageSize;
+                const sizeConfig = window.PAPER_SIZES[sizeKey] || window.PAPER_SIZES['A6'];
+                // Clean mm units
+                const widthMm = parseInt(sizeConfig.width);
+                const heightMm = parseInt(sizeConfig.height);
+
+                // Create PDF
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: [widthMm, heightMm]
+                });
+
+                await window.ensureFontsLoaded();
+                const fontCss = await window.prepareFontEmbedCSS(activeFont);
+                const dateStr = getFormattedDate();
+
+                const total = pages.length;
+
+                for (let i = 0; i < total; i++) {
+                    setLoadingMessage(`PDF 생성 중... (${i + 1}/${total})`);
+
+                    // Render page on screen
+                    setCurrentPageIdx(i);
+                    await new Promise(r => setTimeout(r, 600)); // Wait for render
+
+                    const target = document.getElementById('captureTarget');
+                    if (target) {
+                        try {
+                            // High-Res Capture
+                            // For clearer text even in PDF, we can upscale.
+                            // But strict sizing is safer for exact PDF fit.
+                            // Let's use 2x scale which is standard in window.captureNode,
+                            // but here we need the dataURL directly.
+
+                            // Re-using html-to-image logic directly to get dataURL
+                            const dataUrl = await htmlToImage.toPng(target, {
+                                quality: 1.0,
+                                pixelRatio: 2, // Sharp text
+                                style: {
+                                    transform: 'none',
+                                    boxShadow: 'none',
+                                    margin: 0
+                                },
+                                fontEmbedCSS: fontCss
+                            });
+
+                            if (i > 0) doc.addPage([widthMm, heightMm], 'portrait');
+
+                            // addImage(imageData, format, x, y, w, h)
+                            doc.addImage(dataUrl, 'PNG', 0, 0, widthMm, heightMm);
+
+                        } catch (err) {
+                            console.error(`Page ${i + 1} capture failed`, err);
+                        }
+                    }
+                }
+
+                window.haptic.success();
+                doc.save(`${dateStr}_yulilog_book.pdf`);
+
+            } catch (e) {
+                window.haptic.error();
+                console.error("PDF Fail:", e);
+                alert("PDF 저장 실패: " + e.message);
+            } finally {
+                setLoadingMessage('');
+                setCurrentPageIdx(originalPageIdx);
+                setMockupSpreadIdx(originalSpreadIdx);
+            }
+        };
+
 
         // -- Render --
         return (
@@ -695,6 +788,7 @@
                         onThemeChange={handleThemeChange}
                         onDownloadAll={downloadAllSequential}
                         onDownloadCurrent={downloadCurrent}
+                        onDownloadPDF={downloadAllAsPDF}
                         onBack={() => {
                             // Back logic
                             const container = mobileContentRef.current || desktopContentRef.current;
