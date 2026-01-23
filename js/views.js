@@ -591,6 +591,7 @@
                                 <div className="text-slate-300 leading-[2.0] font-serif text-base">
                                     <p><strong>· PC 모바일 편집 스크롤 개선</strong> PC에서 모바일 버전으로 편집 시, 글자색이 스크롤 되지 않던 오류를 해결했습니다.<br />마우스로 드래그하여 스크롤을 할 수 있습니다.</p>
                                     <p><strong>· PDF 저장 추가</strong> PC버전에서 모든 페이지를 하나의 PDF 파일로 다운 받을 수 있습니다.</p>
+                                    <p><strong>· 따옴표 변환 오류 수정</strong> 줄임말(Don't)과 인용구가 섞여 있을 때 발생하던 엉킴 현상을 해결했습니다. 보다 정확하게 변환됩니다.</p>
                                 </div>
                             </div>
                         )}
