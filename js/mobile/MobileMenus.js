@@ -152,6 +152,7 @@ const ThemeMenu = ({ activeTheme, setActiveTheme }) => {
 };
 
 const HighlightMenu = ({ onHighlight, activeHighlight }) => {
+    const scrollRef = window.useDragScroll();
     const highlights = [
         { id: 'highlight-yellow', color: '#ffecb3' },
         { id: 'highlight-pink', color: '#ffcdd2' },
@@ -168,7 +169,8 @@ const HighlightMenu = ({ onHighlight, activeHighlight }) => {
         <div className="flex flex-col items-center gap-1.5">
 
             {/* Floating Color Circles */}
-            <div className="flex gap-3 px-2 py-1 justify-center">
+            {/* Floating Color Circles - Horizontal Scroll */}
+            <div ref={scrollRef} className="flex gap-3 px-4 py-1 justify-start overflow-x-auto no-scrollbar w-full max-w-sm mx-auto cursor-grab active:cursor-grabbing">
                 {highlights.map(hl => {
                     const isSelected = activeHighlight === hl.id;
 
@@ -187,7 +189,7 @@ const HighlightMenu = ({ onHighlight, activeHighlight }) => {
                             <button
                                 key={hl.id}
                                 onClick={(e) => { e.stopPropagation(); onHighlight(hl.id); }}
-                                className={`w-8 h-8 rounded-full shadow-sm bg-white border border-slate-200 transition-transform flex items-center justify-center 
+                                className={`flex-shrink-0 w-8 h-8 rounded-full shadow-sm bg-white border border-slate-200 transition-transform flex items-center justify-center 
                                     ${isSelected
                                         ? 'scale-110 ring-2 ring-offset-1 ring-slate-400'
                                         : 'hover:scale-110 active:scale-95'
@@ -202,7 +204,7 @@ const HighlightMenu = ({ onHighlight, activeHighlight }) => {
                         <button
                             key={hl.id}
                             onClick={(e) => { e.stopPropagation(); onHighlight(hl.id); }}
-                            className={`w-8 h-8 rounded-full shadow-md transition-transform flex items-center justify-center 
+                            className={`flex-shrink-0 w-8 h-8 rounded-full shadow-md transition-transform flex items-center justify-center 
                                 ${isSelected
                                     ? 'scale-110 ring-2 ring-offset-1 ring-slate-300'
                                     : 'hover:scale-110 active:scale-95'
