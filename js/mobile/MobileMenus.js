@@ -152,7 +152,7 @@ const ThemeMenu = ({ activeTheme, setActiveTheme }) => {
 };
 
 const HighlightMenu = ({ onHighlight, activeHighlight }) => {
-    const scrollRef = window.useDragScroll();
+    const scrollRef = useDragScroll();
     const highlights = [
         { id: 'highlight-yellow', color: '#ffecb3' },
         { id: 'highlight-pink', color: '#ffcdd2' },
