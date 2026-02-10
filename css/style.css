@@ -55,6 +55,39 @@ body {
     /* Pastel Apricot */
 }
 
+/* 1. Ink Pen Style (Thin, elegant, navy) */
+.highlight-ink {
+    background: transparent;
+    /* Irregular thin line */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0,35 Q50,34 100,35 T200,35' stroke='%23475569' stroke-width='1.5' fill='none' stroke-linecap='round' opacity='0.9'/%3E%3C/svg%3E");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: bottom;
+    padding-bottom: 2px;
+}
+
+/* 2. Watercolor Drop Style (Thick, bottom-aligned, watery blue) */
+.highlight-drop {
+    background: linear-gradient(to top, rgba(56, 189, 248, 0.4) 0%, rgba(56, 189, 248, 0.1) 30%, transparent 70%);
+    background-position: bottom;
+    background-repeat: no-repeat;
+    background-size: 100% 40%;
+    /* Only heavy at bottom */
+    padding-bottom: 0px;
+}
+
+/* 3. Zigzag/Stitch Style (Dashed/Dotted, warm brown) */
+.highlight-zigzag {
+    background: transparent;
+    /* Dotted Stitch Line */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40' preserveAspectRatio='none'%3E%3Cpath d='M0,35 L40,35' stroke='%2378350f' stroke-width='2' stroke-dasharray='4,4' fill='none' opacity='0.8'/%3E%3C/svg%3E");
+    background-size: 40px 100%;
+    /* Repeat pattern */
+    background-repeat: repeat-x;
+    background-position: bottom;
+    padding-bottom: 4px;
+}
+
 
 
 /* 글자 색 스타일 */

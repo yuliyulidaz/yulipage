@@ -158,7 +158,10 @@ const HighlightMenu = ({ onHighlight, activeHighlight }) => {
         { id: 'highlight-mint', color: '#b9f6ca' },
         { id: 'highlight-blue', color: '#b3e5fc' },
         { id: 'highlight-lavender', color: '#e1bee7' },
-        { id: 'highlight-apricot', color: '#ffccbc' }
+        { id: 'highlight-apricot', color: '#ffccbc' },
+        { id: 'highlight-ink', icon: 'ink', label: 'Ink' },
+        { id: 'highlight-drop', icon: 'drop', label: 'Drop' },
+        { id: 'highlight-zigzag', icon: 'zigzag', label: 'Zigzag' }
     ];
 
     return (
@@ -168,6 +171,33 @@ const HighlightMenu = ({ onHighlight, activeHighlight }) => {
             <div className="flex gap-3 px-2 py-1 justify-center">
                 {highlights.map(hl => {
                     const isSelected = activeHighlight === hl.id;
+
+                    // Special Rendering for Icon-based Highlights
+                    if (hl.icon) {
+                        let renderIcon = null;
+                        if (hl.icon === 'ink') {
+                            renderIcon = <span className="text-slate-800 font-serif font-bold text-lg leading-none" style={{ borderBottom: '1.5px solid #475569' }}>A</span>;
+                        } else if (hl.icon === 'drop') {
+                            renderIcon = <span className="text-slate-800 font-serif font-bold text-lg leading-none" style={{ background: 'linear-gradient(to top, rgba(56, 189, 248, 0.5) 0%, transparent 50%)', paddingBottom: '2px' }}>A</span>;
+                        } else if (hl.icon === 'zigzag') {
+                            renderIcon = <span className="text-slate-800 font-serif font-bold text-lg leading-none" style={{ borderBottom: '2px dashed #78350f' }}>A</span>;
+                        }
+
+                        return (
+                            <button
+                                key={hl.id}
+                                onClick={(e) => { e.stopPropagation(); onHighlight(hl.id); }}
+                                className={`w-8 h-8 rounded-full shadow-sm bg-white border border-slate-200 transition-transform flex items-center justify-center 
+                                    ${isSelected
+                                        ? 'scale-110 ring-2 ring-offset-1 ring-slate-400'
+                                        : 'hover:scale-110 active:scale-95'
+                                    }`}
+                            >
+                                {renderIcon}
+                            </button>
+                        );
+                    }
+
                     return (
                         <button
                             key={hl.id}

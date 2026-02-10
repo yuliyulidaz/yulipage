@@ -27,6 +27,11 @@
         { key: 'highlight-pink', bg: 'bg-[#ffccbc]', label: 'Pink' },
         { key: 'highlight-mint', bg: 'bg-[#b2dfdb]', label: 'Mint' },
         { key: 'highlight-blue', bg: 'bg-[#bbdefb]', label: 'Blue' },
+        { key: 'highlight-lavender', bg: 'bg-[#e1bee7]', label: 'Lavender' },
+        { key: 'highlight-apricot', bg: 'bg-[#ffccbc]', label: 'Apricot' },
+        { key: 'highlight-ink', bg: 'bg-transparent', label: 'Ink', icon: 'ink' },
+        { key: 'highlight-drop', bg: 'bg-transparent', label: 'Drop', icon: 'drop' },
+        { key: 'highlight-zigzag', bg: 'bg-transparent', label: 'Zigzag', icon: 'zigzag' },
     ];
 
     const TEXT_COLORS = [
@@ -587,11 +592,9 @@
                                     <p>엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.</p>
                                     <p>*** 를 입력하면 장면 전환 기호로 (중앙 정렬)이 적용됩니다.</p>
                                 </div>
-                                <strong className="block mb-2 text-indigo-400 text-base">📢 2026.01.23 업데이트 안내 (v2.0.1)</strong>
+                                <strong className="block mb-2 text-indigo-400 text-base">📢 2026.02.11 업데이트 안내 (v2.0.2)</strong>
                                 <div className="text-slate-300 leading-[2.0] font-serif text-base">
-                                    <p><strong>· PC 모바일 편집 스크롤 개선</strong> PC에서 모바일 버전으로 편집 시, 글자색이 스크롤 되지 않던 오류를 해결했습니다.<br />마우스로 드래그하여 스크롤을 할 수 있습니다.</p>
-                                    <p><strong>· PDF 저장 추가</strong> PC버전에서 모든 페이지를 하나의 PDF 파일로 다운 받을 수 있습니다.</p>
-                                    <p><strong>· 따옴표 변환 오류 수정</strong> 줄임말(Don't)과 인용구가 섞여 있을 때 발생하던 엉킴 현상을 해결했습니다. 보다 정확하게 변환됩니다.</p>
+                                    <p><strong>· 3가지 밑줄 스타일 추가</strong> 형광펜 메뉴 내부에 잉크(Ink), 물감(Drop), 바느질(Zigzag) 스타일의 밑줄 기능이 추가되었습니다.</p>
                                 </div>
                             </div>
                         )}
@@ -981,13 +984,41 @@
                                                     🖍️ 드래그하여 적용, 터치하여 삭제
                                                 </div>
                                                 <div className="grid grid-cols-4 gap-y-4 place-items-center mt-2">
-                                                    {['highlight-yellow', 'highlight-pink', 'highlight-mint', 'highlight-blue', 'highlight-lavender', 'highlight-apricot'].map((color) => {
+                                                    {['highlight-yellow', 'highlight-pink', 'highlight-mint', 'highlight-blue', 'highlight-lavender', 'highlight-apricot', 'highlight-ink', 'highlight-drop', 'highlight-zigzag'].map((color) => {
                                                         const colorMap = {
                                                             'highlight-yellow': '#fff59d', 'highlight-pink': '#ffcce0', 'highlight-mint': '#b2dfdb',
-                                                            'highlight-blue': '#bbdefb', 'highlight-lavender': '#e0b0ff', 'highlight-apricot': '#ffcba4'
+                                                            'highlight-blue': '#bbdefb', 'highlight-lavender': '#e0b0ff', 'highlight-apricot': '#ffcba4',
+                                                            'highlight-ink': 'transparent', 'highlight-drop': 'transparent', 'highlight-zigzag': 'transparent'
                                                         };
                                                         const bg = colorMap[color];
                                                         const isActive = toolMode === 'highlight' && highlightColor === color;
+
+                                                        // Custom Icons
+                                                        if (['highlight-ink', 'highlight-drop', 'highlight-zigzag'].includes(color)) {
+                                                            let iconInner = null;
+                                                            if (color === 'highlight-ink') {
+                                                                iconInner = <span className="text-slate-700 font-serif font-bold text-lg leading-none" style={{ borderBottom: '1.5px solid #475569' }}>A</span>;
+                                                            } else if (color === 'highlight-drop') {
+                                                                iconInner = <span className="text-slate-700 font-serif font-bold text-lg leading-none" style={{ background: 'linear-gradient(to top, rgba(56, 189, 248, 0.5) 0%, transparent 50%)', paddingBottom: '2px' }}>A</span>;
+                                                            } else if (color === 'highlight-zigzag') {
+                                                                iconInner = <span className="text-slate-700 font-serif font-bold text-lg leading-none" style={{ borderBottom: '2px dashed #78350f' }}>A</span>;
+                                                            }
+
+                                                            return (
+                                                                <button
+                                                                    key={color}
+                                                                    onClick={() => {
+                                                                        if (isActive) { setToolMode(null); setHighlightColor(null); }
+                                                                        else { setToolMode('highlight'); setHighlightColor(color); }
+                                                                    }}
+                                                                    className={`w-9 h-9 rounded-full border shadow-sm transition-all flex items-center justify-center bg-white ${isActive ? 'ring-1 ring-gray-300 ring-offset-2 scale-110 border-transparent' : 'hover:scale-105 border-[#E5E5E5]'}`}
+                                                                    title={color}
+                                                                >
+                                                                    {iconInner}
+                                                                </button>
+                                                            );
+                                                        }
+
                                                         return (
                                                             <button
                                                                 key={color}
