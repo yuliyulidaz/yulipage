@@ -403,26 +403,8 @@ ${bodyHtml}
       compressionOptions: { level: 9 }
     });
 
-    // Share or Download
+    // Download
     const fileName = `${(title || 'untitled').replace(/[^a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ_\-\s]/g, '').trim()}.epub`;
-    const file = new File([blob], fileName, { type: 'application/epub+zip' });
-
-    // Try Web Share API first (mobile → native share sheet → Ridibooks etc.)
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({
-          files: [file],
-          title: title || 'EPUB',
-        });
-        return true;
-      } catch (e) {
-        // User cancelled share — not an error
-        if (e.name === 'AbortError') return true;
-        console.warn('Share failed, falling back to download:', e);
-      }
-    }
-
-    // Fallback: regular download (PC or unsupported browsers)
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

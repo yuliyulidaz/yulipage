@@ -488,13 +488,13 @@
                             </button>
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0">
-                            {estimatedPages > 0 && <span className="text-xs font-bold text-slate-400">약 {estimatedPages}페이지 예상</span>}
                             <button
                                 onClick={() => setShowEpubModal(true)}
                                 className="text-[#1C1C1C] hover:bg-slate-100 px-2 py-1 rounded-md text-xs font-bold transition-all active:scale-95 whitespace-nowrap"
                             >
                                 EPUB 저장
                             </button>
+                            {estimatedPages > 0 && <span className="text-xs font-bold text-slate-400">약 {estimatedPages}페이지</span>}
                             <button
                                 onClick={onStartGeneration}
                                 className="bg-[#1C1C1C] hover:bg-black text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-all shadow-md active:scale-95 whitespace-nowrap"
