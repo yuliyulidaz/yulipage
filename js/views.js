@@ -604,11 +604,13 @@
                                 </div>
                                 <strong className="block mb-2 text-indigo-400 text-base">📢 2026.02.24 업데이트 안내 (v2.1.0)</strong>
                                 <div className="text-slate-300 leading-[2.0] font-serif text-base mb-4">
-                                    <p><strong>📖 EPUB 내보내기</strong> 텍스트를 전자책(EPUB) 파일로 저장할 수 있습니다. 표지 이미지 첨부 가능(선택사항). 리디북스 등 전자책 뷰어에서 바로 열 수 있습니다.</p>
-                                </div>
-                                <strong className="block mb-2 text-indigo-400 text-base">📢 2026.02.11 업데이트 안내 (v2.0.2)</strong>
-                                <div className="text-slate-300 leading-[2.0] font-serif text-base">
-                                    <p><strong>· 3가지 밑줄 스타일 추가</strong> 형광펜 메뉴 내부에 잉크(Ink), 물감(Drop), 바느질(Zigzag) 스타일의 밑줄 기능이 추가되었습니다.</p>
+                                    <p><strong>📖 EPUB 파일로 저장하기</strong></p>
+                                    <p>이제 텍스트를 전자책(Epub) 파일로 저장할 수 있습니다.</p>
+                                    <p>현재 창 상단의 Epub 저장을 클릭하세요.</p>
+                                    <p>표지 이미지 첨부 가능(선택사항).</p>
+                                    <p>리디북스 등 전자책 뷰어에서 바로 열 수 있습니다.</p>
+                                    <p>전자책 뷰어의 기능들을 이용해 조금 더 체계적으로 소장할 수 있습니다.</p>
+                                    <p>전자책 뷰어의 TTS나 발췌 기능도 이용할 수 있습니다.</p>
                                 </div>
                             </div>
                         )}
