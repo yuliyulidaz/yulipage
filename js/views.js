@@ -176,7 +176,7 @@
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-white sticky top-0 z-10">
-                        <h2 className="text-lg font-bold text-slate-800">소설 내지 이미지 생성기 v2.0.2</h2>
+                        <h2 className="text-lg font-bold text-slate-800">소설 내지 이미지 생성기 v2.1.0</h2>
                         <button onClick={onClose} className="p-2 -mr-2 text-slate-400 hover:text-slate-800 rounded-full hover:bg-slate-50 transition-colors">
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -601,6 +601,10 @@
                                     <p>여기에 소설 본문을 붙여넣으세요.</p>
                                     <p>엔터로 줄바꿈을 하면 빈 줄이 적용됩니다.</p>
                                     <p>*** 를 입력하면 장면 전환 기호로 (중앙 정렬)이 적용됩니다.</p>
+                                </div>
+                                <strong className="block mb-2 text-indigo-400 text-base">📢 2026.02.24 업데이트 안내 (v2.1.0)</strong>
+                                <div className="text-slate-300 leading-[2.0] font-serif text-base mb-4">
+                                    <p><strong>📖 EPUB 내보내기</strong> 텍스트를 전자책(EPUB) 파일로 저장할 수 있습니다. 표지 이미지 첨부 가능(선택사항). 리디북스 등 전자책 뷰어에서 바로 열 수 있습니다.</p>
                                 </div>
                                 <strong className="block mb-2 text-indigo-400 text-base">📢 2026.02.11 업데이트 안내 (v2.0.2)</strong>
                                 <div className="text-slate-300 leading-[2.0] font-serif text-base">
